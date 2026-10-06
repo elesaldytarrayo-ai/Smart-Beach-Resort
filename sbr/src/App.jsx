@@ -11,9 +11,9 @@ import { supabase } from './supabase.js';
 import LoadingScreen from './app/LoadingScreen.jsx';
 
 // Public pages
-import HomePage       from './app/HomePage.jsx';
-import Login          from './app/Login.jsx';
-import Register       from './app/Register.jsx';
+import HomePage from './app/HomePage.jsx';
+import Login from './app/Login.jsx';
+import Register from './app/Register.jsx';
 import ForgotPassword from './app/ForgotPassword.jsx';
 
 // User pages
