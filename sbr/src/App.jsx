@@ -17,7 +17,7 @@ import Register from './app/Register.jsx';
 import ForgotPassword from './app/ForgotPassword.jsx';
 
 // User pages
-import User        from './app/user/User.jsx';
+import User from './app/user/User.jsx';
 import UserBooking from './app/user/UserBooking.jsx';
 import UserProfile from './app/user/UserProfile.jsx';
 
