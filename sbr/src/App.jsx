@@ -22,10 +22,10 @@ import UserBooking from './app/user/UserBooking.jsx';
 import UserProfile from './app/user/UserProfile.jsx';
 
 // Admin pages — nasa admin/ folder
-import Admin         from './app/admin/Admin.jsx';
-import AdminRooms    from './app/admin/AdminRooms.jsx';
-import AdminUsers    from './app/admin/AdminUsers.jsx';
-import AdminStaff    from './app/admin/AdminStaff.jsx';
+import Admin from './app/admin/Admin.jsx';
+import AdminRooms from './app/admin/AdminRooms.jsx';
+import AdminUsers from './app/admin/AdminUsers.jsx';
+import AdminStaff from './app/admin/AdminStaff.jsx';
 import AdminBookings from './app/admin/AdminBookings.jsx';
 import AdminPayments from './app/admin/AdminPayments.jsx';
 
