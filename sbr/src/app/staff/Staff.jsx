@@ -1,42 +1,34 @@
 /* ============================================================
    src/app/staff/Staff.jsx
-   Staff dashboard — pinapakita LAHAT ng rooms at bookings.
-   May NFC check-in, room status update, at auto-refresh.
+   Staff Dashboard — Front desk operations with StaffLayout.
    ============================================================ */
 
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 import { readNFC } from '../../nfc.js';
+import StaffLayout from './StaffLayout.jsx';
 
 const API = 'http://localhost:5000';
 
 export default function Staff() {
   const nav = useNavigate();
 
-  const [rooms,       setRooms]       = useState([]);
-  const [bookings,    setBookings]    = useState([]);
-  const [msg,         setMsg]         = useState('');
-  const [err,         setErr]         = useState('');
-  const [loading,     setLoading]     = useState(true);
-  const [lastRefresh, setLastRefresh] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  /* ------------------------------------------------------------
-     Load rooms + all bookings
-     ------------------------------------------------------------ */
   async function refresh() {
     try {
       setErr('');
 
-      // Rooms
       const { data: r, error: rErr } = await supabase
-        .from('rooms')
-        .select('*')
-        .order('room_number');
+        .from('rooms').select('*').order('room_number');
       if (rErr) throw rErr;
       setRooms(r || []);
 
-      // Recent bookings
       const { data: b, error: bErr } = await supabase
         .from('bookings')
         .select('*, profiles(full_name,email), rooms(room_number,room_type)')
@@ -44,8 +36,6 @@ export default function Staff() {
         .limit(20);
       if (bErr) throw bErr;
       setBookings(b || []);
-
-      setLastRefresh(new Date());
     } catch (e) {
       console.error('STAFF LOAD ERROR:', e);
       setErr(e.message);
@@ -60,26 +50,14 @@ export default function Staff() {
     return () => clearInterval(t);
   }, []);
 
-  /* ------------------------------------------------------------
-     Update room status
-     ------------------------------------------------------------ */
   async function updateRoomStatus(id, status) {
     setErr('');
     const { error } = await supabase
-      .from('rooms')
-      .update({ status })
-      .eq('id', id);
-
-    if (error) {
-      setErr(error.message);
-      return;
-    }
+      .from('rooms').update({ status }).eq('id', id);
+    if (error) return setErr(error.message);
     refresh();
   }
 
-  /* ------------------------------------------------------------
-     NFC check-in
-     ------------------------------------------------------------ */
   async function tapCheckIn() {
     setErr(''); setMsg('');
     const read = await readNFC();
@@ -96,168 +74,223 @@ export default function Staff() {
     });
     const json = await res.json();
     if (!json.ok) return setErr(json.error);
-    setMsg(`✅ Check-in verified for booking ${json.bookingId.slice(0, 8)}…`);
+    setMsg(`Check-in verified for booking ${json.bookingId.slice(0, 8)}…`);
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    nav('/login');
-  }
-
-  /* Counts */
   const roomCounts = {
-    all:         rooms.length,
-    available:   rooms.filter((r) => r.status === 'available').length,
-    occupied:    rooms.filter((r) => r.status === 'occupied').length,
+    all: rooms.length,
+    available: rooms.filter((r) => r.status === 'available').length,
+    occupied: rooms.filter((r) => r.status === 'occupied').length,
     maintenance: rooms.filter((r) => r.status === 'maintenance').length
   };
 
+  const todayCheckins = bookings.filter((b) =>
+    b.check_in === new Date().toISOString().slice(0, 10)
+  ).length;
+
   return (
-    <>
-      {/* ---------- Nav ---------- */}
-      <nav className="nav">
-        <div className="brand">
-          <span className="brand-icon">🏖️</span>
-          <span>SBR · Staff</span>
-        </div>
-        <div className="row" style={{ marginLeft: 'auto' }}>
-          <Link to="/staff">Dashboard</Link>
-          <Link to="/staff/reservations">Reservations</Link>
-          <button className="neu-button" onClick={logout}>Logout</button>
-        </div>
-      </nav>
+    <StaffLayout>
+      <div className="admin-welcome">
+        <h1>Staff Dashboard</h1>
+        <p>Front desk operations · Room management · NFC check-in</p>
+      </div>
 
-      <div className="page-pad">
-        {/* ---------- Hero ---------- */}
-        <section className="hero" style={{ padding: '32px', textAlign: 'left' }}>
-          <div className="hero-content">
-            <span style={{ fontSize: 36 }}>🏖️</span>
-            <h1 style={{ fontSize: 26, marginTop: 8 }}>Staff Dashboard</h1>
-            <p style={{ margin: 0, textAlign: 'left' }}>
-              Front desk · Room management · NFC check-in
-              {lastRefresh && (
-                <span className="muted"> · Last: {lastRefresh.toLocaleTimeString()}</span>
-              )}
-            </p>
-            <div className="row" style={{ marginTop: 16 }}>
-              <button className="neu-button primary" onClick={refresh}>🔄 Refresh</button>
-            </div>
+      {/* Mini stats */}
+      <div className="admin-mini-stats">
+        <div className="admin-mini-stat">
+          <div className="admin-mini-stat-icon blue">
+            <i className="fa-solid fa-bed"></i>
           </div>
-        </section>
-
-        {err && (
-          <div className="neu-card" style={{ borderLeft: '4px solid #e11d48', marginTop: 20 }}>
-            <strong style={{ color: '#e11d48' }}>⚠️ Error:</strong>
-            <p className="muted" style={{ marginTop: 6 }}>{err}</p>
+          <div className="admin-mini-stat-body">
+            <div className="admin-mini-stat-label">Total Rooms</div>
+            <div className="admin-mini-stat-value">{roomCounts.all}</div>
           </div>
-        )}
-
-        {/* ---------- Front Desk (NFC check-in) ---------- */}
-        <div className="neu-card" style={{ marginTop: 20 }}>
-          <div className="space-between">
-            <div>
-              <h2 style={{ marginBottom: 4 }}>Front Desk</h2>
-              <p className="muted">Tap the guest's NFC tag to verify check-in.</p>
-            </div>
-            <button className="neu-button primary" onClick={tapCheckIn}>
-              📶 Tap NFC to Check In
-            </button>
-          </div>
-          {msg && <p className="success-text" style={{ marginTop: 12 }}>{msg}</p>}
         </div>
-
-        {/* ---------- Room Stats ---------- */}
-        <div className="feature-grid" style={{ marginTop: 24 }}>
-          <MiniStat icon="🛏️" label="Total Rooms"  value={roomCounts.all} />
-          <MiniStat icon="✅" label="Available"    value={roomCounts.available} />
-          <MiniStat icon="🚫" label="Occupied"     value={roomCounts.occupied} />
-          <MiniStat icon="🔧" label="Maintenance"  value={roomCounts.maintenance} />
-        </div>
-
-        {/* ---------- Two-column layout ---------- */}
-        <div className="row" style={{ marginTop: 24 }}>
-          {/* Recent bookings */}
-          <div className="neu-card col">
-            <h3>Recent Bookings ({bookings.length})</h3>
-
-            {loading && <p className="muted">Loading…</p>}
-
-            {!loading && bookings.length === 0 && (
-              <p className="muted">Walang bookings sa database.</p>
-            )}
-
-            {bookings.slice(0, 8).map((b) => (
-              <div
-                key={b.id}
-                className="space-between"
-                style={{ padding: '10px 0', borderBottom: '1px solid #cfd6e4' }}
-              >
-                <div>
-                  <strong>Room {b.rooms?.room_number}</strong>
-                  <br />
-                  <span className="muted">{b.profiles?.full_name || 'Guest'}</span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className={`pill ${b.status}`}>{b.status}</span>
-                  <br />
-                  <span className={`pill ${b.payment_status}`} style={{ marginTop: 4 }}>
-                    {b.payment_status}
-                  </span>
-                </div>
-              </div>
-            ))}
+        <div className="admin-mini-stat">
+          <div className="admin-mini-stat-icon green">
+            <i className="fa-solid fa-circle-check"></i>
           </div>
-
-          {/* All rooms */}
-          <div className="neu-card col">
-            <h3>All Rooms ({rooms.length})</h3>
-
-            {loading && <p className="muted">Loading…</p>}
-
-            {!loading && rooms.length === 0 && (
-              <p className="muted">Walang rooms sa database. Hintayin ang admin.</p>
-            )}
-
-            {rooms.map((r) => (
-              <div
-                key={r.id}
-                className="space-between"
-                style={{ padding: '10px 0', borderBottom: '1px solid #cfd6e4' }}
-              >
-                <div>
-                  <strong>Room {r.room_number}</strong> — {r.room_type}
-                  <br />
-                  <span className="muted">₱{Number(r.price).toLocaleString()}/night</span>
-                </div>
-                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-                  <span className={`pill ${r.status}`}>{r.status}</span>
-                  <button
-                    className="neu-button"
-                    onClick={() =>
-                      updateRoomStatus(
-                        r.id,
-                        r.status === 'available' ? 'maintenance' : 'available'
-                      )
-                    }
-                  >
-                    {r.status === 'available' ? '→ Maint' : '→ Available'}
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="admin-mini-stat-body">
+            <div className="admin-mini-stat-label">Available</div>
+            <div className="admin-mini-stat-value">{roomCounts.available}</div>
+          </div>
+        </div>
+        <div className="admin-mini-stat">
+          <div className="admin-mini-stat-icon orange">
+            <i className="fa-solid fa-user-lock"></i>
+          </div>
+          <div className="admin-mini-stat-body">
+            <div className="admin-mini-stat-label">Occupied</div>
+            <div className="admin-mini-stat-value">{roomCounts.occupied}</div>
+          </div>
+        </div>
+        <div className="admin-mini-stat">
+          <div className="admin-mini-stat-icon purple">
+            <i className="fa-solid fa-calendar-check"></i>
+          </div>
+          <div className="admin-mini-stat-body">
+            <div className="admin-mini-stat-label">Today's Check-ins</div>
+            <div className="admin-mini-stat-value">{todayCheckins}</div>
           </div>
         </div>
       </div>
-    </>
-  );
-}
 
-function MiniStat({ icon, label, value }) {
-  return (
-    <div className="feature-card" style={{ padding: '16px 14px' }}>
-      <span className="feature-icon" style={{ fontSize: 24 }}>{icon}</span>
-      <p className="muted" style={{ fontSize: 12 }}>{label}</p>
-      <h2 style={{ color: 'var(--accent)' }}>{value}</h2>
-    </div>
+      {err && <p className="admin-error">{err}</p>}
+      {msg && <p className="admin-success">{msg}</p>}
+
+      {/* Front Desk NFC */}
+      <div className="admin-panel" style={{ marginBottom: 20 }}>
+        <div className="admin-panel-header">
+          <h3 className="admin-panel-title">
+            <i className="fa-solid fa-bell-concierge"></i> Front Desk
+          </h3>
+          <button className="app-btn app-btn-primary" onClick={tapCheckIn}>
+            <i className="fa-solid fa-wifi"></i> Tap NFC to Check-In
+          </button>
+        </div>
+        <div className="admin-info-banner">
+          <i className="fa-solid fa-circle-info"></i>
+          <div>
+            Tap the guest's NFC tag to verify check-in. Make sure the tag matches the room's NFC reader.
+          </div>
+        </div>
+      </div>
+
+      {/* Two-column: bookings + rooms */}
+      <div className="admin-dashboard-grid">
+        {/* Recent Bookings */}
+        <div className="admin-panel">
+          <div className="admin-panel-header">
+            <h3 className="admin-panel-title">
+              <i className="fa-solid fa-calendar-check"></i> Recent Bookings
+            </h3>
+          </div>
+
+          {loading && (
+            <div className="admin-loading">
+              <i className="fa-solid fa-spinner"></i> Loading…
+            </div>
+          )}
+
+          {!loading && bookings.length === 0 && (
+            <div className="admin-empty">
+              <i className="fa-solid fa-calendar-xmark"></i>
+              <div className="admin-empty-title">No bookings yet</div>
+              <div className="admin-empty-desc">
+                Bookings from guests will appear here.
+              </div>
+            </div>
+          )}
+
+          {!loading && bookings.length > 0 && (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Guest</th>
+                  <th>Room</th>
+                  <th>Dates</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.slice(0, 8).map((b) => (
+                  <tr key={b.id}>
+                    <td>
+                      <div className="cell-main">{b.profiles?.full_name || 'Guest'}</div>
+                      <div className="cell-sub">{b.profiles?.email || ''}</div>
+                    </td>
+                    <td>
+                      <div className="cell-main">Room {b.rooms?.room_number}</div>
+                      <div className="cell-sub">{b.rooms?.room_type}</div>
+                    </td>
+                    <td>
+                      <div className="cell-main" style={{ fontSize: 12 }}>
+                        <i className="fa-solid fa-calendar" style={{ marginRight: 6 }}></i>
+                        {b.check_in}
+                      </div>
+                      <div className="cell-sub">
+                        <i className="fa-solid fa-arrow-right" style={{ marginRight: 6 }}></i>
+                        {b.check_out}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`admin-pill ${b.status}`}>
+                        <i className={
+                          b.status === 'confirmed' ? 'fa-solid fa-ticket' :
+                          b.status === 'checked_out' ? 'fa-solid fa-door-open' :
+                          'fa-solid fa-clock'
+                        }></i>
+                        {b.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* All Rooms */}
+        <div className="admin-panel">
+          <div className="admin-panel-header">
+            <h3 className="admin-panel-title">
+              <i className="fa-solid fa-bed"></i> Room Status
+            </h3>
+          </div>
+
+          {loading && (
+            <div className="admin-loading">
+              <i className="fa-solid fa-spinner"></i> Loading…
+            </div>
+          )}
+
+          {!loading && rooms.length === 0 && (
+            <div className="admin-empty">
+              <i className="fa-solid fa-bed"></i>
+              <div className="admin-empty-title">No rooms yet</div>
+              <div className="admin-empty-desc">
+                Wait for admin to add rooms.
+              </div>
+            </div>
+          )}
+
+          {!loading && rooms.length > 0 && (
+            <div style={{ maxHeight: 500, overflowY: 'auto' }}>
+              {rooms.map((r) => (
+                <div
+                  key={r.id}
+                  className="space-between"
+                  style={{
+                    padding: '12px 0',
+                    borderBottom: '1px solid #f0f4f8'
+                  }}
+                >
+                  <div>
+                    <div className="cell-main">Room {r.room_number}</div>
+                    <div className="cell-sub">
+                      {r.room_type} · ₱{Number(r.price).toLocaleString()}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span className={`admin-pill ${r.status}`}>
+                      {r.status}
+                    </span>
+                    <button
+                      className="app-btn app-btn-secondary app-btn-sm"
+                      onClick={() => updateRoomStatus(
+                        r.id,
+                        r.status === 'available' ? 'maintenance' : 'available'
+                      )}
+                    >
+                      {r.status === 'available' ? '→ Maint' : '→ Available'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </StaffLayout>
   );
 }
