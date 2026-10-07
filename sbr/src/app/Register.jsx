@@ -16,8 +16,8 @@ export default function Register() {
     phone:     "",
     password:  "",
   });
-  const [err, setErr]         = useState("");
-  const [ok, setOk]           = useState("");
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
   const [loading, setLoading] = useState(false);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });

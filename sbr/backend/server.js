@@ -1,7 +1,6 @@
 /* ============================================================
-   backend/server.js
-   Express API for Smart Beach Resort.
-   FIX: Safe date handling para sa paid_at.
+   backend/server.js — FINAL VERSION
+   UPSERT everywhere. Walang .insert() sa payments table.
    ============================================================ */
 
 import express from 'express';
@@ -26,7 +25,7 @@ app.use(cors({
 }));
 
 /* ------------------------------------------------------------
-   Helper: Safe date conversion (defensive)
+   Date helper
    ------------------------------------------------------------ */
 function toISODate(value, fallbackNow = true) {
   if (!value && value !== 0) {
@@ -40,6 +39,60 @@ function toISODate(value, fallbackNow = true) {
   const parsed = new Date(value);
   if (!isNaN(parsed.getTime())) return parsed.toISOString();
   return fallbackNow ? new Date().toISOString() : null;
+}
+
+/* ------------------------------------------------------------
+   ⭐ BULLETPROOF PAYMENT SAVE
+   - Uses UPSERT (insert or update by booking_id)
+   - Ignores "duplicate key" errors if they somehow happen
+   - Never throws on duplicate
+   ------------------------------------------------------------ */
+async function savePayment({ bookingId, amount, method, paymentId, paidAt, payerInfo }) {
+  const paidAtISO = toISODate(paidAt);
+
+  console.log('💾 Upserting payment for booking:', bookingId);
+
+  const { error } = await supabaseAdmin
+    .from('payments')
+    .upsert(
+      {
+        booking_id:  bookingId,
+        amount:      Number(amount) || 0,
+        method:      method || 'paymongo',
+        status:      'paid',
+        reference:   paymentId || null,
+        paymongo_id: paymentId || null,
+        payer_info:  payerInfo || null,
+        currency:    'PHP',
+        paid_at:     paidAtISO
+      },
+      { onConflict: 'booking_id' }
+    );
+
+  // ⭐ SWALLOW duplicate error — payment already exists
+  if (error) {
+    if (error.code === '23505' || String(error.message).includes('duplicate')) {
+      console.log('ℹ️  Payment already exists — OK (no-op)');
+      return;
+    }
+    console.error('❌ savePayment error:', error);
+    throw new Error('Failed to save payment: ' + error.message);
+  }
+
+  console.log('✅ Payment saved (upsert)');
+}
+
+/* ------------------------------------------------------------
+   Confirm booking (paid + confirmed)
+   ------------------------------------------------------------ */
+async function confirmBooking(bookingId) {
+  const { error } = await supabaseAdmin
+    .from('bookings')
+    .update({ payment_status: 'paid', status: 'confirmed' })
+    .eq('id', bookingId);
+
+  if (error) throw new Error('Booking confirm failed: ' + error.message);
+  console.log('🟢 Booking confirmed:', bookingId);
 }
 
 /* ============================================================
@@ -59,31 +112,13 @@ app.post(
         const bookingId = attrs?.data?.attributes?.reference_number || attrs?.reference_number;
 
         if (bookingId) {
-          await supabaseAdmin
-            .from('bookings')
-            .update({ payment_status: 'paid', status: 'confirmed' })
-            .eq('id', bookingId);
+          await confirmBooking(bookingId);
 
           const amount = (attrs?.data?.attributes?.amount || 0) / 100;
           const paymentId = attrs?.data?.id || attrs?.id;
-          const paidAtISO = toISODate(attrs?.data?.attributes?.paid_at);
+          const paidAt = attrs?.data?.attributes?.paid_at;
 
-          const { data: existing } = await supabaseAdmin
-            .from('payments').select('id').eq('booking_id', bookingId).maybeSingle();
-
-          if (!existing) {
-            await supabaseAdmin.from('payments').insert({
-              booking_id:  bookingId,
-              amount,
-              method:      'paymongo',
-              status:      'paid',
-              reference:   paymentId,
-              paymongo_id: paymentId,
-              currency:    'PHP',
-              paid_at:     paidAtISO
-            });
-            console.log('✅ [Webhook] Payment saved');
-          }
+          await savePayment({ bookingId, amount, method: 'paymongo', paymentId, paidAt });
 
           const { data: booking } = await supabaseAdmin
             .from('bookings').select('room_id').eq('id', bookingId).single();
@@ -143,7 +178,7 @@ function requireRole(...roles) {
 }
 
 /* ------------------------------------------------------------
-   Health check
+   Health
    ------------------------------------------------------------ */
 app.get('/', (_req, res) => {
   res.json({
@@ -184,7 +219,7 @@ app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, 
 });
 
 /* ------------------------------------------------------------
-   CREATE PayMongo checkout session
+   CREATE PayMongo checkout
    ------------------------------------------------------------ */
 app.post('/api/payments/checkout', authUser, async (req, res) => {
   try {
@@ -222,7 +257,7 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
 });
 
 /* ------------------------------------------------------------
-   VERIFY payment → SAVE to payments table
+   VERIFY payment — AUTO-CONFIRM + SAVE (bulletproof)
    ------------------------------------------------------------ */
 app.post('/api/payments/verify', authUser, async (req, res) => {
   try {
@@ -240,10 +275,12 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
 
     if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
 
+    // ⭐ Idempotent: kung paid + confirmed na, ibalik agad
     if (booking.payment_status === 'paid' && booking.status === 'confirmed') {
+      console.log('   ✅ Already paid & confirmed — skipping');
       return res.json({
         ok: true, paid: true, alreadyPaid: true,
-        bookingId: booking.id, roomId: booking.room_id
+        bookingId: booking.id, roomId: booking.room_id, nfc: null
       });
     }
 
@@ -262,78 +299,58 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       });
     }
 
-    // 1. Update booking
-    console.log('🟢 Marking booking paid + confirmed...');
-    const { error: updErr } = await supabaseAdmin
-      .from('bookings')
-      .update({ payment_status: 'paid', status: 'confirmed' })
-      .eq('id', bookingId);
+    // 1. Confirm booking
+    await confirmBooking(bookingId);
 
-    if (updErr) throw new Error('Booking update failed: ' + updErr.message);
-
-    // 2. Save payment with SAFE date
-    const paidAtISO = toISODate(verify.paidAt);
-
-    const paymentData = {
-      booking_id:  bookingId,
-      amount:      verify.amount || booking.total_amount,
-      method:      verify.method || 'paymongo',
-      status:      'paid',
-      reference:   verify.paymentId,
-      paymongo_id: verify.paymentId,
-      payer_info:  verify.payerInfo,
-      currency:    'PHP',
-      paid_at:     paidAtISO
-    };
-
-    console.log('🟢 Saving payment to DB:', {
-      booking_id: paymentData.booking_id,
-      amount:     paymentData.amount,
-      method:     paymentData.method,
-      paid_at:    paymentData.paid_at
+    // 2. Save payment (bulletproof — never throws on duplicate)
+    await savePayment({
+      bookingId,
+      amount: verify.amount || booking.total_amount,
+      method: verify.method || 'paymongo',
+      paymentId: verify.paymentId,
+      paidAt: verify.paidAt,
+      payerInfo: verify.payerInfo
     });
 
-    const { data: existing } = await supabaseAdmin
-      .from('payments').select('id').eq('booking_id', bookingId).maybeSingle();
-
-    if (existing) {
-      const { error: updPayErr } = await supabaseAdmin
-        .from('payments').update(paymentData).eq('id', existing.id);
-      if (updPayErr) console.error('❌ Payment update:', updPayErr);
-      else console.log('✅ Payment updated');
-    } else {
-      const { data: inserted, error: insErr } = await supabaseAdmin
-        .from('payments').insert(paymentData).select().single();
-      if (insErr) {
-        console.error('❌ ❌ PAYMENT INSERT FAILED:', insErr);
-        throw new Error('Failed to save payment: ' + insErr.message);
-      }
-      console.log('✅ ✅ PAYMENT SAVED:', inserted.id);
-    }
-
-    // 3. Invalidate old NFC tokens
-    await supabaseAdmin
+    // 3. Check kung may active NFC token na
+    const { data: existingToken } = await supabaseAdmin
       .from('nfc_tokens')
-      .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
-      .eq('booking_id', bookingId).eq('status', 'active');
+      .select('id')
+      .eq('booking_id', bookingId)
+      .eq('purpose', 'check_in')
+      .eq('status', 'active')
+      .maybeSingle();
 
-    // 4. Generate new check-in token
-    const token = makeCheckInToken();
-    await supabaseAdmin.from('nfc_tokens').insert({
-      booking_id: bookingId,
-      room_id:    booking.room_id,
-      token_hash: token.hash,
-      purpose:    token.purpose,
-      status:     'active',
-      expires_at: token.expiresAt
-    });
+    let rawToken = null;
+
+    if (!existingToken) {
+      await supabaseAdmin
+        .from('nfc_tokens')
+        .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
+        .eq('booking_id', bookingId).eq('status', 'active');
+
+      const token = makeCheckInToken();
+      rawToken = token.raw;
+
+      await supabaseAdmin.from('nfc_tokens').insert({
+        booking_id: bookingId,
+        room_id:    booking.room_id,
+        token_hash: token.hash,
+        purpose:    token.purpose,
+        status:     'active',
+        expires_at: token.expiresAt
+      });
+      console.log('✅ NFC token issued');
+    } else {
+      console.log('   ℹ️  NFC token already exists');
+    }
 
     console.log('✅ DONE\n');
 
     res.json({
       ok: true, paid: true,
       bookingId: booking.id, roomId: booking.room_id,
-      nfc: { rawToken: token.raw, purpose: 'check_in' }
+      nfc: rawToken ? { rawToken, purpose: 'check_in' } : null
     });
   } catch (err) {
     console.error('❌ ❌ VERIFY ERROR:', err);
@@ -421,7 +438,7 @@ app.get('/api/staff/reservations', authUser, requireRole('staff', 'admin'), asyn
 });
 
 /* ------------------------------------------------------------
-   404 fallback
+   404
    ------------------------------------------------------------ */
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found', path: req.url });
