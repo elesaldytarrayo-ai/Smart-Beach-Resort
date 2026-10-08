@@ -1,15 +1,9 @@
-/* ============================================================
-   src/encryption.js
-   AES-256 symmetric encryption + decryption.
-   ============================================================ */
-
+// AES-256 symmetric encryption + decryption.
 import CryptoJS from 'crypto-js';
 
 const KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'default-key-change-me-32-chars!!';
 
-/* ------------------------------------------------------------
-   ENCRYPT — plain → cipher (bago i-save sa DB)
-   ------------------------------------------------------------ */
+// ENCRYPT — plain → cipher (before save on DB)
 export function encrypt(plain) {
   if (!plain && plain !== 0) return null;
   try {
@@ -20,16 +14,10 @@ export function encrypt(plain) {
   }
 }
 
-/* ------------------------------------------------------------
-   DECRYPT — cipher → plain (pagkatapos basahin mula sa DB)
-   ------------------------------------------------------------ */
+// DECRYPT — cipher → plain
 export function decrypt(cipher) {
   if (!cipher) return '';
-
-  // Kung plain text na (hindi encrypted), ibalik na lang
   if (typeof cipher !== 'string') return String(cipher);
-
-  // Ang AES ciphertext ay nagsisimula sa "U2FsdGVkX1" (base64 ng "Salted__")
   if (!cipher.startsWith('U2FsdGVkX1')) {
     return cipher;   // hindi encrypted, plain text na
   }
@@ -44,9 +32,7 @@ export function decrypt(cipher) {
   }
 }
 
-/* ------------------------------------------------------------
-   SAFE DECRYPT — hindi nag-e-error kahit ano ang input
-   ------------------------------------------------------------ */
+// SAFE DECRYPT
 export function safeDecrypt(cipher, fallback = '') {
   try {
     return decrypt(cipher) || fallback;
@@ -55,9 +41,7 @@ export function safeDecrypt(cipher, fallback = '') {
   }
 }
 
-/* ------------------------------------------------------------
-   ENCRYPT OBJECT — para sa payer_info, etc.
-   ------------------------------------------------------------ */
+// ENCRYPT OBJECT
 export function encryptObject(obj) {
   if (!obj) return null;
   return encrypt(JSON.stringify(obj));
