@@ -1,8 +1,3 @@
-/* ============================================================
-   backend/supabaseAdmin.js
-   Server-only Supabase client with service role key.
-   ============================================================ */
-
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
@@ -18,14 +13,14 @@ dotenv.config({ path: resolve(__dirname, '..', '.env') });
 const URL = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-console.log('🔍 Debug supabaseAdmin.js:');
-console.log('   SUPABASE_URL:', URL ? `✅ ${URL.slice(0, 30)}…` : '❌ MISSING');
-console.log('   SERVICE_ROLE_KEY:', KEY ? `✅ ${KEY.slice(0, 20)}…` : '❌ MISSING');
+console.log(' Debug supabaseAdmin.js:');
+console.log(' SUPABASE_URL:', URL ? `✅ ${URL.slice(0, 30)}…` : '❌ MISSING');
+console.log(' SERVICE_ROLE_KEY:', KEY ? `✅ ${KEY.slice(0, 20)}…` : '❌ MISSING');
 
 if (!URL) {
   console.error('\n❌ SUPABASE_URL is missing in sbr/.env');
-  console.error('   Check kung may .env file sa:');
-  console.error('   C:\\Users\\ADMIN\\Documents\\GitHub\\Smart-Beach-Resort\\sbr\\.env');
+  console.error(' Check kung may .env file sa:');
+  console.error(' C:\\Users\\ADMIN\\Documents\\GitHub\\Smart-Beach-Resort\\sbr\\.env');
   process.exit(1);
 }
 

@@ -7,27 +7,22 @@
 import 'dotenv/config';
 
 const PAYMONGO_SECRET = process.env.PAYMONGO_SECRET_KEY;
-const PAYMONGO_API    = 'https://api.paymongo.com/v1';
-const FRONTEND_URL    = process.env.FRONTEND_URL || 'http://localhost:5173';
+const PAYMONGO_API = 'https://api.paymongo.com/v1';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-/* ------------------------------------------------------------
-   Basic auth header
-   ------------------------------------------------------------ */
+// Basic auth header
 function authHeader() {
   if (!PAYMONGO_SECRET) throw new Error('PAYMONGO_SECRET_KEY is missing in .env');
   const token = Buffer.from(`${PAYMONGO_SECRET}:`).toString('base64');
   return `Basic ${token}`;
 }
 
-/* ------------------------------------------------------------
-   Helper: Safe Unix timestamp / string → ISO string
-   ------------------------------------------------------------ */
+// Helper: Safe Unix timestamp / string → ISO string
 function toISODate(value, fallbackNow = true) {
   if (!value && value !== 0) {
     return fallbackNow ? new Date().toISOString() : null;
   }
 
-  // Kung number (Unix timestamp) ito
   const num = Number(value);
   if (!isNaN(num) && num > 0) {
     // Unix SECONDS (< 1e12) o MILLISECONDS (>= 1e12)
@@ -35,16 +30,13 @@ function toISODate(value, fallbackNow = true) {
     return new Date(num).toISOString();
   }
 
-  // Kung string date ito
   const parsed = new Date(value);
   if (!isNaN(parsed.getTime())) return parsed.toISOString();
 
   return fallbackNow ? new Date().toISOString() : null;
 }
 
-/* ============================================================
-   CREATE PayMongo Checkout Session
-   ============================================================ */
+// CREATE PayMongo Checkout Session
 export async function createCheckoutSession({ bookingId, amount, description }) {
   console.log('🔵 [PayMongo] Creating session for booking:', bookingId);
 
@@ -96,10 +88,8 @@ export async function createCheckoutSession({ bookingId, amount, description }) 
   };
 }
 
-/* ============================================================
-   VERIFY PayMongo Checkout Session
-   Returns normalized payment info with proper ISO date.
-   ============================================================ */
+// VERIFY PayMongo Checkout Session
+// Returns normalized payment info with proper ISO date.
 export async function verifyPaymentBySessionId(sessionId) {
   if (!sessionId) throw new Error('Missing sessionId');
 
@@ -123,8 +113,8 @@ export async function verifyPaymentBySessionId(sessionId) {
   const attrs = json.data.attributes;
   const payments = attrs.payments || [];
 
-  console.log('   Session status:', attrs.status);
-  console.log('   Payments found:', payments.length);
+  console.log(' Session status:', attrs.status);
+  console.log(' Payments found:', payments.length);
 
   const paidPayment = payments.find(
     (p) => p?.attributes?.status === 'paid' || p?.attributes?.paid_at
@@ -139,26 +129,26 @@ export async function verifyPaymentBySessionId(sessionId) {
     return { paid: false, rawStatus: attrs.status };
   }
 
-  const pAttrs  = paidPayment?.attributes || {};
+  const pAttrs = paidPayment?.attributes || {};
   const billing = pAttrs.billing || {};
-  const source  = pAttrs.source  || {};
+  const source = pAttrs.source  || {};
 
   // ⭐ CRITICAL FIX: Convert Unix timestamp → ISO string
   const rawPaidAt = pAttrs.paid_at || attrs.paid_at;
   const paidAtISO = toISODate(rawPaidAt);
 
-  console.log('   Raw paid_at:', rawPaidAt);
-  console.log('   ISO paid_at:', paidAtISO);
+  console.log(' Raw paid_at:', rawPaidAt);
+  console.log(' ISO paid_at:', paidAtISO);
 
   const result = {
-    paid:      true,
+    paid: true,
     paymentId: paidPayment?.id || null,
-    amount:    (pAttrs.amount || attrs.amount || 0) / 100,
-    paidAt:    paidAtISO,
-    method:    source.type || pAttrs.payment_method_type || 'paymongo',
+    amount: (pAttrs.amount || attrs.amount || 0) / 100,
+    paidAt: paidAtISO,
+    method: source.type || pAttrs.payment_method_type || 'paymongo',
     reference: pAttrs.reference_number || attrs.reference_number || null,
     payerInfo: {
-      name:  billing.name  || null,
+      name: billing.name  || null,
       email: billing.email || null,
       phone: billing.phone || null
     },
@@ -167,9 +157,9 @@ export async function verifyPaymentBySessionId(sessionId) {
 
   console.log('✅ [PayMongo] Paid:', {
     paymentId: result.paymentId,
-    amount:    result.amount,
-    method:    result.method,
-    paidAt:    result.paidAt
+    amount: result.amount,
+    method: result.method,
+    paidAt: result.paidAt
   });
 
   return result;

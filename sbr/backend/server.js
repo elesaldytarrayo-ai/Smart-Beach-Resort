@@ -1,12 +1,6 @@
-/* ============================================================
-   backend/server.js — FINAL VERSION
-   UPSERT everywhere. Walang .insert() sa payments table.
-   ============================================================ */
-
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-
 import { supabaseAdmin } from './supabaseAdmin.js';
 import { createCheckoutSession, verifyPaymentBySessionId } from './payments.js';
 import { makeCheckInToken, makeCheckOutToken, hashToken } from './nfc.js';
@@ -16,17 +10,12 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5174',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
 }));
 
-/* ------------------------------------------------------------
-   Date helper
-   ------------------------------------------------------------ */
+// Date helper
 function toISODate(value, fallbackNow = true) {
   if (!value && value !== 0) {
     return fallbackNow ? new Date().toISOString() : null;
@@ -56,15 +45,15 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
     .from('payments')
     .upsert(
       {
-        booking_id:  bookingId,
-        amount:      Number(amount) || 0,
-        method:      method || 'paymongo',
-        status:      'paid',
-        reference:   paymentId || null,
+        booking_id: bookingId,
+        amount: Number(amount) || 0,
+        method: method || 'paymongo',
+        status: 'paid',
+        reference: paymentId || null,
         paymongo_id: paymentId || null,
-        payer_info:  payerInfo || null,
-        currency:    'PHP',
-        paid_at:     paidAtISO
+        payer_info: payerInfo || null,
+        currency: 'PHP',
+        paid_at: paidAtISO
       },
       { onConflict: 'booking_id' }
     );
@@ -72,7 +61,7 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
   // ⭐ SWALLOW duplicate error — payment already exists
   if (error) {
     if (error.code === '23505' || String(error.message).includes('duplicate')) {
-      console.log('ℹ️  Payment already exists — OK (no-op)');
+      console.log('ℹ️ Payment already exists — OK (no-op)');
       return;
     }
     console.error('❌ savePayment error:', error);
@@ -82,9 +71,7 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
   console.log('✅ Payment saved (upsert)');
 }
 
-/* ------------------------------------------------------------
-   Confirm booking (paid + confirmed)
-   ------------------------------------------------------------ */
+// Confirm booking (paid + confirmed)
 async function confirmBooking(bookingId) {
   const { error } = await supabaseAdmin
     .from('bookings')
@@ -95,9 +82,7 @@ async function confirmBooking(bookingId) {
   console.log('🟢 Booking confirmed:', bookingId);
 }
 
-/* ============================================================
-   PayMongo Webhook
-   ============================================================ */
+// PayMongo Webhook
 app.post(
   '/webhooks/paymongo',
   express.raw({ type: 'application/json' }),
@@ -127,10 +112,10 @@ app.post(
             const token = makeCheckInToken();
             await supabaseAdmin.from('nfc_tokens').insert({
               booking_id: bookingId,
-              room_id:    booking.room_id,
+              room_id: booking.room_id,
               token_hash: token.hash,
-              purpose:    token.purpose,
-              status:     'active',
+              purpose: token.purpose,
+              status: 'active',
               expires_at: token.expiresAt
             });
           }
@@ -147,9 +132,7 @@ app.post(
 
 app.use(express.json());
 
-/* ------------------------------------------------------------
-   Auth middleware
-   ------------------------------------------------------------ */
+// Auth middleware
 async function authUser(req, res, next) {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -177,9 +160,7 @@ function requireRole(...roles) {
   };
 }
 
-/* ------------------------------------------------------------
-   Health
-   ------------------------------------------------------------ */
+// Health
 app.get('/', (_req, res) => {
   res.json({
     status: 'ok',
@@ -187,14 +168,12 @@ app.get('/', (_req, res) => {
     config: {
       supabase: !!process.env.SUPABASE_URL,
       paymongo: !!process.env.PAYMONGO_SECRET_KEY,
-      nfc:      !!process.env.NFC_SECRET
+      nfc: !!process.env.NFC_SECRET
     }
   });
 });
 
-/* ------------------------------------------------------------
-   ADMIN — create staff
-   ------------------------------------------------------------ */
+// ADMIN — create staff
 app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, res) => {
   try {
     const { email, password, full_name, phone } = req.body;
@@ -218,9 +197,7 @@ app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, 
   }
 });
 
-/* ------------------------------------------------------------
-   CREATE PayMongo checkout
-   ------------------------------------------------------------ */
+// CREATE PayMongo checkout
 app.post('/api/payments/checkout', authUser, async (req, res) => {
   try {
     const { bookingId, description } = req.body;
@@ -256,9 +233,7 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------
-   VERIFY payment — AUTO-CONFIRM + SAVE (bulletproof)
-   ------------------------------------------------------------ */
+// VERIFY payment — AUTO-CONFIRM + SAVE (bulletproof)
 app.post('/api/payments/verify', authUser, async (req, res) => {
   try {
     const { bookingId, sessionId } = req.body;
@@ -275,9 +250,9 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
 
     if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
 
-    // ⭐ Idempotent: kung paid + confirmed na, ibalik agad
+    // ⭐ Idempotent: if paid + confirmed, back again
     if (booking.payment_status === 'paid' && booking.status === 'confirmed') {
-      console.log('   ✅ Already paid & confirmed — skipping');
+      console.log(' ✅ Already paid & confirmed — skipping');
       return res.json({
         ok: true, paid: true, alreadyPaid: true,
         bookingId: booking.id, roomId: booking.room_id, nfc: null
@@ -312,7 +287,7 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       payerInfo: verify.payerInfo
     });
 
-    // 3. Check kung may active NFC token na
+    // 3. Check if they had active NFC token
     const { data: existingToken } = await supabaseAdmin
       .from('nfc_tokens')
       .select('id')
@@ -334,15 +309,15 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
 
       await supabaseAdmin.from('nfc_tokens').insert({
         booking_id: bookingId,
-        room_id:    booking.room_id,
+        room_id: booking.room_id,
         token_hash: token.hash,
-        purpose:    token.purpose,
-        status:     'active',
+        purpose: token.purpose,
+        status: 'active',
         expires_at: token.expiresAt
       });
       console.log('✅ NFC token issued');
     } else {
-      console.log('   ℹ️  NFC token already exists');
+      console.log(' ℹ️ NFC token already exists');
     }
 
     console.log('✅ DONE\n');
@@ -358,9 +333,7 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------
-   NFC verify
-   ------------------------------------------------------------ */
+// NFC verify
 app.post('/api/nfc/verify', authUser, async (req, res) => {
   try {
     const { rawToken, purpose } = req.body;
@@ -391,9 +364,7 @@ app.post('/api/nfc/verify', authUser, async (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------
-   Checkout
-   ------------------------------------------------------------ */
+// Checkout
 app.post('/api/checkout', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
@@ -411,8 +382,8 @@ app.post('/api/checkout', authUser, async (req, res) => {
     await supabaseAdmin.from('nfc_tokens').insert({
       booking_id: bookingId,
       token_hash: token.hash,
-      purpose:    token.purpose,
-      status:     'active',
+      purpose: token.purpose,
+      status: 'active',
       expires_at: token.expiresAt
     });
 
@@ -422,9 +393,7 @@ app.post('/api/checkout', authUser, async (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------
-   STAFF — reservations
-   ------------------------------------------------------------ */
+// STAFF — reservations
 app.get('/api/staff/reservations', authUser, requireRole('staff', 'admin'), async (_req, res) => {
   try {
     const { data } = await supabaseAdmin
@@ -437,23 +406,18 @@ app.get('/api/staff/reservations', authUser, requireRole('staff', 'admin'), asyn
   }
 });
 
-/* ------------------------------------------------------------
-   404
-   ------------------------------------------------------------ */
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found', path: req.url });
 });
 
-/* ------------------------------------------------------------
-   Start
-   ------------------------------------------------------------ */
+// Start
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('\n════════════════════════════════════════════════════════');
   console.log(`✅ SBR Backend: http://localhost:${PORT}`);
   console.log('────────────────────────────────────────────────────────');
-  console.log(`   Supabase : ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
-  console.log(`   PayMongo : ${process.env.PAYMONGO_SECRET_KEY ? '✅' : '❌'}`);
-  console.log(`   NFC      : ${process.env.NFC_SECRET ? '✅' : '⚠️'}`);
+  console.log(` Supabase : ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
+  console.log(` PayMongo : ${process.env.PAYMONGO_SECRET_KEY ? '✅' : '❌'}`);
+  console.log(` NFC : ${process.env.NFC_SECRET ? '✅' : '⚠️'}`);
   console.log('════════════════════════════════════════════════════════\n');
 });
