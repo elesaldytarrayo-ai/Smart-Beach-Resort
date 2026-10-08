@@ -61,8 +61,8 @@ export default function HomePage() {
 
             <h1>Welcome to Smart Beach Resort</h1>
             <p>
-              Book your dream beach getaway in seconds. Pay online, tap your phone
-              to check in with NFC, and enjoy a seamless stay — all in one app.
+              Book your dream beach getaway in seconds. Pay online, tap your NFC
+              to check in, and enjoy a seamless stay — all in one app.
             </p>
 
             <div className="hero-actions">
@@ -95,7 +95,7 @@ export default function HomePage() {
 
         <div className="feature-grid">
           <Feature color="blue" icon="fa-wifi" title="NFC Check-In"
-            text="Tap your phone on the room NFC reader for a quick check-in. No lines, no hassle." />
+            text="Tap your NFC on the room reader for a quick check-in. No lines, no hassle." />
           <Feature color="green" icon="fa-credit-card" title="Secure Payments"
             text="Pay for your booking online using GCash, card, or any method — safe and secure." />
           <Feature color="purple" icon="fa-water" title="Beachfront Rooms"
