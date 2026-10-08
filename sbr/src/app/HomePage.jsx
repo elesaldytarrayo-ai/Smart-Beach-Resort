@@ -1,42 +1,58 @@
-/* ============================================================
-   src/app/HomePage.jsx
-   Landing page — Hero + Features + Featured Rooms + Footer.
-   Navigation: useNavigate hook — 100% reliable redirect.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase.js';
-import AppLayout, { PublicFooter } from './AppLayout.jsx';
+import AppLayout from './AppLayout.jsx';
 
+// FEATURE CARD COMPONENT
+// Feature Component
+// A reusable card for displaying a single feature or selling point.
+function Feature({ color = 'blue', icon, title, text }) {
+  return (
+    <div className="feature-card">
+      <div className={`feature-icon-badge ${color}`}>
+        <i className={`fa-solid ${icon}`}></i>
+      </div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+    </div>
+  );
+}
+
+// HOME PAGE COMPONENT
+// HomePage Component
+// Fetches featured rooms and renders the main landing page.
 export default function HomePage() {
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  //Fetches the top 4 available rooms from Supabase.
+  async function fetchAvailableRooms() {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('status', 'available')
+        .order('price', { ascending: false })
+        .limit(4);
+
+      if (error) throw error;
+      setRooms(data || []);
+    } catch (error) {
+      console.error('Failed to fetch featured rooms:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('rooms')
-          .select('*')
-          .eq('status', 'available')
-          .order('price', { ascending: false })
-          .limit(4);
-        if (error) throw error;
-        setRooms(data || []);
-      } catch (e) {
-        console.error('HOMEPAGE ROOMS ERROR:', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchAvailableRooms();
   }, []);
 
   return (
-    <AppLayout nav footer={false}>
+    <AppLayout nav footer>
       <div className="page-pad">
-        {/* ============ HERO ============ */}
+        {/*HERO SECTION*/}
         <section className="hero">
           <div className="hero-content">
             <div className="hero-icon-wrap">
@@ -50,7 +66,6 @@ export default function HomePage() {
             </p>
 
             <div className="hero-actions">
-              {/* ⭐ Get Started Free → /register */}
               <button
                 type="button"
                 onClick={() => navigate('/register')}
@@ -60,7 +75,6 @@ export default function HomePage() {
                 <span>Get Started Free</span>
               </button>
 
-              {/* ⭐ I have an account → /login */}
               <button
                 type="button"
                 onClick={() => navigate('/login')}
@@ -73,7 +87,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ============ 6 FEATURE BOXES ============ */}
+        {/*FEATURES SECTION*/}
         <div className="section-title" id="features">
           <h2>Why Choose Smart Beach Resort?</h2>
           <p>Modern features built for a hassle-free beach vacation</p>
@@ -81,74 +95,60 @@ export default function HomePage() {
 
         <div className="feature-grid">
           <Feature color="blue" icon="fa-wifi" title="NFC Check-In"
-            text="Tap your phone sa room NFC reader para mabilisang check-in. Walang pila, walang hassle." />
+            text="Tap your phone on the room NFC reader for a quick check-in. No lines, no hassle." />
           <Feature color="green" icon="fa-credit-card" title="Secure Payments"
-            text="Bayaran ang booking online gamit ang GCash, card, o kahit anong method — safe at secure." />
+            text="Pay for your booking online using GCash, card, or any method — safe and secure." />
           <Feature color="purple" icon="fa-water" title="Beachfront Rooms"
-            text="Pumili mula sa Standard, Deluxe, Suite, o Beachfront rooms — lahat may magandang view." />
+            text="Choose from Standard, Deluxe, Suite, or Beachfront rooms — all with beautiful views." />
           <Feature color="orange" icon="fa-shield-halved" title="Smart Check-Out"
-            text="Pag-check-out mo, awtomatikong na-invalidate ang lumang NFC code para sa seguridad." />
+            text="Upon check-out, the old NFC code is automatically invalidated for security." />
           <Feature color="blue" icon="fa-users" title="User Friendly"
-            text="Simple dashboard para sa users, staff, at admin. Lahat ng kailangan mo, isang click lang." />
+            text="Simple dashboard for users, staff, and admin. Everything you need in just one click." />
           <Feature color="gold" icon="fa-bolt" title="Real-Time Updates"
-            text="Agad-agad na nakikita ang room availability at booking status — walang delay." />
+            text="Room availability and booking status are updated immediately — no delay." />
         </div>
 
-        {/* ============ FEATURED ROOMS ============ */}
+        {/*FEATURED ROOMS SECTION*/}
         <div className="section-title" id="rooms">
           <h2>Featured Rooms</h2>
-          <p>Pinaka-prestigious at premium rooms namin — book agad!</p>
+          <p>Our most prestigious and premium rooms — book now!</p>
         </div>
 
+        {/* Loading State */}
         {loading && (
           <div className="neu-card center">
-            <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 28, color: '#2d8ecf' }}></i>
-            <p className="muted" style={{ marginTop: 12 }}>Loading rooms…</p>
+            <i className="fa-solid fa-spinner fa-spin loading-spinner"></i>
+            <p className="muted mt-3">Loading rooms…</p>
           </div>
         )}
 
+        {/* Empty State */}
         {!loading && rooms.length === 0 && (
           <div className="neu-card center">
-            <i className="fa-solid fa-bed" style={{ fontSize: 40, color: '#d0dbe5' }}></i>
-            <p className="muted" style={{ marginTop: 12 }}>
-              Walang available rooms sa ngayon. Balik ka mamaya!
-            </p>
+            <i className="fa-solid fa-bed empty-icon"></i>
+            <p className="muted mt-3">No rooms available right now. Check back later!</p>
           </div>
         )}
 
+        {/* Room Grid */}
         {!loading && rooms.length > 0 && (
           <div className="room-grid">
-            {rooms.map((r) => (
-              <div key={r.id} className="room-card">
+            {rooms.map((room) => (
+              <div key={room.id} className="room-card">
                 <span className="room-badge">
-                  <i className="fa-solid fa-circle-check" style={{ marginRight: 4 }}></i>
+                  <i className="fa-solid fa-circle-check mr-1"></i>
                   Available
                 </span>
-                <p className="room-type">{r.room_type}</p>
-                <p className="room-number">#{r.room_number}</p>
+                <p className="room-type">{room.room_type}</p>
+                <p className="room-number">#{room.room_number}</p>
                 <p className="room-price">
-                  ₱{Number(r.price).toLocaleString()}<span> / night</span>
+                  ₱{Number(room.price).toLocaleString()}<span> / night</span>
                 </p>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      <PublicFooter />
     </AppLayout>
-  );
-}
-
-/* Feature component */
-function Feature({ color = 'blue', icon, title, text }) {
-  return (
-    <div className="feature-card">
-      <div className={`feature-icon-badge ${color}`}>
-        <i className={`fa-solid ${icon}`}></i>
-      </div>
-      <h3>{title}</h3>
-      <p>{text}</p>
-    </div>
   );
 }

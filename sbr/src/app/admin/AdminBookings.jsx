@@ -1,55 +1,165 @@
-/* ============================================================
-   src/app/admin/AdminBookings.jsx
-   Reservations — lahat ng icons Font Awesome.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
+// --- Constants ---
+const REFRESH_INTERVAL_MS = 10000;
+
+// Filter definitions for the reservation status dropdown.
+// A booking matches a filter if BOTH its payment AND status checks pass.
+const FILTER_PREDICATES = {
+  all: () => true,
+  paid: (b) => b.payment_status === 'paid',
+  unpaid: (b) => b.payment_status === 'unpaid',
+  pending: (b) => b.status === 'pending',
+  confirmed: (b) => b.status === 'confirmed',
+  checked_out: (b) => b.status === 'checked_out'
+};
+
+// REUSABLE SUB-COMPONENTS
+// StatCard Component
+// Displays a large KPI card on the bookings dashboard.
+function StatCard({ color, icon, label, value, sub }) {
+  return (
+    <div className={`admin-stat-card ${color}`}>
+      <div className="admin-stat-top">
+        <span className="admin-stat-label">{label}</span>
+        <span className="admin-stat-icon">
+          <i className={`fa-solid ${icon}`}></i>
+        </span>
+      </div>
+      <div>
+        <div className="admin-stat-value">{value}</div>
+        <div className="admin-stat-sub">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+// StatusPill Component
+// Renders a colored pill for payment or booking status.
+function StatusPill({ value }) {
+  return <span className={`admin-pill ${value}`}>{value}</span>;
+}
+
+// ReservationRow Component
+// Renders a single row in the bookings table with action buttons.
+function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
+  const isUpdating = updatingId === booking.id;
+  const isUnpaid = booking.payment_status !== 'paid';
+  const isConfirmed = booking.status === 'confirmed';
+
+  return (
+    <tr>
+      <td className="muted text-mono">{String(booking.id).slice(0, 6)}…</td>
+      <td>
+        <div className="cell-main">{booking.profiles?.full_name || '—'}</div>
+        <div className="cell-sub">{booking.profiles?.email}</div>
+      </td>
+      <td>Room {booking.rooms?.room_number}</td>
+      <td className="muted">{booking.check_in}</td>
+      <td className="muted">{booking.check_out}</td>
+      <td>₱{Number(booking.total_amount || 0).toLocaleString()}</td>
+      <td><StatusPill value={booking.payment_status} /></td>
+      <td><StatusPill value={booking.status} /></td>
+      <td>
+        <div className="row-actions">
+          {isUnpaid && (
+            <button
+              className="app-btn app-btn-primary app-btn-sm"
+              onClick={() => onMarkPaid(booking)}
+              disabled={isUpdating}
+            >
+              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+              {isUpdating ? 'Marking…' : 'Mark Paid'}
+            </button>
+          )}
+
+          {isConfirmed && (
+            <button
+              className="app-btn app-btn-danger app-btn-sm"
+              onClick={() => onUpdateStatus(booking, 'checked_out')}
+              disabled={isUpdating}
+            >
+              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-door-open'}`}></i>
+              {isUpdating ? 'Checking…' : 'Check-out'}
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// MAIN ADMIN BOOKINGS COMPONENT
+// AdminBookings Component
+// Displays all reservations with filtering, search, and management actions.
 export default function AdminBookings() {
+  // --- State Management ---
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
-  const [msg, setMsg] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  async function refresh() {
+  // DATA FETCHING
+  // Fetches all bookings.
+  async function fetchBookings(isInitialLoad = false) {
+    if (isInitialLoad) setLoading(true);
     try {
-      setErr('');
-      const { data, error } = await supabase
+      setError('');
+      const { data, error: fetchError } = await supabase
         .from('bookings')
-        .select('*, profiles(full_name,email,phone), rooms(room_number,room_type,price)')
+        .select('*, profiles(full_name, email, phone), rooms(room_number, room_type, price)')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+
+      if (fetchError) throw fetchError;
       setBookings(data || []);
-    } catch (e) { setErr(e.message); }
-    finally { setLoading(false); }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      if (isInitialLoad) setLoading(false);
+    }
   }
 
   useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 10000);
-    return () => clearInterval(t);
-  }, []);
+    fetchBookings(true);
+    const interval = setInterval(() => fetchBookings(false), REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function markPaid(booking) {
-    if (!confirm(`Mark booking as PAID?\n\nGuest: ${booking.profiles?.full_name}\nAmount: ₱${booking.total_amount}`)) return;
-    setErr(''); setMsg('');
+  // ACTIONS
+  // Marks a booking as paid and creates a payment record if missing.
+  async function handleMarkPaid(booking) {
+    const confirmed = window.confirm(
+      `Mark booking as PAID?\n\nGuest: ${booking.profiles?.full_name}\nAmount: ₱${booking.total_amount}`
+    );
+    if (!confirmed) return;
+
+    setError('');
+    setMessage('');
+    setUpdatingId(booking.id);
 
     try {
-      const { error: bErr } = await supabase
+      // 1. Update the booking record
+      const { error: bookingError } = await supabase
         .from('bookings')
         .update({ payment_status: 'paid', status: 'confirmed' })
         .eq('id', booking.id);
-      if (bErr) throw bErr;
 
-      const { data: existing } = await supabase
-        .from('payments').select('id').eq('booking_id', booking.id).maybeSingle();
+      if (bookingError) throw bookingError;
 
-      if (!existing) {
-        await supabase.from('payments').insert({
+      // 2. Create payment record if one doesn't exist
+      const { data: existingPayment } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('booking_id', booking.id)
+        .maybeSingle();
+
+      if (!existingPayment) {
+        const { error: paymentError } = await supabase.from('payments').insert({
           booking_id: booking.id,
           amount: booking.total_amount,
           method: 'manual-admin',
@@ -57,110 +167,134 @@ export default function AdminBookings() {
           currency: 'PHP',
           paid_at: new Date().toISOString()
         });
+        if (paymentError) throw paymentError;
       }
 
-      setMsg('Booking marked as paid');
-      refresh();
-    } catch (e) { setErr(e.message); }
-  }
-
-  async function updateStatus(booking, newStatus) {
-    if (!confirm(`Change status to "${newStatus}"?`)) return;
-    setErr(''); setMsg('');
-    const { error } = await supabase.from('bookings').update({ status: newStatus }).eq('id', booking.id);
-    if (error) return setErr(error.message);
-    setMsg(`Status updated to "${newStatus}"`);
-    refresh();
-  }
-
-  const filtered = bookings.filter((b) => {
-    if (filter !== 'all') {
-      if (filter === 'paid' && b.payment_status !== 'paid') return false;
-      if (filter === 'unpaid' && b.payment_status !== 'unpaid') return false;
-      if (filter === 'pending' && b.status !== 'pending') return false;
-      if (filter === 'confirmed' && b.status !== 'confirmed') return false;
-      if (filter === 'checked_out' && b.status !== 'checked_out') return false;
+      setMessage('Booking marked as paid.');
+      await fetchBookings(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
     }
-    if (search) {
-      const q = search.toLowerCase();
-      const hay = `${b.profiles?.full_name || ''} ${b.profiles?.email || ''} ${b.rooms?.room_number || ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
+  }
+
+  // Updates the status of a booking after confirmation.
+  async function handleUpdateStatus(booking, newStatus) {
+    const confirmed = window.confirm(`Change status to "${newStatus}"?`);
+    if (!confirmed) return;
+
+    setError('');
+    setMessage('');
+    setUpdatingId(booking.id);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ status: newStatus })
+        .eq('id', booking.id);
+
+      if (updateError) throw updateError;
+
+      setMessage(`Status updated to "${newStatus}".`);
+      await fetchBookings(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  // DERIVED DATA
+  /** Counts per filter key for stat cards and dropdown labels. */
+  const counts = {
+    all: bookings.length,
+    paid: bookings.filter(FILTER_PREDICATES.paid).length,
+    unpaid: bookings.filter(FILTER_PREDICATES.unpaid).length,
+    pending: bookings.filter(FILTER_PREDICATES.pending).length,
+    confirmed: bookings.filter(FILTER_PREDICATES.confirmed).length,
+    checked_out: bookings.filter(FILTER_PREDICATES.checked_out).length
+  };
+
+  /** Total revenue from paid bookings. */
+  const totalRevenue = bookings
+    .filter(FILTER_PREDICATES.paid)
+    .reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+
+  /** Bookings after applying the active filter and search query. */
+  const filteredBookings = bookings.filter((booking) => {
+    const matchesFilter = FILTER_PREDICATES[filter]?.(booking) ?? true;
+    if (!matchesFilter) return false;
+
+    if (search.trim()) {
+      const query = search.toLowerCase().trim();
+      const searchable = `
+        ${booking.profiles?.full_name || ''}
+        ${booking.profiles?.email || ''}
+        ${booking.rooms?.room_number || ''}
+      `.toLowerCase();
+      if (!searchable.includes(query)) return false;
     }
     return true;
   });
 
-  const counts = {
-    all: bookings.length,
-    paid: bookings.filter((b) => b.payment_status === 'paid').length,
-    unpaid: bookings.filter((b) => b.payment_status === 'unpaid').length,
-    pending: bookings.filter((b) => b.status === 'pending').length,
-    confirmed: bookings.filter((b) => b.status === 'confirmed').length,
-    checked_out: bookings.filter((b) => b.status === 'checked_out').length
-  };
-
-  const totalRevenue = bookings
-    .filter((b) => b.payment_status === 'paid')
-    .reduce((s, b) => s + Number(b.total_amount || 0), 0);
-
+  // RENDER
   return (
     <AdminLayout>
       <div className="admin-welcome">
         <h1>Reservations</h1>
-        <p>Lahat ng bookings mula sa mga guests.</p>
+        <p>All bookings from guests.</p>
       </div>
 
+      {/*KPI STAT CARDS*/}
       <div className="admin-stat-grid">
-        <div className="admin-stat-card blue">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Total Bookings</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-calendar-check"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.all}</div>
-            <div className="admin-stat-sub">{counts.pending} pending</div>
-          </div>
-        </div>
-        <div className="admin-stat-card green">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Paid</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-circle-check"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.paid}</div>
-            <div className="admin-stat-sub">{counts.confirmed} confirmed</div>
-          </div>
-        </div>
-        <div className="admin-stat-card orange">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Unpaid</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-hourglass-half"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.unpaid}</div>
-            <div className="admin-stat-sub">Awaiting payment</div>
-          </div>
-        </div>
-        <div className="admin-stat-card purple">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Revenue</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-peso-sign"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">₱{totalRevenue.toLocaleString()}</div>
-            <div className="admin-stat-sub">From paid bookings</div>
-          </div>
-        </div>
+        <StatCard
+          color="blue"
+          icon="fa-calendar-check"
+          label="Total Bookings"
+          value={counts.all}
+          sub={`${counts.pending} pending`}
+        />
+        <StatCard
+          color="green"
+          icon="fa-circle-check"
+          label="Paid"
+          value={counts.paid}
+          sub={`${counts.confirmed} confirmed`}
+        />
+        <StatCard
+          color="orange"
+          icon="fa-hourglass-half"
+          label="Unpaid"
+          value={counts.unpaid}
+          sub="Awaiting payment"
+        />
+        <StatCard
+          color="purple"
+          icon="fa-peso-sign"
+          label="Revenue"
+          value={`₱${totalRevenue.toLocaleString()}`}
+          sub="From paid bookings"
+        />
       </div>
 
-      <div className="admin-panel" style={{ marginBottom: 20 }}>
-        <div className="row" style={{ alignItems: 'center' }}>
+      {/*TOOLBAR*/}
+      <div className="admin-panel mb-4">
+        <div className="row row-center">
           <div className="col">
-            <input className="admin-input" placeholder="Search guest name, email, or room…"
-              value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 0 }} />
+            <input
+              className="admin-input"
+              placeholder="Search guest name, email, or room…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <div className="col" style={{ flex: '0 0 220px' }}>
-            <select className="admin-select" value={filter}
-              onChange={(e) => setFilter(e.target.value)} style={{ marginBottom: 0 }}>
+          <div className="col col-fixed-220">
+            <select
+              className="admin-select"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
               <option value="all">All ({counts.all})</option>
               <option value="paid">Paid ({counts.paid})</option>
               <option value="unpaid">Unpaid ({counts.unpaid})</option>
@@ -169,70 +303,54 @@ export default function AdminBookings() {
               <option value="checked_out">Checked out ({counts.checked_out})</option>
             </select>
           </div>
-          <button className="app-btn app-btn-secondary" onClick={refresh}>
+          <button className="app-btn app-btn-secondary" onClick={() => fetchBookings(true)}>
             <i className="fa-solid fa-rotate"></i> Refresh
           </button>
         </div>
       </div>
 
-      {err && <p className="admin-error" style={{ marginBottom: 12 }}>{err}</p>}
-      {msg && <p className="admin-success" style={{ marginBottom: 12 }}>{msg}</p>}
+      {/*FEEDBACK*/}
+      {error && <p className="admin-error mb-2">{error}</p>}
+      {message && <p className="admin-success mb-2">{message}</p>}
 
+      {/*BOOKINGS TABLE*/}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
-            <i className="fa-solid fa-calendar-check"></i> All Bookings ({filtered.length})
+            <i className="fa-solid fa-calendar-check"></i> All Bookings ({filteredBookings.length})
           </h3>
         </div>
 
         {loading && <p className="muted center">Loading…</p>}
-        {!loading && filtered.length === 0 && <p className="muted center">No bookings match.</p>}
 
-        {!loading && filtered.length > 0 && (
+        {!loading && filteredBookings.length === 0 && (
+          <p className="muted center">No bookings match.</p>
+        )}
+
+        {!loading && filteredBookings.length > 0 && (
           <table className="admin-table">
             <thead>
               <tr>
-                <th>ID</th><th>Guest</th><th>Room</th>
-                <th>Check-in</th><th>Check-out</th><th>Total</th>
-                <th>Payment</th><th>Status</th><th>Actions</th>
+                <th>ID</th>
+                <th>Guest</th>
+                <th>Room</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((b) => (
-                <tr key={b.id}>
-                  <td className="muted">{String(b.id).slice(0, 6)}…</td>
-                  <td>
-                    <strong>{b.profiles?.full_name || '—'}</strong>
-                    <br />
-                    <span className="muted">{b.profiles?.email}</span>
-                  </td>
-                  <td>Room {b.rooms?.room_number}</td>
-                  <td className="muted">{b.check_in}</td>
-                  <td className="muted">{b.check_out}</td>
-                  <td>₱{Number(b.total_amount || 0).toLocaleString()}</td>
-                  <td>
-                    <span className={`admin-pill ${b.payment_status}`}>{b.payment_status}</span>
-                  </td>
-                  <td>
-                    <span className={`admin-pill ${b.status}`}>{b.status}</span>
-                  </td>
-                  <td>
-                    {b.payment_status !== 'paid' && (
-                      <button className="app-btn app-btn-primary"
-                        onClick={() => markPaid(b)}
-                        style={{ padding: '6px 10px', fontSize: 12 }}>
-                        <i className="fa-solid fa-check"></i> Mark Paid
-                      </button>
-                    )}
-                    {b.status === 'confirmed' && (
-                      <button className="app-btn app-btn-danger"
-                        onClick={() => updateStatus(b, 'checked_out')}
-                        style={{ padding: '6px 10px', fontSize: 12, marginLeft: 4 }}>
-                        <i className="fa-solid fa-door-open"></i> Check-out
-                      </button>
-                    )}
-                  </td>
-                </tr>
+              {filteredBookings.map((booking) => (
+                <ReservationRow
+                  key={booking.id}
+                  booking={booking}
+                  updatingId={updatingId}
+                  onMarkPaid={handleMarkPaid}
+                  onUpdateStatus={handleUpdateStatus}
+                />
               ))}
             </tbody>
           </table>

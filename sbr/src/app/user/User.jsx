@@ -1,105 +1,125 @@
-/* ============================================================
-   src/app/user/User.jsx
-   User Dashboard — with UserLayout.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 import UserLayout from './UserLayout.jsx';
 
-export default function User() {
-  const nav = useNavigate();
+//REUSABLE SUB-COMPONENTS
 
+// StatCard Component
+// Displays a single mini statistic on the dashboard.
+function StatCard({ icon, color, label, value }) {
+  return (
+    <div className="admin-mini-stat">
+      <div className={`admin-mini-stat-icon ${color}`}>
+        <i className={`fa-solid ${icon}`}></i>
+      </div>
+      <div className="admin-mini-stat-body">
+        <div className="admin-mini-stat-label">{label}</div>
+        <div className="admin-mini-stat-value">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+// StatusPill Component
+// Renders a colored pill badge for payment or booking statuses.
+function StatusPill({ type, value }) {
+  // Determine the appropriate icon based on the status type and value
+  let icon = 'fa-circle';
+  
+  if (type === 'payment') {
+    icon = value === 'paid' ? 'fa-circle-check' : 'fa-hourglass-half';
+  } else if (type === 'booking') {
+    if (value === 'confirmed') icon = 'fa-ticket';
+    else if (value === 'checked_out') icon = 'fa-door-open';
+    else icon = 'fa-clock';
+  }
+
+  return (
+    <span className={`admin-pill ${value}`}>
+      <i className={`fa-solid ${icon}`}></i>
+      {value}
+    </span>
+  );
+}
+
+// MAIN USER DASHBOARD COMPONENT
+
+export default function User() {
+  const navigate = useNavigate();
+
+  // --- State Management ---
   const [profile, setProfile] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
+  const [error, setError] = useState('');
+
+  // Fetches all required dashboard data (profile, rooms, bookings) in parallel.
+  // Redirects to login if the user is not authenticated.
+  async function fetchDashboardData() {
+    try {
+      // 1. Verify Authentication
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData?.user) {
+        navigate('/login');
+        return;
+      }
+
+      const userId = authData.user.id;
+
+      // 2. Fetch Data in Parallel for Performance
+      const [profileRes, roomsRes, bookingsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('rooms').select('*').order('room_number'),
+        supabase.from('bookings')
+          .select('*, rooms(room_number, room_type)')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+      ]);
+
+      // 3. Update State (with safety checks)
+      if (profileRes.data) setProfile(profileRes.data);
+      if (roomsRes.data) setRooms(roomsRes.data);
+      if (bookingsRes.data) setBookings(bookingsRes.data);
+
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+      setError(err.message || 'Failed to load dashboard data.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { data: auth } = await supabase.auth.getUser();
-        if (!auth.user) { nav('/login'); return; }
+    fetchDashboardData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-        const { data: p } = await supabase
-          .from('profiles').select('*').eq('id', auth.user.id).single();
-        setProfile(p);
-
-        const { data: r } = await supabase
-          .from('rooms').select('*').order('room_number');
-        setRooms(r || []);
-
-        const { data: b } = await supabase
-          .from('bookings')
-          .select('*, rooms(room_number,room_type)')
-          .eq('user_id', auth.user.id)
-          .order('created_at', { ascending: false });
-        setBookings(b || []);
-      } catch (e) {
-        setErr(e.message);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [nav]);
-
+  // Derived Statistics
   const availableCount = rooms.filter((r) => r.status === 'available').length;
   const activeBookings = bookings.filter((b) => b.status !== 'checked_out').length;
   const paidCount = bookings.filter((b) => b.payment_status === 'paid').length;
 
   return (
     <UserLayout>
+      {/*WELCOME HEADER*/}
       <div className="admin-welcome">
         <h1>Welcome back, {profile?.full_name?.split(' ')[0] || 'Guest'}!</h1>
         <p>Here's an overview of your bookings and available rooms.</p>
       </div>
 
-      {/* Mini stats */}
+      {/*MINI STATS*/}
       <div className="admin-mini-stats">
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon blue">
-            <i className="fa-solid fa-bed"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Available Rooms</div>
-            <div className="admin-mini-stat-value">{availableCount}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon green">
-            <i className="fa-solid fa-ticket"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">My Bookings</div>
-            <div className="admin-mini-stat-value">{bookings.length}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon orange">
-            <i className="fa-solid fa-clock"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Active Bookings</div>
-            <div className="admin-mini-stat-value">{activeBookings}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon purple">
-            <i className="fa-solid fa-circle-check"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Paid</div>
-            <div className="admin-mini-stat-value">{paidCount}</div>
-          </div>
-        </div>
+        <StatCard icon="fa-bed" color="blue" label="Available Rooms" value={availableCount} />
+        <StatCard icon="fa-ticket" color="green" label="My Bookings" value={bookings.length} />
+        <StatCard icon="fa-clock" color="orange" label="Active Bookings" value={activeBookings} />
+        <StatCard icon="fa-circle-check" color="purple" label="Paid" value={paidCount} />
       </div>
 
-      {err && <p className="admin-error">{err}</p>}
+      {error && <p className="admin-error">{error}</p>}
 
-      {/* Available Rooms */}
-      <div className="admin-panel" style={{ marginBottom: 20 }}>
+      {/*AVAILABLE ROOMS PANEL*/}
+      <div className="admin-panel mb-4">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
             <i className="fa-solid fa-bed"></i> Available Rooms
@@ -111,7 +131,7 @@ export default function User() {
 
         {loading && (
           <div className="admin-loading">
-            <i className="fa-solid fa-spinner"></i> Loading…
+            <i className="fa-solid fa-spinner fa-spin"></i> Loading…
           </div>
         )}
 
@@ -119,26 +139,21 @@ export default function User() {
           <div className="admin-empty">
             <i className="fa-solid fa-bed"></i>
             <div className="admin-empty-title">No rooms available</div>
-            <div className="admin-empty-desc">
-              Wait for admin to add rooms.
-            </div>
+            <div className="admin-empty-desc">Wait for admin to add rooms.</div>
           </div>
         )}
 
         {!loading && rooms.length > 0 && (
           <div className="room-grid">
-            {rooms.slice(0, 4).map((r) => (
-              <div key={r.id} className="room-card">
-                <span className="room-badge" style={{
-                  background: r.status === 'available' ? '#d1fae5' : '#fee2e2',
-                  color: r.status === 'available' ? '#065f46' : '#991b1b'
-                }}>
-                  {r.status}
+            {rooms.slice(0, 4).map((room) => (
+              <div key={room.id} className="room-card">
+                <span className={`room-badge ${room.status === 'available' ? 'badge-success' : 'badge-danger'}`}>
+                  {room.status}
                 </span>
-                <p className="room-type">{r.room_type}</p>
-                <p className="room-number">#{r.room_number}</p>
+                <p className="room-type">{room.room_type}</p>
+                <p className="room-number">#{room.room_number}</p>
                 <p className="room-price">
-                  ₱{Number(r.price).toLocaleString()}
+                  ₱{Number(room.price).toLocaleString()}
                   <span> / night</span>
                 </p>
               </div>
@@ -146,7 +161,7 @@ export default function User() {
           </div>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <div className="text-center mt-4">
           <Link to="/user/booking">
             <button className="app-btn app-btn-primary">
               <i className="fa-solid fa-plus"></i> Book a Room
@@ -155,7 +170,7 @@ export default function User() {
         </div>
       </div>
 
-      {/* Recent Bookings */}
+      {/*RECENT BOOKINGS PANEL*/}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -170,9 +185,7 @@ export default function User() {
           <div className="admin-empty">
             <i className="fa-solid fa-calendar-xmark"></i>
             <div className="admin-empty-title">No bookings yet</div>
-            <div className="admin-empty-desc">
-              Book a room to get started.
-            </div>
+            <div className="admin-empty-desc">Book a room to get started.</div>
           </div>
         )}
 
@@ -188,41 +201,26 @@ export default function User() {
               </tr>
             </thead>
             <tbody>
-              {bookings.slice(0, 5).map((b) => (
-                <tr key={b.id}>
+              {bookings.slice(0, 5).map((booking) => (
+                <tr key={booking.id}>
                   <td>
-                    <div className="cell-main">Room {b.rooms?.room_number}</div>
-                    <div className="cell-sub">{b.rooms?.room_type}</div>
+                    <div className="cell-main">Room {booking.rooms?.room_number}</div>
+                    <div className="cell-sub">{booking.rooms?.room_type}</div>
                   </td>
                   <td>
-                    <div className="cell-main" style={{ fontSize: 12 }}>
-                      {b.check_in}
-                    </div>
-                    <div className="cell-sub">→ {b.check_out}</div>
+                    <div className="cell-main text-sm">{booking.check_in}</div>
+                    <div className="cell-sub">→ {booking.check_out}</div>
                   </td>
                   <td>
-                    <strong style={{ color: 'var(--deep-sea)' }}>
-                      ₱{Number(b.total_amount).toLocaleString()}
+                    <strong className="text-deep-sea">
+                      ₱{Number(booking.total_amount).toLocaleString()}
                     </strong>
                   </td>
                   <td>
-                    <span className={`admin-pill ${b.payment_status}`}>
-                      <i className={
-                        b.payment_status === 'paid' ? 'fa-solid fa-circle-check' :
-                        'fa-solid fa-hourglass-half'
-                      }></i>
-                      {b.payment_status}
-                    </span>
+                    <StatusPill type="payment" value={booking.payment_status} />
                   </td>
                   <td>
-                    <span className={`admin-pill ${b.status}`}>
-                      <i className={
-                        b.status === 'confirmed' ? 'fa-solid fa-ticket' :
-                        b.status === 'checked_out' ? 'fa-solid fa-door-open' :
-                        'fa-solid fa-clock'
-                      }></i>
-                      {b.status}
-                    </span>
+                    <StatusPill type="booking" value={booking.status} />
                   </td>
                 </tr>
               ))}

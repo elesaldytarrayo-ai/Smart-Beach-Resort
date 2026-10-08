@@ -1,23 +1,6 @@
-/* ============================================================
-   src/globalStyles.css
-   Smart Beach Resort — Clean Unified Design System
-   ------------------------------------------------------------
-   1. Design tokens
-   2. Reset + typography
-   3. Layout helpers
-   4. Beach visual (neu-*, hero, cards, auth, loading)
-   5. Font Awesome blue icons
-   6. Admin layout (sidebar, topbar, tables, forms)
-   7. Homepage (hero icon, features, rooms)
-   8. Animations
-   9. Responsive
-   ============================================================ */
-
-/* ============================================================
-   1. DESIGN TOKENS
-   ============================================================ */
+/* 1. DESIGN TOKEN*/
 :root {
-  /* Ocean palette */
+  /* Ocean Palette */
   --deep-sea:    #0b2545;
   --ocean:       #13315c;
   --wave:        #1e5fa8;
@@ -39,12 +22,12 @@
   --shadow-card: 0 2px 12px rgba(19,49,92,0.08);
   --shadow-pop:  0 12px 40px rgba(19,49,92,0.18);
 
-  /* Text */
+  /* Text Colors */
   --text:        #2d3748;
   --text-soft:   #4a5a6d;
   --muted:       #6b7f95;
 
-  /* Accents */
+  /* Accent Colors */
   --accent:      #2d8ecf;
   --accent-dark: #1e5fa8;
   --gold:        #e6b800;
@@ -53,24 +36,23 @@
   --warning:     #ea8c00;
   --purple:      #7c3aed;
 
-  /* Icons */
+  /* Icon Colors */
   --icon-blue:       #2d8ecf;
   --icon-blue-dark:  #1e5fa8;
   --icon-blue-light: #6fc3e8;
 
-  /* Radii */
+  /* Border Radii */
   --radius:    14px;
   --radius-sm: 10px;
 
-  /* Neomorphic shadows */
+  /* Neomorphic Shadows */
   --shadow-out: 9px 9px 18px var(--shadow-dark), -9px -9px 18px var(--shadow-light);
   --shadow-in:  inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
   --shadow-btn: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
 }
 
-/* ============================================================
-   2. RESET + TYPOGRAPHY
-   ============================================================ */
+
+/*2. RESET + TYPOGRAPHY*/
 * {
   box-sizing: border-box;
   margin: 0;
@@ -110,12 +92,151 @@ h1 { font-size: 28px; margin-bottom: 12px; color: var(--deep-sea); font-weight: 
 h2 { font-size: 22px; margin-bottom: 12px; color: var(--deep-sea); font-weight: 700; }
 h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 700; }
 
+a { color: var(--accent); }
+a > .neu-button { text-decoration: none; }
+
+html { scroll-behavior: smooth; }
+::selection { background: rgba(45,142,207,0.35); color: var(--deep-sea); }
+
+
+/*3. UTILITY CLASSES*/
+
+/*3.1 Spacing*/
+.mr-1 { margin-right: 4px; }
+.mr-2 { margin-right: 8px; }
+.ml-1 { margin-left: 4px; }
+.ml-2 { margin-left: 8px; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 16px; }
+.mt-4 { margin-top: 24px; }
+.mb-1 { margin-bottom: 4px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 16px; }
+.mb-4 { margin-bottom: 24px; }
+
+/*3.2 Text*/
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+.text-sm { font-size: 12px; }
+.text-md { font-size: 14px; }
+.text-lg { font-size: 18px; }
+.text-mono { font-family: 'Courier New', monospace; font-size: 12px; }
+.fw-bold { font-weight: 700; }
+.fw-normal { font-weight: 400; }
+
+.text-muted { color: var(--muted); }
+.text-deep-sea { color: var(--deep-sea); }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+
+/*3.3 Layout & Display*/
+.position-relative { position: relative; }
+.w-full { width: 100%; }
+.bg-transparent { background: transparent; }
+.border-none { border: none; }
+.cursor-pointer { cursor: pointer; }
+.btn-full-width { width: 100%; }
+.invisible { visibility: hidden; }
+
+/*3.4 Text Element Shortcuts*/
 .muted { color: var(--muted); font-size: 13px; }
 .center { text-align: center; }
 
-/* ============================================================
-   3. LAYOUT HELPERS
-   ============================================================ */
+.space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+/*3.5 Flex Row Helpers*/
+.row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.row-actions-end {
+  justify-content: flex-end;
+}
+.row-center {
+  align-items: center;
+}
+
+/*3.6 Fixed-Width Columns (toolbar layouts)*/
+.col-fixed-140 { flex: 0 0 140px; }
+.col-fixed-180 { flex: 0 0 180px; }
+.col-fixed-200 { flex: 0 0 200px; }
+.col-fixed-220 { flex: 0 0 220px; }
+
+/*3.7 Table Helpers*/
+.table-scroll-wrapper { overflow-x: auto; }
+.table-wide           { min-width: 1100px; }
+
+/*3.8 Compact Select*/
+.panel-select {
+  max-width: 180px;
+  margin-bottom: 0;
+}
+.role-select {
+  margin-bottom: 0;
+  max-width: 120px;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+/*3.9 Settings Page Helpers*/
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.status-value {
+  font-size: 20px;
+  text-transform: capitalize;
+}
+
+/*3.10 Staff Room Panel Helpers*/
+.staff-room-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+.staff-room-row {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+.staff-room-row:last-child { border-bottom: none; }
+.staff-room-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/*3.11 Donut Chart Color Helpers*/
+.donut-stroke-occupied { stroke: #1e5fa8; }
+.donut-stroke-available { stroke: #22c55e; }
+.donut-legend-occupied { background: #1e5fa8; }
+.donut-legend-available { background: #22c55e; }
+.donut-legend-maintenance { background: #9ca3af; }
+
+/*3.12 Badges (room cards)*/
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+
+/*3.13 Avatar Size*/
+.avatar-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+}
+
+/*3.14 Icon Helpers (loading / empty states)*/
+.loading-spinner { font-size: 28px; color: #2d8ecf; }
+.empty-icon { font-size: 40px; color: #d0dbe5; }
+
+
+/*4. LAYOUT HELPERS*/
 .page-pad {
   padding: 24px;
   max-width: 1200px;
@@ -134,18 +255,10 @@ h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 
   min-width: 0;
 }
 
-.space-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
 
-/* ============================================================
-   4. BEACH VISUAL
-   ============================================================ */
+/*5. BEACH VISUAL*/
 
-/* ---------- 4.1 NEOMORPHIC CARD ---------- */
+/*5.1 NEOMORPHIC CARD*/
 .neu-card {
   background: linear-gradient(145deg, #f0f7fb 0%, #e6f0f7 100%);
   border-radius: var(--radius);
@@ -175,7 +288,7 @@ h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 
     inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
-/* ---------- 4.2 NEOMORPHIC BUTTON ---------- */
+/*5.2 NEOMORPHIC BUTTON*/
 .neu-button {
   display: inline-flex;
   align-items: center;
@@ -238,7 +351,7 @@ h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 
   background: linear-gradient(145deg, #ffe0e4 0%, #ffcdd3 100%);
 }
 
-/* ---------- 4.3 NEOMORPHIC INPUTS ---------- */
+/*5.3 NEOMORPHIC INPUTS*/
 .neu-input,
 .neu-select {
   width: 100%;
@@ -270,63 +383,7 @@ h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 
   background: linear-gradient(145deg, #dde7ee 0%, #d4dfe8 100%);
 }
 
-/* ---------- 4.4 NAVIGATION BAR ---------- */
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 24px;
-  background: linear-gradient(90deg, #13315c 0%, #1e5fa8 50%, #2d8ecf 100%);
-  box-shadow: 0 6px 18px rgba(19,49,92,0.35);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  border-bottom: 2px solid rgba(111,195,232,0.4);
-}
-
-.nav strong,
-.nav .brand {
-  color: #ffffff;
-  font-size: 16px;
-}
-
-.nav .brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 16px;
-  color: #ffffff;
-}
-
-.nav .brand-icon { font-size: 22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
-.nav .brand:hover { color: #ffffff; }
-
-.nav a {
-  color: #d4e9f7;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  transition: all 0.15s ease;
-}
-.nav a:hover {
-  color: #ffffff;
-  background: rgba(255,255,255,0.12);
-}
-
-.nav .neu-button {
-  padding: 8px 16px;
-  font-size: 13px;
-  background: rgba(255,255,255,0.15);
-  color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  backdrop-filter: blur(4px);
-}
-.nav .neu-button:hover { background: rgba(255,255,255,0.25); color: #ffffff; }
-
-/* ---------- 4.5 STATUS PILLS ---------- */
+/*5.4 STATUS PILLS (public)*/
 .pill {
   display: inline-block;
   padding: 4px 12px;
@@ -356,11 +413,11 @@ h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 
   color: #0b2545;
   box-shadow: 0 2px 6px rgba(45,142,207,0.25);
 }
-.pill.user  { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
+.pill.user { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
 .pill.staff { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; }
 .pill.admin { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #9d174d; }
 
-/* ---------- 4.6 NFC BANNER ---------- */
+/*5.5 NFC BANNER*/
 .nfc-banner {
   padding: 16px 20px;
   border-radius: 14px;
@@ -374,7 +431,7 @@ h3 { font-size: 17px; margin-bottom: 10px; color: var(--deep-sea); font-weight: 
   border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* ---------- 4.7 TABLE (public pages) ---------- */
+/*5.6 TABLE (public pages)*/
 table {
   width: 100%;
   border-collapse: collapse;
@@ -399,7 +456,7 @@ tbody tr { transition: background 0.15s ease; }
 tbody tr:hover { background: rgba(111,195,232,0.08); }
 tr:last-child td { border-bottom: none; }
 
-/* ---------- 4.8 FORM ERROR / SUCCESS (public) ---------- */
+/*5.7 FORM ERROR / SUCCESS (public)*/
 .error-text {
   color: var(--danger);
   font-size: 13px;
@@ -413,10 +470,7 @@ tr:last-child td { border-bottom: none; }
   font-weight: 600;
 }
 
-a { color: var(--accent); }
-a > .neu-button { text-decoration: none; }
-
-/* ---------- 4.9 HERO ---------- */
+/*5.8 HERO*/
 .hero {
   background: linear-gradient(180deg, #b8e0f0 0%, #6fc3e8 40%, #2d8ecf 70%, #1e5fa8 100%);
   border-radius: 24px;
@@ -446,14 +500,6 @@ a > .neu-button { text-decoration: none; }
 }
 .hero-content { position: relative; z-index: 1; }
 
-.hero-emoji {
-  font-size: 72px;
-  display: block;
-  margin-bottom: 16px;
-  animation: float 3s ease-in-out infinite;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
-}
-
 .hero h1 {
   font-size: 42px;
   margin-bottom: 16px;
@@ -471,6 +517,7 @@ a > .neu-button { text-decoration: none; }
   text-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
 .hero .neu-button {
   background: rgba(255,255,255,0.95);
   color: var(--ocean);
@@ -485,7 +532,7 @@ a > .neu-button { text-decoration: none; }
 }
 .hero .neu-button.primary:hover { color: #2a1c00; transform: translateY(-2px); }
 
-/* ---------- 4.10 SECTION TITLE ---------- */
+/*5.9 SECTION TITLE*/
 .section-title { text-align: center; margin: 48px 0 8px; }
 .section-title h2 {
   font-size: 28px;
@@ -506,7 +553,7 @@ a > .neu-button { text-decoration: none; }
 }
 .section-title p { color: var(--muted); font-size: 14px; margin-top: 8px; }
 
-/* ---------- 4.11 CTA SECTION ---------- */
+/*5.10 CTA SECTION*/
 .cta-section {
   background: linear-gradient(135deg, #0b2545 0%, #13315c 25%, #1e5fa8 55%, #2d8ecf 80%, #6fc3e8 100%);
   border-radius: 24px;
@@ -532,7 +579,7 @@ a > .neu-button { text-decoration: none; }
 .cta-section .neu-button { background: #ffffff; color: var(--ocean); position: relative; z-index: 1; }
 .cta-section .neu-button:hover { background: #f4f1e8; color: var(--lagoon); }
 
-/* ---------- 4.12 FOOTER ---------- */
+/*5.11 FOOTER*/
 .footer {
   text-align: center;
   padding: 32px 16px;
@@ -542,7 +589,7 @@ a > .neu-button { text-decoration: none; }
   border-top: 1px solid rgba(45,142,207,0.15);
 }
 
-/* ---------- 4.13 BRAND ---------- */
+/*5.12 BRAND*/
 .brand {
   display: flex;
   align-items: center;
@@ -560,7 +607,7 @@ a > .neu-button { text-decoration: none; }
 }
 .brand-logo + span { font-weight: 800; }
 
-/* ---------- 4.14 AUTH PAGES ---------- */
+/*5.13 AUTH PAGES*/
 .auth-wrap {
   min-height: 100vh;
   display: flex;
@@ -602,7 +649,7 @@ a > .neu-button { text-decoration: none; }
 }
 .auth-icon i { color: var(--icon-blue) !important; font-size: 32px; }
 
-/* ---------- 4.15 LOADING SCREEN ---------- */
+/*5.14 LOADING SCREEN*/
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -665,7 +712,7 @@ a > .neu-button { text-decoration: none; }
   box-shadow: 0 4px 10px rgba(45,142,207,0.35);
   animation: dotBounce 1.4s ease-in-out infinite;
 }
-.loading-dots span:nth-child(1) { animation-delay: 0s;   }
+.loading-dots span:nth-child(1) { animation-delay: 0s; }
 .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
 .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 .loading-message { margin-top: 20px; font-size: 13px; color: var(--muted); }
@@ -699,9 +746,8 @@ a > .neu-button { text-decoration: none; }
   height: 110%;
 }
 
-/* ============================================================
-   5. FONT AWESOME BLUE ICONS
-   ============================================================ */
+
+/*6. FONT AWESOME ICONS*/
 i.fa-solid,
 i.fa-regular,
 i.fa-brands {
@@ -722,11 +768,11 @@ i.fa-brands {
 .icon-xl { font-size: 40px; }
 .icon-2xl { font-size: 56px; }
 
-.icon-blue       { color: var(--icon-blue); }
-.icon-blue-dark  { color: var(--icon-blue-dark); }
+.icon-blue { color: var(--icon-blue); }
+.icon-blue-dark { color: var(--icon-blue-dark); }
 .icon-blue-light { color: var(--icon-blue-light); }
-.icon-white      { color: #ffffff; }
-.icon-gold       { color: #e6b800; }
+.icon-white { color: #ffffff; }
+.icon-gold { color: #e6b800; }
 
 .icon-circle {
   display: inline-flex;
@@ -744,18 +790,17 @@ i.fa-brands {
 .text-icon { display: inline-flex; align-items: center; gap: 6px; }
 .text-icon i { color: var(--icon-blue); font-size: 14px; }
 
-/* ============================================================
-   6. ADMIN LAYOUT
-   ============================================================ */
 
-/* ---------- 6.1 LAYOUT WRAPPER ---------- */
+/*7. ADMIN LAYOUT*/
+
+/*7.1 LAYOUT WRAPPER*/
 .admin-layout {
   display: flex;
   min-height: 100vh;
   background: #f5f7fa;
 }
 
-/* ---------- 6.2 SIDEBAR ---------- */
+/*7.2 SIDEBAR*/
 .admin-sidebar {
   width: 240px;
   background: linear-gradient(180deg, #0f2942 0%, #0b1f34 100%);
@@ -879,7 +924,7 @@ i.fa-brands {
 .admin-nav-label { flex: 1; }
 .admin-nav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 12px 8px; }
 
-/* ---------- 6.3 MAIN AREA ---------- */
+/*7.3 MAIN AREA*/
 .admin-main {
   flex: 1;
   margin-left: 240px;
@@ -888,7 +933,7 @@ i.fa-brands {
   min-width: 0;
 }
 
-/* ---------- 6.4 TOPBAR ---------- */
+/*7.4 TOPBAR*/
 .admin-topbar {
   background: #ffffff;
   padding: 16px 32px;
@@ -978,7 +1023,7 @@ i.fa-brands {
   margin-left: auto;
 }
 
-/* ---------- 6.5 BELL ---------- */
+/*7.5 BELL*/
 .admin-bell {
   position: relative;
   background: none;
@@ -1017,7 +1062,7 @@ i.fa-brands {
   border: 2px solid #ffffff;
 }
 
-/* ---------- 6.6 NOTIFICATIONS DROPDOWN ---------- */
+/*7.6 NOTIFICATIONS DROPDOWN*/
 .admin-notif-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -1103,7 +1148,7 @@ i.fa-brands {
   background: #fafcfd;
 }
 
-/* ---------- 6.7 USER DROPDOWN ---------- */
+/*7.7 USER DROPDOWN*/
 .admin-topbar-user {
   display: flex;
   align-items: center;
@@ -1174,7 +1219,7 @@ i.fa-brands {
 .admin-user-dropdown-item.danger i { color: var(--danger) !important; }
 .admin-user-dropdown-item.danger:hover { background: #fff0f2; }
 
-/* ---------- 6.8 CONTENT ---------- */
+/*7.8 CONTENT*/
 .admin-content { padding: 32px; flex: 1; }
 
 .admin-welcome { margin-bottom: 24px; }
@@ -1187,7 +1232,7 @@ i.fa-brands {
 }
 .admin-welcome p { font-size: 14px; color: var(--muted); margin: 0; }
 
-/* ---------- 6.9 STAT CARDS ---------- */
+/*7.9 STAT CARDS*/
 .admin-stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1220,8 +1265,8 @@ i.fa-brands {
   border-radius: 50%;
   pointer-events: none;
 }
-.admin-stat-card.blue   { background: linear-gradient(135deg, #1e5fa8 0%, #2d8ecf 100%); }
-.admin-stat-card.green  { background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); }
+.admin-stat-card.blue { background: linear-gradient(135deg, #1e5fa8 0%, #2d8ecf 100%); }
+.admin-stat-card.green { background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); }
 .admin-stat-card.orange { background: linear-gradient(135deg, #ea8c00 0%, #f5a623 100%); }
 .admin-stat-card.purple { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
 
@@ -1243,7 +1288,7 @@ i.fa-brands {
 }
 .admin-stat-sub { font-size: 11px; font-weight: 500; opacity: 0.9; letter-spacing: 0.2px; }
 
-/* ---------- 6.10 DASHBOARD GRID ---------- */
+/*7.10 DASHBOARD GRID*/
 .admin-dashboard-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -1280,7 +1325,7 @@ i.fa-brands {
 }
 .admin-panel-link:hover { text-decoration: underline; }
 
-/* ---------- 6.11 ADMIN TABLE ---------- */
+/*7.11 ADMIN TABLE*/
 .admin-table {
   width: 100%;
   border-collapse: separate;
@@ -1327,7 +1372,11 @@ i.fa-brands {
 }
 .admin-table .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-/* ---------- 6.12 ADMIN PILL ---------- */
+/* Also expose cell-main / cell-sub outside tables (used in User.jsx) */
+.cell-main { font-weight: 600; color: var(--deep-sea); font-size: 13.5px; }
+.cell-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/*7.12 ADMIN PILL*/
 .admin-pill {
   display: inline-flex;
   align-items: center;
@@ -1338,22 +1387,22 @@ i.fa-brands {
   letter-spacing: 0.2px;
 }
 .admin-pill i { font-size: 10px; margin-right: 4px; }
-.admin-pill.confirmed   { background: #dbeafe; color: #1e40af; }
-.admin-pill.pending     { background: #fef3c7; color: #92400e; }
-.admin-pill.paid        { background: #d1fae5; color: #065f46; }
+.admin-pill.confirmed { background: #dbeafe; color: #1e40af; }
+.admin-pill.pending { background: #fef3c7; color: #92400e; }
+.admin-pill.paid { background: #d1fae5; color: #065f46; }
 .admin-pill.checked_out { background: #e5e7eb; color: #4b5563; }
-.admin-pill.unpaid      { background: #fee2e2; color: #991b1b; }
-.admin-pill.available   { background: #d1fae5; color: #065f46; }
-.admin-pill.occupied    { background: #fee2e2; color: #991b1b; }
+.admin-pill.unpaid { background: #fee2e2; color: #991b1b; }
+.admin-pill.availabl { background: #d1fae5; color: #065f46; }
+.admin-pill.occupied { background: #fee2e2; color: #991b1b; }
 .admin-pill.maintenance { background: #fef3c7; color: #92400e; }
 .admin-pill.invalidated { background: #fee2e2; color: #991b1b; }
-.admin-pill.used        { background: #fef3c7; color: #92400e; }
-.admin-pill.expired     { background: #e5e7eb; color: #4b5563; }
-.admin-pill.user        { background: #dbeafe; color: #1e40af; }
-.admin-pill.staff       { background: #fef3c7; color: #92400e; }
-.admin-pill.admin       { background: #fce7f3; color: #9d174d; }
+.admin-pill.used { background: #fef3c7; color: #92400e; }
+.admin-pill.expired { background: #e5e7eb; color: #4b5563; }
+.admin-pill.user { background: #dbeafe; color: #1e40af; }
+.admin-pill.staff { background: #fef3c7; color: #92400e; }
+.admin-pill.admin { background: #fce7f3; color: #9d174d; }
 
-/* ---------- 6.13 DONUT CHART ---------- */
+/*7.13 DONUT CHART*/
 .admin-donut-wrap {
   display: flex;
   flex-direction: column;
@@ -1396,7 +1445,7 @@ i.fa-brands {
 }
 .admin-legend-left { display: flex; align-items: center; }
 
-/* ---------- 6.14 MINI STATS ---------- */
+/*7.14 MINI STATS*/
 .admin-mini-stats {
   display: flex;
   gap: 12px;
@@ -1424,11 +1473,11 @@ i.fa-brands {
   flex-shrink: 0;
   font-size: 16px;
 }
-.admin-mini-stat-icon.blue   { background: #e8f4fb; color: #1e5fa8; }
-.admin-mini-stat-icon.green  { background: #d1fae5; color: #065f46; }
+.admin-mini-stat-icon.blue { background: #e8f4fb; color: #1e5fa8; }
+.admin-mini-stat-icon.green { background: #d1fae5; color: #065f46; }
 .admin-mini-stat-icon.orange { background: #fef3c7; color: #92400e; }
 .admin-mini-stat-icon.purple { background: #ede9fe; color: #6d28d9; }
-.admin-mini-stat-icon.red    { background: #fee2e2; color: #991b1b; }
+.admin-mini-stat-icon.red { background: #fee2e2; color: #991b1b; }
 .admin-mini-stat-icon i { color: inherit !important; }
 .admin-mini-stat-body { flex: 1; min-width: 0; }
 .admin-mini-stat-label {
@@ -1446,7 +1495,7 @@ i.fa-brands {
   line-height: 1.1;
 }
 
-/* ---------- 6.15 FORM SECTIONS ---------- */
+/*7.15 FORM SECTIONS*/
 .admin-form-section {
   background: #f9fbfd;
   border-radius: 12px;
@@ -1507,7 +1556,7 @@ i.fa-brands {
   margin-top: 8px;
 }
 
-/* ---------- 6.16 INPUT WITH ICON ---------- */
+/*7.16 INPUT WITH ICON*/
 .admin-input-wrap {
   position: relative;
   display: flex;
@@ -1525,7 +1574,7 @@ i.fa-brands {
   margin-bottom: 0;
 }
 
-/* ---------- 6.17 ADMIN INPUTS ---------- */
+/*7.17 ADMIN INPUTS*/
 .admin-input, .admin-select {
   width: 100%;
   padding: 11px 14px;
@@ -1555,7 +1604,7 @@ i.fa-brands {
   margin-bottom: 6px;
 }
 
-/* ---------- 6.18 TOOLBAR ---------- */
+/*7.18 TOOLBAR*/
 .admin-toolbar {
   display: flex;
   gap: 12px;
@@ -1634,7 +1683,7 @@ i.fa-brands {
   pointer-events: none;
 }
 
-/* ---------- 6.19 CHIPS ---------- */
+/*7.19 CHIPS*/
 .admin-chips {
   display: flex;
   gap: 8px;
@@ -1674,7 +1723,7 @@ i.fa-brands {
 }
 .admin-chip:not(.active) .admin-chip-count { background: #ffffff; color: var(--muted); }
 
-/* ---------- 6.20 EMPTY / LOADING STATES ---------- */
+/*7.20 EMPTY / LOADING STATES*/
 .admin-empty {
   text-align: center;
   padding: 60px 20px;
@@ -1707,7 +1756,7 @@ i.fa-brands {
   display: block;
 }
 
-/* ---------- 6.21 INFO BANNER ---------- */
+/*7.21 INFO BANNER*/
 .admin-info-banner {
   display: flex;
   gap: 12px;
@@ -1727,7 +1776,7 @@ i.fa-brands {
   flex-shrink: 0;
 }
 
-/* ---------- 6.22 ADMIN MESSAGES ---------- */
+/*7.22 ADMIN MESSAGES*/
 .admin-error {
   display: flex;
   align-items: center;
@@ -1765,7 +1814,7 @@ i.fa-brands {
   font-weight: 900;
 }
 
-/* ---------- 6.23 APP BUTTONS ---------- */
+/*7.23 APP BUTTONS*/
 .app-btn {
   display: inline-flex;
   align-items: center;
@@ -1812,11 +1861,9 @@ i.fa-brands {
 .app-btn-sm { padding: 6px 12px; font-size: 12px; }
 .app-btn-icon { padding: 8px; width: 34px; height: 34px; }
 
-/* ============================================================
-   7. HOMEPAGE (Hero icon, Features, Rooms)
-   ============================================================ */
 
-/* ---------- 7.1 HERO ICON ---------- */
+/*8. HOMEPAGE8/
+/*8.1 HERO ICON*/
 .hero-icon-wrap {
   width: 100px;
   height: 100px;
@@ -1838,7 +1885,7 @@ i.fa-brands {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
 }
 
-/* ---------- 7.2 FEATURE GRID (6 boxes) ---------- */
+/*8.2 FEATURE GRID*/
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1858,7 +1905,6 @@ i.fa-brands {
   overflow: hidden;
 }
 
-/* Top gradient stripe — lumalabas sa hover */
 .feature-card::before {
   content: "";
   position: absolute;
@@ -1881,7 +1927,6 @@ i.fa-brands {
   border-color: #c9e0f0;
 }
 
-/* Icon badge — colored */
 .feature-icon-badge {
   width: 64px;
   height: 64px;
@@ -1898,7 +1943,6 @@ i.fa-brands {
 }
 .feature-icon-badge i { font-size: inherit; }
 
-/* Color variants */
 .feature-icon-badge.blue {
   background: linear-gradient(135deg, #e8f4fb 0%, #d1eaf7 100%);
   box-shadow: 0 6px 16px rgba(45, 142, 207, 0.2);
@@ -1929,7 +1973,6 @@ i.fa-brands {
 }
 .feature-icon-badge.gold i { color: #b45309 !important; }
 
-/* Feature card text */
 .feature-card h3 {
   font-size: 17px;
   font-weight: 700;
@@ -1944,7 +1987,7 @@ i.fa-brands {
   margin: 0;
 }
 
-/* ---------- 7.3 ROOM GRID ---------- */
+/*8.3 ROOM GRID*/
 .room-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -2008,9 +2051,166 @@ i.fa-brands {
   font-weight: 400;
 }
 
-/* ============================================================
-   8. ANIMATIONS
-   ============================================================ */
+/*9. PUBLIC NAV & HERO BUTTONS*/
+/*9.1 PUBLIC NAV*/
+.pub-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5ebf0;
+  box-shadow: 0 2px 12px rgba(19,49,92,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.pub-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+.pub-nav-brand:hover { opacity: 0.85; }
+
+.pub-nav-brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e5fa8, #2d8ecf);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(30,95,168,0.25);
+  flex-shrink: 0;
+}
+.pub-nav-brand-icon i {
+  color: #ffffff !important;
+  font-size: 20px;
+}
+
+.pub-nav-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+.pub-nav-brand-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0b2545;
+  letter-spacing: -0.3px;
+}
+.pub-nav-brand-sub {
+  font-size: 9px;
+  font-weight: 700;
+  color: #6b7f95;
+  letter-spacing: 3px;
+  margin-top: 3px;
+}
+
+.pub-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pub-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.pub-nav-btn i { font-size: 13px; }
+
+.pub-nav-btn-ghost {
+  background: #ffffff;
+  color: #2d3748;
+  border: 1px solid #d8e2ec;
+}
+.pub-nav-btn-ghost i { color: #2d8ecf !important; }
+.pub-nav-btn-ghost:hover {
+  background: #f9fbfd;
+  border-color: #2d8ecf;
+  color: #1e5fa8;
+  transform: translateY(-1px);
+}
+
+.pub-nav-btn-primary {
+  background: linear-gradient(135deg, #1e5fa8, #2d8ecf);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(45,142,207,0.3);
+}
+.pub-nav-btn-primary i { color: #ffffff !important; }
+.pub-nav-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(45,142,207,0.4);
+}
+
+/*9.2 HERO BUTTONS*/
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  border: none;
+}
+.hero-btn i { font-size: 14px; }
+
+.hero-btn-primary {
+  background: linear-gradient(135deg, #e6b800 0%, #f6c945 100%);
+  color: #4a3200;
+  box-shadow:
+    0 8px 20px rgba(230,184,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.hero-btn-primary i { color: #4a3200 !important; }
+.hero-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 28px rgba(230,184,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.hero-btn-primary:active { transform: translateY(0); }
+
+.hero-btn-secondary {
+  background: rgba(255, 255, 255, 0.95);
+  color: #13315c;
+  box-shadow:
+    0 8px 20px rgba(19,49,92,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+  backdrop-filter: blur(6px);
+}
+.hero-btn-secondary i { color: #13315c !important; }
+.hero-btn-secondary:hover {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(19,49,92,0.25);
+}
+.hero-btn-secondary:active { transform: translateY(0); }
+
+/*10. ANIMATIONS*/
 @keyframes shimmer {
   0%, 100% { background-position: 0% 50%; }
   50%      { background-position: 100% 50%; }
@@ -2048,16 +2248,13 @@ i.fa-brands {
   100% { transform: translateX(-25%) rotate(360deg); }
 }
 
-/* ============================================================
-   9. RESPONSIVE
-   ============================================================ */
-
-/* Tablet / Desktop narrow */
+/*11. RESPONSIVE*/
+/* Tablet / Narrow Desktop */
 @media (max-width: 1100px) {
   .admin-dashboard-grid { grid-template-columns: 1fr; }
 }
 
-/* Small tablet */
+/* Small Tablet */
 @media (max-width: 900px) {
   .admin-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
   .admin-sidebar.open { transform: translateX(0); }
@@ -2073,10 +2270,12 @@ i.fa-brands {
 @media (max-width: 720px) {
   .page-pad { padding: 16px; }
 
+  /* Nav */
   .nav { flex-wrap: wrap; padding: 12px 16px; }
   .nav .row { margin-left: 0 !important; width: 100%; gap: 8px; }
   .row { gap: 12px; }
 
+  /* Typography */
   th, td { padding: 8px 6px; font-size: 13px; }
   h1 { font-size: 22px; }
   h2 { font-size: 19px; }
@@ -2084,7 +2283,6 @@ i.fa-brands {
   /* Hero */
   .hero { padding: 40px 20px; border-radius: 18px; }
   .hero h1 { font-size: 26px; }
-  .hero-emoji { font-size: 52px; }
   .hero-actions .neu-button { width: 100%; }
   .hero p { font-size: 14px; }
   .hero-icon-wrap {
@@ -2133,194 +2331,9 @@ i.fa-brands {
     width: auto;
   }
   .admin-notif-dropdown { max-height: 70vh; }
-}
 
-/* Global */
-html { scroll-behavior: smooth; }
-::selection { background: rgba(45,142,207,0.35); color: var(--deep-sea); }
-
-/* ============================================================
-   PUBLIC NAV — brand + buttons
-   ============================================================ */
-
-.pub-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 32px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5ebf0;
-  box-shadow: 0 2px 12px rgba(19,49,92,0.06);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-/* ---------- Brand ---------- */
-.pub-nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  transition: opacity 0.15s ease;
-}
-.pub-nav-brand:hover { opacity: 0.85; }
-
-.pub-nav-brand-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1e5fa8, #2d8ecf);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(30,95,168,0.25);
-  flex-shrink: 0;
-}
-.pub-nav-brand-icon i {
-  color: #ffffff !important;
-  font-size: 20px;
-}
-
-.pub-nav-brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1;
-}
-.pub-nav-brand-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: #0b2545;
-  letter-spacing: -0.3px;
-}
-.pub-nav-brand-sub {
-  font-size: 9px;
-  font-weight: 700;
-  color: #6b7f95;
-  letter-spacing: 3px;
-  margin-top: 3px;
-}
-
-/* ---------- Actions wrapper ---------- */
-.pub-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* ---------- Buttons ---------- */
-.pub-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  font-family: inherit;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-.pub-nav-btn i { font-size: 13px; }
-
-/* Ghost — Login */
-.pub-nav-btn-ghost {
-  background: #ffffff;
-  color: #2d3748;
-  border: 1px solid #d8e2ec;
-}
-.pub-nav-btn-ghost i { color: #2d8ecf !important; }
-.pub-nav-btn-ghost:hover {
-  background: #f9fbfd;
-  border-color: #2d8ecf;
-  color: #1e5fa8;
-  transform: translateY(-1px);
-}
-
-/* Primary — Get Started */
-.pub-nav-btn-primary {
-  background: linear-gradient(135deg, #1e5fa8, #2d8ecf);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(45,142,207,0.3);
-}
-.pub-nav-btn-primary i { color: #ffffff !important; }
-.pub-nav-btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(45,142,207,0.4);
-}
-
-/* ============================================================
-   HERO BUTTONS
-   ============================================================ */
-
-.hero-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 28px;
-  border-radius: 12px;
-  font-size: 14.5px;
-  font-weight: 700;
-  font-family: inherit;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  letter-spacing: 0.2px;
-  border: none;
-}
-.hero-btn i { font-size: 14px; }
-
-/* Primary — Get Started Free (gold) */
-.hero-btn-primary {
-  background: linear-gradient(135deg, #e6b800 0%, #f6c945 100%);
-  color: #4a3200;
-  box-shadow:
-    0 8px 20px rgba(230,184,0,0.35),
-    inset 0 1px 0 rgba(255,255,255,0.5);
-}
-.hero-btn-primary i { color: #4a3200 !important; }
-.hero-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 12px 28px rgba(230,184,0,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.6);
-}
-.hero-btn-primary:active {
-  transform: translateY(0);
-}
-
-/* Secondary — I have an account (white glass) */
-.hero-btn-secondary {
-  background: rgba(255, 255, 255, 0.95);
-  color: #13315c;
-  box-shadow:
-    0 8px 20px rgba(19,49,92,0.2),
-    inset 0 1px 0 rgba(255,255,255,0.7);
-  backdrop-filter: blur(6px);
-}
-.hero-btn-secondary i { color: #13315c !important; }
-.hero-btn-secondary:hover {
-  background: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(19,49,92,0.25);
-}
-.hero-btn-secondary:active {
-  transform: translateY(0);
-}
-
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-@media (max-width: 720px) {
-  .pub-nav {
-    padding: 12px 16px;
-  }
+  /* Public Nav */
+  .pub-nav { padding: 12px 16px; }
   .pub-nav-brand-icon {
     width: 36px;
     height: 36px;
@@ -2333,14 +2346,12 @@ html { scroll-behavior: smooth; }
     letter-spacing: 2px;
   }
 
-  /* Nav buttons — icon lang kapag mobile */
+  /* Nav buttons — icon only on mobile */
   .pub-nav-btn {
     padding: 9px 14px;
     font-size: 13px;
   }
-  .pub-nav-btn span {
-    display: none;
-  }
+  .pub-nav-btn span { display: none; }
   .pub-nav-btn i { font-size: 15px; }
 
   /* Hero buttons — full width */

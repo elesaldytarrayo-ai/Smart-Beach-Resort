@@ -1,62 +1,195 @@
-/* ============================================================
-   src/app/staff/StaffReservations.jsx
-   Reservations list — with StaffLayout.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import StaffLayout from './StaffLayout.jsx';
 
+// --- Constants ---
+const REFRESH_INTERVAL_MS = 10000;
+
+const FILTERS = [
+  { key: 'all',         label: 'All',         icon: 'fa-list' },
+  { key: 'pending',     label: 'Pending',     icon: 'fa-clock' },
+  { key: 'confirmed',   label: 'Confirmed',   icon: 'fa-ticket' },
+  { key: 'checked_out', label: 'Checked out', icon: 'fa-door-open' }
+];
+
+// REUSABLE SUB-COMPONENTS
+// StatCard Component
+// Displays a single mini statistic on the reservations dashboard.
+function StatCard({ icon, color, label, value }) {
+  return (
+    <div className="admin-mini-stat">
+      <div className={`admin-mini-stat-icon ${color}`}>
+        <i className={`fa-solid ${icon}`}></i>
+      </div>
+      <div className="admin-mini-stat-body">
+        <div className="admin-mini-stat-label">{label}</div>
+        <div className="admin-mini-stat-value">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+// FilterChip Component
+// Renders a single filter chip with an active state and count.
+function FilterChip({ filter, label, icon, count, isActive, onClick }) {
+  return (
+    <button
+      className={`admin-chip ${isActive ? 'active' : ''}`}
+      onClick={() => onClick(filter)}
+    >
+      <i className={`fa-solid ${icon}`}></i> {label}
+      <span className="admin-chip-count">{count}</span>
+    </button>
+  );
+}
+
+// PaymentPill Component
+// Renders a colored pill for the payment status.
+function PaymentPill({ status }) {
+  const icon = status === 'paid' ? 'fa-circle-check' : 'fa-hourglass-half';
+  return (
+    <span className={`admin-pill ${status}`}>
+      <i className={`fa-solid ${icon}`}></i> {status}
+    </span>
+  );
+}
+
+// StatusPill Component
+// Renders a colored pill for the booking status.
+function StatusPill({ status }) {
+  let icon = 'fa-clock';
+  if (status === 'confirmed') icon = 'fa-ticket';
+  else if (status === 'checked_out') icon = 'fa-door-open';
+
+  return (
+    <span className={`admin-pill ${status}`}>
+      <i className={`fa-solid ${icon}`}></i> {status}
+    </span>
+  );
+}
+
+// ReservationRow Component
+// Renders a single row of the reservations table with actions.
+function ReservationRow({ booking, updatingId, onSetStatus }) {
+  const isUpdating = updatingId === booking.id;
+
+  return (
+    <tr>
+      <td>
+        <div className="cell-main">{booking.profiles?.full_name || '—'}</div>
+        <div className="cell-sub">{booking.profiles?.email}</div>
+      </td>
+      <td>
+        <div className="cell-main">Room {booking.rooms?.room_number}</div>
+        <div className="cell-sub">{booking.rooms?.room_type}</div>
+      </td>
+      <td className="muted">{booking.check_in}</td>
+      <td className="muted">{booking.check_out}</td>
+      <td><PaymentPill status={booking.payment_status} /></td>
+      <td><StatusPill status={booking.status} /></td>
+      <td>
+        <div className="row-actions row-actions-end">
+          {booking.status === 'pending' && (
+            <button
+              className="app-btn app-btn-primary app-btn-sm"
+              onClick={() => onSetStatus(booking, 'confirmed')}
+              disabled={isUpdating}
+            >
+              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+              {isUpdating ? 'Confirming…' : 'Confirm'}
+            </button>
+          )}
+
+          {booking.status === 'confirmed' && (
+            <button
+              className="app-btn app-btn-danger app-btn-sm"
+              onClick={() => onSetStatus(booking, 'checked_out')}
+              disabled={isUpdating}
+            >
+              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-door-open'}`}></i>
+              {isUpdating ? 'Checking out…' : 'Check-out'}
+            </button>
+          )}
+
+          {booking.status === 'checked_out' && (
+            <span className="muted text-sm">
+              <i className="fa-solid fa-circle-check mr-1"></i> Done
+            </span>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// MAIN STAFF RESERVATIONS COMPONENT
+// StaffReservations Component
+// Displays all reservations with filters, search, and status actions.
 export default function StaffReservations() {
+  // --- State Management ---
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
-  const [msg, setMsg] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  async function refresh() {
+  // DATA FETCHING
+  // Fetches all reservations.
+  async function fetchReservations(isInitialLoad = false) {
+    if (isInitialLoad) setLoading(true);
     try {
-      setErr('');
-      const { data, error } = await supabase
+      setError('');
+      const { data, error: fetchError } = await supabase
         .from('bookings')
-        .select('*, profiles(full_name,email,phone), rooms(room_number,room_type)')
+        .select('*, profiles(full_name, email, phone), rooms(room_number, room_type)')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+
+      if (fetchError) throw fetchError;
       setBookings(data || []);
-    } catch (e) {
-      setErr(e.message);
+    } catch (err) {
+      setError(err.message);
     } finally {
-      setLoading(false);
+      if (isInitialLoad) setLoading(false);
     }
   }
 
   useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 10000);
-    return () => clearInterval(t);
-  }, []);
+    fetchReservations(true);
+    const interval = setInterval(() => fetchReservations(false), REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function setStatus(booking, status) {
-    if (!confirm(`Change status to "${status}"?`)) return;
-    setErr(''); setMsg('');
-    const { error } = await supabase
-      .from('bookings').update({ status }).eq('id', booking.id);
-    if (error) return setErr(error.message);
-    setMsg(`Status updated to "${status}"`);
-    refresh();
+  // ACTIONS
+  // Updates the status of a booking after user confirmation.
+  async function handleSetStatus(booking, newStatus) {
+    const confirmed = window.confirm(`Change status to "${newStatus}"?`);
+    if (!confirmed) return;
+
+    setError('');
+    setMessage('');
+    setUpdatingId(booking.id);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ status: newStatus })
+        .eq('id', booking.id);
+
+      if (updateError) throw updateError;
+
+      setMessage(`Status updated to "${newStatus}"`);
+      await fetchReservations(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  const filtered = bookings.filter((b) => {
-    if (filter !== 'all' && b.status !== filter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const hay = `${b.profiles?.full_name || ''} ${b.profiles?.email || ''} ${b.rooms?.room_number || ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-
+  // DERIVED DATA
+  /** Counts per status for stat cards and filter chips. */
   const counts = {
     all: bookings.length,
     pending: bookings.filter((b) => b.status === 'pending').length,
@@ -64,51 +197,36 @@ export default function StaffReservations() {
     checked_out: bookings.filter((b) => b.status === 'checked_out').length
   };
 
+  /** Bookings after applying filter and search. */
+  const filteredBookings = bookings.filter((booking) => {
+    if (filter !== 'all' && booking.status !== filter) return false;
+
+    if (search.trim()) {
+      const query = search.toLowerCase().trim();
+      const searchable = `
+        ${booking.profiles?.full_name || ''}
+        ${booking.profiles?.email || ''}
+        ${booking.rooms?.room_number || ''}
+      `.toLowerCase();
+      if (!searchable.includes(query)) return false;
+    }
+    return true;
+  });
+
+  // RENDER
   return (
     <StaffLayout>
       <div className="admin-welcome">
         <h1>Reservations</h1>
-        <p>Lahat ng bookings mula sa guests. Auto-refresh every 10s.</p>
+        <p>All bookings from guests. Auto-refreshes every 10 seconds.</p>
       </div>
 
-      {/* Mini stats */}
+      {/*MINI STATS*/}
       <div className="admin-mini-stats">
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon blue">
-            <i className="fa-solid fa-calendar-check"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Total</div>
-            <div className="admin-mini-stat-value">{counts.all}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon orange">
-            <i className="fa-solid fa-clock"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Pending</div>
-            <div className="admin-mini-stat-value">{counts.pending}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon green">
-            <i className="fa-solid fa-ticket"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Confirmed</div>
-            <div className="admin-mini-stat-value">{counts.confirmed}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon purple">
-            <i className="fa-solid fa-door-open"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Checked out</div>
-            <div className="admin-mini-stat-value">{counts.checked_out}</div>
-          </div>
-        </div>
+        <StatCard icon="fa-calendar-check" color="blue"   label="Total" value={counts.all} />
+        <StatCard icon="fa-clock" color="orange" label="Pending" value={counts.pending} />
+        <StatCard icon="fa-ticket" color="green"  label="Confirmed" value={counts.confirmed} />
+        <StatCard icon="fa-door-open" color="purple" label="Checked out" value={counts.checked_out} />
       </div>
 
       <div className="admin-panel">
@@ -118,31 +236,22 @@ export default function StaffReservations() {
           </h3>
         </div>
 
-        {/* Filter chips */}
+        {/*FILTER CHIPS*/}
         <div className="admin-chips">
-          <button className={`admin-chip ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}>
-            <i className="fa-solid fa-list"></i> All
-            <span className="admin-chip-count">{counts.all}</span>
-          </button>
-          <button className={`admin-chip ${filter === 'pending' ? 'active' : ''}`}
-            onClick={() => setFilter('pending')}>
-            <i className="fa-solid fa-clock"></i> Pending
-            <span className="admin-chip-count">{counts.pending}</span>
-          </button>
-          <button className={`admin-chip ${filter === 'confirmed' ? 'active' : ''}`}
-            onClick={() => setFilter('confirmed')}>
-            <i className="fa-solid fa-ticket"></i> Confirmed
-            <span className="admin-chip-count">{counts.confirmed}</span>
-          </button>
-          <button className={`admin-chip ${filter === 'checked_out' ? 'active' : ''}`}
-            onClick={() => setFilter('checked_out')}>
-            <i className="fa-solid fa-door-open"></i> Checked out
-            <span className="admin-chip-count">{counts.checked_out}</span>
-          </button>
+          {FILTERS.map((f) => (
+            <FilterChip
+              key={f.key}
+              filter={f.key}
+              label={f.label}
+              icon={f.icon}
+              count={counts[f.key]}
+              isActive={filter === f.key}
+              onClick={setFilter}
+            />
+          ))}
         </div>
 
-        {/* Toolbar */}
+        {/*TOOLBAR*/}
         <div className="admin-toolbar">
           <div className="admin-toolbar-search">
             <i className="fa-solid fa-magnifying-glass"></i>
@@ -152,31 +261,33 @@ export default function StaffReservations() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button className="app-btn app-btn-secondary" onClick={refresh}>
+          <button className="app-btn app-btn-secondary" onClick={() => fetchReservations(true)}>
             <i className="fa-solid fa-rotate"></i> Refresh
           </button>
         </div>
 
-        {err && <p className="admin-error">{err}</p>}
-        {msg && <p className="admin-success">{msg}</p>}
+        {/*FEEDBACK*/}
+        {error && <p className="admin-error">{error}</p>}
+        {message && <p className="admin-success">{message}</p>}
 
+        {/*LOADING*/}
         {loading && (
           <div className="admin-loading">
-            <i className="fa-solid fa-spinner"></i> Loading…
+            <i className="fa-solid fa-spinner fa-spin"></i> Loading…
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {/*EMPTY*/}
+        {!loading && filteredBookings.length === 0 && (
           <div className="admin-empty">
             <i className="fa-solid fa-calendar-xmark"></i>
             <div className="admin-empty-title">No reservations match</div>
-            <div className="admin-empty-desc">
-              Try adjusting your search or filter.
-            </div>
+            <div className="admin-empty-desc">Try adjusting your search or filter.</div>
           </div>
         )}
 
-        {!loading && filtered.length > 0 && (
+        {/*TABLE*/}
+        {!loading && filteredBookings.length > 0 && (
           <table className="admin-table">
             <thead>
               <tr>
@@ -186,67 +297,17 @@ export default function StaffReservations() {
                 <th>Check-out</th>
                 <th>Payment</th>
                 <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((b) => (
-                <tr key={b.id}>
-                  <td>
-                    <div className="cell-main">{b.profiles?.full_name || '—'}</div>
-                    <div className="cell-sub">{b.profiles?.email}</div>
-                  </td>
-                  <td>
-                    <div className="cell-main">Room {b.rooms?.room_number}</div>
-                    <div className="cell-sub">{b.rooms?.room_type}</div>
-                  </td>
-                  <td className="muted">{b.check_in}</td>
-                  <td className="muted">{b.check_out}</td>
-                  <td>
-                    <span className={`admin-pill ${b.payment_status}`}>
-                      <i className={
-                        b.payment_status === 'paid' ? 'fa-solid fa-circle-check' :
-                        'fa-solid fa-hourglass-half'
-                      }></i>
-                      {b.payment_status}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`admin-pill ${b.status}`}>
-                      <i className={
-                        b.status === 'confirmed' ? 'fa-solid fa-ticket' :
-                        b.status === 'checked_out' ? 'fa-solid fa-door-open' :
-                        'fa-solid fa-clock'
-                      }></i>
-                      {b.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
-                      {b.status === 'pending' && (
-                        <button
-                          className="app-btn app-btn-primary app-btn-sm"
-                          onClick={() => setStatus(b, 'confirmed')}
-                        >
-                          <i className="fa-solid fa-check"></i> Confirm
-                        </button>
-                      )}
-                      {b.status === 'confirmed' && (
-                        <button
-                          className="app-btn app-btn-danger app-btn-sm"
-                          onClick={() => setStatus(b, 'checked_out')}
-                        >
-                          <i className="fa-solid fa-door-open"></i> Check-out
-                        </button>
-                      )}
-                      {b.status === 'checked_out' && (
-                        <span className="muted" style={{ fontSize: 12 }}>
-                          <i className="fa-solid fa-circle-check"></i> Done
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+              {filteredBookings.map((booking) => (
+                <ReservationRow
+                  key={booking.id}
+                  booking={booking}
+                  updatingId={updatingId}
+                  onSetStatus={handleSetStatus}
+                />
               ))}
             </tbody>
           </table>

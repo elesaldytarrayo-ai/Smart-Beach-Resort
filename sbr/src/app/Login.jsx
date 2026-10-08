@@ -1,50 +1,73 @@
-/* ============================================================
-   src/app/Login.jsx
-   Login page — uses AppLayout (no nav).
-   ============================================================ */
-
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
+// Login Component
+// Renders the login form and handles authentication via Supabase.
+// Redirects users to their respective dashboards based on their role.
 export default function Login() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
+  
+  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [err, setErr] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Handles the login form submission.
+  // Authenticates the user, fetches their role, and redirects them.
   async function handleLogin(e) {
     e.preventDefault();
-    setErr('');
+    setError('');
     setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      // 1. Authenticate with Supabase Auth
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password 
+      });
 
-    if (error) {
-      setErr(error.message);
+      if (authError) throw authError;
+
+      // 2. Fetch the user's role from the profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        console.warn('Could not fetch profile role, defaulting to "user".', profileError);
+      }
+
+      // 3. Determine the correct dashboard based on role
+      const role = profile?.role || 'user';
+      const redirectPath = role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/user';
+      
+      navigate(redirectPath);
+      
+    } catch (err) {
+      setError(err.message || 'Failed to login. Please check your credentials.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', data.user.id).single();
-
-    const role = profile?.role || 'user';
-    nav(role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/user');
   }
 
   return (
     <AppLayout nav={false}>
       <div className="auth-wrap">
         <div className="auth-card">
+          
+          {/* Header Icon & Text */}
           <div className="auth-icon">
             <i className="fa-solid fa-lock"></i>
           </div>
           <h2>Welcome Back</h2>
           <p className="subtitle">Sign in to your Smart Beach Resort account</p>
 
+          {/* Login Form */}
           <form onSubmit={handleLogin}>
             <input
               className="neu-input"
@@ -53,6 +76,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              aria-label="Email address"
             />
             <input
               className="neu-input"
@@ -61,31 +85,42 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              aria-label="Password"
             />
 
-            {err && <p className="error-text">
-              <i className="fa-solid fa-circle-exclamation" style={{ marginRight: 6 }}></i>
-              {err}
-            </p>}
+            {/* Error Feedback */}
+            {error && (
+              <p className="error-text" aria-live="polite">
+                <i className="fa-solid fa-circle-exclamation mr-1"></i>
+                {error}
+              </p>
+            )}
 
-            <button className="neu-button primary" disabled={loading} style={{ width: '100%' }}>
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-right-to-bracket'}`}></i>
+            {/* Submit Button */}
+            <button 
+              type="submit" 
+              className="neu-button primary btn-full-width" 
+              disabled={loading}
+            >
+              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-right-to-bracket'} mr-1`}></i>
               {loading ? 'Logging in…' : 'Sign In'}
             </button>
           </form>
 
-          <p className="muted" style={{ marginTop: 20, textAlign: 'center' }}>
+          {/* Navigation Links */}
+          <p className="muted mt-3 text-center">
             <Link to="/forgot">Forgot password?</Link>
             {' · '}
             <Link to="/register">Create account</Link>
           </p>
 
-          <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>
+          <p className="muted mt-2 text-center">
             <Link to="/">
-              <i className="fa-solid fa-arrow-left" style={{ marginRight: 6 }}></i>
+              <i className="fa-solid fa-arrow-left mr-1"></i>
               Back to home
             </Link>
           </p>
+          
         </div>
       </div>
     </AppLayout>

@@ -1,57 +1,169 @@
-/* ============================================================
-   src/app/admin/AdminUsers.jsx
-   User Management — lahat ng icons Font Awesome.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import { decrypt } from '../../encryption.js';
 import AdminLayout from './AdminLayout.jsx';
 
+// --- Constants ---
+const REFRESH_INTERVAL_MS = 10000;
+
+// Maps a user role to its Font Awesome icon.
+// Used in the role pill and the change-role dropdown.
+const ROLE_ICON_MAP = {
+  admin: 'fa-user-shield',
+  staff: 'fa-user-tie',
+  user: 'fa-user'
+};
+
+/** Available roles for the change-role dropdown. */
+const ROLE_OPTIONS = ['user', 'staff', 'admin'];
+
+// Defines the filter options for the role dropdown.
+const ROLE_FILTERS = [
+  { key: 'all', label: 'All roles' },
+  { key: 'user', label: 'Users' },
+  { key: 'staff', label: 'Staff' },
+  { key: 'admin', label: 'Admins' }
+];
+
+// REUSABLE SUB-COMPONENTS
+// StatCard Component
+// Displays a large KPI card on the user management dashboard.
+function StatCard({ color, icon, label, value, sub }) {
+  return (
+    <div className={`admin-stat-card ${color}`}>
+      <div className="admin-stat-top">
+        <span className="admin-stat-label">{label}</span>
+        <span className="admin-stat-icon">
+          <i className={`fa-solid ${icon}`}></i>
+        </span>
+      </div>
+      <div>
+        <div className="admin-stat-value">{value}</div>
+        <div className="admin-stat-sub">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+// RolePill Component
+// Renders a colored pill for a user's role.
+function RolePill({ role }) {
+  const icon = ROLE_ICON_MAP[role] || 'fa-user';
+  return (
+    <span className={`admin-pill ${role}`}>
+      <i className={`fa-solid ${icon}`}></i>
+      {role}
+    </span>
+  );
+}
+
+//UserRow Component
+// Renders a single user row with an inline role-change dropdown.
+function UserRow({ user, updatingId, onRoleChange }) {
+  const isUpdating = updatingId === user.id;
+
+  return (
+    <tr>
+      <td><strong>{user.full_name || '—'}</strong></td>
+      <td>{user.email}</td>
+      <td className="muted">{user.phone || '—'}</td>
+      <td><RolePill role={user.role} /></td>
+      <td className="muted">
+        {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
+      </td>
+      <td>
+        <select
+          className="admin-select role-select"
+          value={user.role}
+          onChange={(e) => onRoleChange(user, e.target.value)}
+          disabled={isUpdating}
+        >
+          {ROLE_OPTIONS.map((role) => (
+            <option key={role} value={role}>{role}</option>
+          ))}
+        </select>
+      </td>
+    </tr>
+  );
+}
+
+// MAIN ADMIN USERS COMPONENT
+// AdminUsers Component
+// Displays all user accounts with role filtering, search, and
+// inline role changes.
 export default function AdminUsers() {
+  // --- State Management ---
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState('');
-  const [msg, setMsg] = useState('');
+  const [updatingId, setUpdatingId] = useState(null);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  async function refresh() {
+  // DATA FETCHING
+  // Fetches all user profiles and decrypts their phone numbers.
+  async function fetchUsers(isInitialLoad = false) {
+    if (isInitialLoad) setLoading(true);
     try {
-      setErr('');
-      const { data, error } = await supabase
-        .from('profiles').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      setUsers((data || []).map((u) => ({ ...u, phone: decrypt(u.phone) })));
-    } catch (e) { setErr(e.message); }
-    finally { setLoading(false); }
+      setError('');
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+
+      // Decrypt phone numbers for each user
+      const decrypted = (data || []).map((u) => ({
+        ...u,
+        phone: u.phone ? decrypt(u.phone) : ''
+      }));
+      setUsers(decrypted);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      if (isInitialLoad) setLoading(false);
+    }
   }
 
   useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 10000);
-    return () => clearInterval(t);
-  }, []);
+    fetchUsers(true);
+    const interval = setInterval(() => fetchUsers(false), REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function changeRole(user, role) {
-    if (!confirm(`Change ${user.email} to "${role}"?`)) return;
-    setErr(''); setMsg('');
-    const { error } = await supabase.from('profiles').update({ role }).eq('id', user.id);
-    if (error) return setErr(error.message);
-    setMsg(`${user.email} is now ${role}`);
-    refresh();
+  // ACTIONS
+  // Changes the role of a user after confirmation.
+  async function handleRoleChange(user, newRole) {
+    if (newRole === user.role) return; // No-op if the role didn't change
+
+    const confirmed = window.confirm(`Change ${user.email} to "${newRole}"?`);
+    if (!confirmed) return;
+
+    setError('');
+    setMessage('');
+    setUpdatingId(user.id);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setMessage(`${user.email} is now ${newRole}.`);
+      await fetchUsers(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  const filtered = users.filter((u) => {
-    if (roleFilter !== 'all' && u.role !== roleFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const hay = `${u.full_name || ''} ${u.email || ''} ${u.phone || ''}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-
+  // DERIVED DATA
+  /** Counts per role for stat cards and filter dropdown. */
   const counts = {
     all: users.length,
     user: users.filter((u) => u.role === 'user').length,
@@ -59,80 +171,91 @@ export default function AdminUsers() {
     admin: users.filter((u) => u.role === 'admin').length
   };
 
+  /** Users after applying the role filter and search query. */
+  const filteredUsers = users.filter((user) => {
+    if (roleFilter !== 'all' && user.role !== roleFilter) return false;
+
+    if (search.trim()) {
+      const query = search.toLowerCase().trim();
+      const searchable = `${user.full_name || ''} ${user.email || ''} ${user.phone || ''}`.toLowerCase();
+      if (!searchable.includes(query)) return false;
+    }
+    return true;
+  });
+
+  // RENDER
   return (
     <AdminLayout>
       <div className="admin-welcome">
         <h1>User Management</h1>
-        <p>View at i-manage ang lahat ng accounts.</p>
+        <p>View and manage all accounts.</p>
       </div>
 
+      {/*KPI STAT CARDS*/}
       <div className="admin-stat-grid">
-        <div className="admin-stat-card blue">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Total Accounts</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-users"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.all}</div>
-            <div className="admin-stat-sub">All users</div>
-          </div>
-        </div>
-        <div className="admin-stat-card green">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Users</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-user"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.user}</div>
-            <div className="admin-stat-sub">Regular accounts</div>
-          </div>
-        </div>
-        <div className="admin-stat-card orange">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Staff</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-user-tie"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.staff}</div>
-            <div className="admin-stat-sub">Employees</div>
-          </div>
-        </div>
-        <div className="admin-stat-card purple">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Admins</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-user-shield"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.admin}</div>
-            <div className="admin-stat-sub">Full access</div>
-          </div>
-        </div>
+        <StatCard
+          color="blue"
+          icon="fa-users"
+          label="Total Accounts"
+          value={counts.all}
+          sub="All users"
+        />
+        <StatCard
+          color="green"
+          icon="fa-user"
+          label="Users"
+          value={counts.user}
+          sub="Regular accounts"
+        />
+        <StatCard
+          color="orange"
+          icon="fa-user-tie"
+          label="Staff"
+          value={counts.staff}
+          sub="Employees"
+        />
+        <StatCard
+          color="purple"
+          icon="fa-user-shield"
+          label="Admins"
+          value={counts.admin}
+          sub="Full access"
+        />
       </div>
 
-      <div className="admin-panel" style={{ marginBottom: 20 }}>
-        <div className="row" style={{ alignItems: 'center' }}>
+      {/*TOOLBAR*/}
+      <div className="admin-panel mb-4">
+        <div className="row row-center">
           <div className="col">
-            <input className="admin-input" placeholder="Search by name, email, or phone…"
-              value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 0 }} />
+            <input
+              className="admin-input"
+              placeholder="Search by name, email, or phone…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <div className="col" style={{ flex: '0 0 180px' }}>
-            <select className="admin-select" value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)} style={{ marginBottom: 0 }}>
-              <option value="all">All roles</option>
-              <option value="user">Users</option>
-              <option value="staff">Staff</option>
-              <option value="admin">Admins</option>
+          <div className="col col-fixed-180">
+            <select
+              className="admin-select"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+            >
+              {ROLE_FILTERS.map((f) => (
+                <option key={f.key} value={f.key}>{f.label}</option>
+              ))}
             </select>
           </div>
-          <button className="app-btn app-btn-secondary" onClick={refresh}>
+          <button className="app-btn app-btn-secondary" onClick={() => fetchUsers(true)}>
             <i className="fa-solid fa-rotate"></i> Refresh
           </button>
         </div>
       </div>
 
-      {err && <p className="admin-error" style={{ marginBottom: 12 }}>{err}</p>}
-      {msg && <p className="admin-success" style={{ marginBottom: 12 }}>{msg}</p>}
+      {/*FEEDBACK*/}
+      {error && <p className="admin-error mb-2">{error}</p>}
+      {message && <p className="admin-success mb-2">{message}</p>}
 
+      {/*USERS TABLE*/}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -141,45 +264,31 @@ export default function AdminUsers() {
         </div>
 
         {loading && <p className="muted center">Loading…</p>}
-        {!loading && filtered.length === 0 && <p className="muted center">No accounts match.</p>}
 
-        {!loading && filtered.length > 0 && (
+        {!loading && filteredUsers.length === 0 && (
+          <p className="muted center">No accounts match.</p>
+        )}
+
+        {!loading && filteredUsers.length > 0 && (
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>Phone</th>
-                <th>Role</th><th>Created</th><th>Change Role</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Change Role</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u) => (
-                <tr key={u.id}>
-                  <td><strong>{u.full_name || '—'}</strong></td>
-                  <td>{u.email}</td>
-                  <td className="muted">{u.phone || '—'}</td>
-                  <td>
-                    <span className={`admin-pill ${u.role}`}>
-                      <i className={
-                        u.role === 'admin' ? 'fa-solid fa-user-shield' :
-                        u.role === 'staff' ? 'fa-solid fa-user-tie' :
-                        'fa-solid fa-user'
-                      }></i>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="muted">
-                    {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
-                  </td>
-                  <td>
-                    <select className="admin-select" value={u.role}
-                      onChange={(e) => changeRole(u, e.target.value)}
-                      style={{ marginBottom: 0, maxWidth: 120, fontSize: 13, padding: '6px 10px' }}>
-                      <option value="user">user</option>
-                      <option value="staff">staff</option>
-                      <option value="admin">admin</option>
-                    </select>
-                  </td>
-                </tr>
+              {filteredUsers.map((user) => (
+                <UserRow
+                  key={user.id}
+                  user={user}
+                  updatingId={updatingId}
+                  onRoleChange={handleRoleChange}
+                />
               ))}
             </tbody>
           </table>

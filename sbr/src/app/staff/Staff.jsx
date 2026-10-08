@@ -1,93 +1,205 @@
-/* ============================================================
-   src/app/staff/Staff.jsx
-   Staff Dashboard — Front desk operations with StaffLayout.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 import { readNFC } from '../../nfc.js';
 import StaffLayout from './StaffLayout.jsx';
 
+// --- Constants ---
 const API = 'http://localhost:5000';
+const REFRESH_INTERVAL_MS = 10000;
+const MAX_BOOKINGS_DISPLAYED = 8;
 
+// REUSABLE SUB-COMPONENTS
+// StatCard Component
+// Displays a single mini statistic on the dashboard.
+function StatCard({ icon, color, label, value }) {
+  return (
+    <div className="admin-mini-stat">
+      <div className={`admin-mini-stat-icon ${color}`}>
+        <i className={`fa-solid ${icon}`}></i>
+      </div>
+      <div className="admin-mini-stat-body">
+        <div className="admin-mini-stat-label">{label}</div>
+        <div className="admin-mini-stat-value">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+// BookingRow Component
+// Renders a single row in the recent bookings table.
+function BookingRow({ booking }) {
+  let statusIcon = 'fa-clock';
+  if (booking.status === 'confirmed') statusIcon = 'fa-ticket';
+  else if (booking.status === 'checked_out') statusIcon = 'fa-door-open';
+
+  return (
+    <tr>
+      <td>
+        <div className="cell-main">{booking.profiles?.full_name || 'Guest'}</div>
+        <div className="cell-sub">{booking.profiles?.email || ''}</div>
+      </td>
+      <td>
+        <div className="cell-main">Room {booking.rooms?.room_number}</div>
+        <div className="cell-sub">{booking.rooms?.room_type}</div>
+      </td>
+      <td>
+        <div className="cell-main text-sm">
+          <i className="fa-solid fa-calendar mr-1"></i>
+          {booking.check_in}
+        </div>
+        <div className="cell-sub">
+          <i className="fa-solid fa-arrow-right mr-1"></i>
+          {booking.check_out}
+        </div>
+      </td>
+      <td>
+        <span className={`admin-pill ${booking.status}`}>
+          <i className={`fa-solid ${statusIcon}`}></i>
+          {booking.status}
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+// RoomRow Component
+// Renders a single room with status toggle in the room status panel.
+function RoomRow({ room, onToggleStatus }) {
+  const nextStatus = room.status === 'available' ? 'maintenance' : 'available';
+  const buttonLabel = room.status === 'available' ? '→ Maint' : '→ Available';
+
+  return (
+    <div className="staff-room-row space-between">
+      <div>
+        <div className="cell-main">Room {room.room_number}</div>
+        <div className="cell-sub">
+          {room.room_type} · ₱{Number(room.price).toLocaleString()}
+        </div>
+      </div>
+      <div className="staff-room-actions">
+        <span className={`admin-pill ${room.status}`}>{room.status}</span>
+        <button
+          className="app-btn app-btn-secondary app-btn-sm"
+          onClick={() => onToggleStatus(room.id, nextStatus)}
+        >
+          {buttonLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// MAIN STAFF DASHBOARD COMPONENT
+// Staff Component
+// Renders the staff-facing dashboard for front desk operations.
 export default function Staff() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
+  // --- State Management ---
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
-  const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  async function refresh() {
+  // DATA FETCHING
+  // Fetches rooms and recent bookings in parallel.
+  async function fetchDashboardData() {
     try {
-      setErr('');
+      setError('');
 
-      const { data: r, error: rErr } = await supabase
-        .from('rooms').select('*').order('room_number');
-      if (rErr) throw rErr;
-      setRooms(r || []);
+      const [roomsRes, bookingsRes] = await Promise.all([
+        supabase.from('rooms').select('*').order('room_number'),
+        supabase.from('bookings')
+          .select('*, profiles(full_name, email), rooms(room_number, room_type)')
+          .order('created_at', { ascending: false })
+          .limit(20)
+      ]);
 
-      const { data: b, error: bErr } = await supabase
-        .from('bookings')
-        .select('*, profiles(full_name,email), rooms(room_number,room_type)')
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (bErr) throw bErr;
-      setBookings(b || []);
-    } catch (e) {
-      console.error('STAFF LOAD ERROR:', e);
-      setErr(e.message);
+      if (roomsRes.error) throw roomsRes.error;
+      if (bookingsRes.error) throw bookingsRes.error;
+
+      setRooms(roomsRes.data || []);
+      setBookings(bookingsRes.data || []);
+    } catch (err) {
+      console.error('Staff data fetch error:', err);
+      setError(err.message || 'Failed to load dashboard data.');
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 10000);
-    return () => clearInterval(t);
-  }, []);
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function updateRoomStatus(id, status) {
-    setErr('');
-    const { error } = await supabase
-      .from('rooms').update({ status }).eq('id', id);
-    if (error) return setErr(error.message);
-    refresh();
+  // ACTIONS
+  // Updates the status of a room (available ↔ maintenance).
+  async function handleUpdateRoomStatus(roomId, status) {
+    setError('');
+    try {
+      const { error: updateError } = await supabase
+        .from('rooms')
+        .update({ status })
+        .eq('id', roomId);
+
+      if (updateError) throw updateError;
+      await fetchDashboardData();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  async function tapCheckIn() {
-    setErr(''); setMsg('');
-    const read = await readNFC();
-    if (!read.ok) return setErr('NFC read failed: ' + read.error);
+  // Reads an NFC tag and verifies it as a check-in token.
+  async function handleNfcCheckIn() {
+    setError('');
+    setMessage('');
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(`${API}/api/nfc/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({ rawToken: read.text, purpose: 'check_in' })
-    });
-    const json = await res.json();
-    if (!json.ok) return setErr(json.error);
-    setMsg(`Check-in verified for booking ${json.bookingId.slice(0, 8)}…`);
+    try {
+      // 1. Read NFC tag
+      const readResult = await readNFC();
+      if (!readResult.ok) {
+        throw new Error(`NFC read failed: ${readResult.error}`);
+      }
+
+      // 2. Send to backend for verification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired. Please log in again.');
+
+      const response = await fetch(`${API}/api/nfc/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ rawToken: readResult.text, purpose: 'check_in' })
+      });
+
+      const json = await response.json();
+      if (!json.ok) throw new Error(json.error);
+
+      setMessage(`Check-in verified for booking ${json.bookingId.slice(0, 8)}…`);
+      await fetchDashboardData();
+    } catch (err) {
+      setError(err.message);
+    }
   }
+
+  // DERIVED STATISTICS
+  const today = new Date().toISOString().slice(0, 10);
 
   const roomCounts = {
     all: rooms.length,
     available: rooms.filter((r) => r.status === 'available').length,
-    occupied: rooms.filter((r) => r.status === 'occupied').length,
-    maintenance: rooms.filter((r) => r.status === 'maintenance').length
+    occupied: rooms.filter((r) => r.status === 'occupied').length
   };
 
-  const todayCheckins = bookings.filter((b) =>
-    b.check_in === new Date().toISOString().slice(0, 10)
-  ).length;
+  const todayCheckins = bookings.filter((b) => b.check_in === today).length;
 
+  // RENDER
   return (
     <StaffLayout>
       <div className="admin-welcome">
@@ -95,57 +207,25 @@ export default function Staff() {
         <p>Front desk operations · Room management · NFC check-in</p>
       </div>
 
-      {/* Mini stats */}
+      {/*MINI STATS*/}
       <div className="admin-mini-stats">
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon blue">
-            <i className="fa-solid fa-bed"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Total Rooms</div>
-            <div className="admin-mini-stat-value">{roomCounts.all}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon green">
-            <i className="fa-solid fa-circle-check"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Available</div>
-            <div className="admin-mini-stat-value">{roomCounts.available}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon orange">
-            <i className="fa-solid fa-user-lock"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Occupied</div>
-            <div className="admin-mini-stat-value">{roomCounts.occupied}</div>
-          </div>
-        </div>
-        <div className="admin-mini-stat">
-          <div className="admin-mini-stat-icon purple">
-            <i className="fa-solid fa-calendar-check"></i>
-          </div>
-          <div className="admin-mini-stat-body">
-            <div className="admin-mini-stat-label">Today's Check-ins</div>
-            <div className="admin-mini-stat-value">{todayCheckins}</div>
-          </div>
-        </div>
+        <StatCard icon="fa-bed" color="blue" label="Total Rooms" value={roomCounts.all} />
+        <StatCard icon="fa-circle-check" color="green" label="Available" value={roomCounts.available} />
+        <StatCard icon="fa-user-lock" color="orange" label="Occupied" value={roomCounts.occupied} />
+        <StatCard icon="fa-calendar-check" color="purple" label="Today's Check-ins" value={todayCheckins} />
       </div>
 
-      {err && <p className="admin-error">{err}</p>}
-      {msg && <p className="admin-success">{msg}</p>}
+      {error && <p className="admin-error">{error}</p>}
+      {message && <p className="admin-success">{message}</p>}
 
-      {/* Front Desk NFC */}
-      <div className="admin-panel" style={{ marginBottom: 20 }}>
+      {/*FRONT DESK NFC*/}
+      <div className="admin-panel mb-4">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
             <i className="fa-solid fa-bell-concierge"></i> Front Desk
           </h3>
-          <button className="app-btn app-btn-primary" onClick={tapCheckIn}>
-            <i className="fa-solid fa-wifi"></i> Tap NFC to Check-In
+          <button className="app-btn app-btn-primary" onClick={handleNfcCheckIn}>
+            <i className="fa-solid fa-wifi mr-1"></i> Tap NFC to Check-In
           </button>
         </div>
         <div className="admin-info-banner">
@@ -156,9 +236,10 @@ export default function Staff() {
         </div>
       </div>
 
-      {/* Two-column: bookings + rooms */}
+      {/*TWO-COLUMN GRID*/}
       <div className="admin-dashboard-grid">
-        {/* Recent Bookings */}
+        
+        {/* ---- Recent Bookings ---- */}
         <div className="admin-panel">
           <div className="admin-panel-header">
             <h3 className="admin-panel-title">
@@ -168,7 +249,7 @@ export default function Staff() {
 
           {loading && (
             <div className="admin-loading">
-              <i className="fa-solid fa-spinner"></i> Loading…
+              <i className="fa-solid fa-spinner fa-spin mr-1"></i> Loading…
             </div>
           )}
 
@@ -176,9 +257,7 @@ export default function Staff() {
             <div className="admin-empty">
               <i className="fa-solid fa-calendar-xmark"></i>
               <div className="admin-empty-title">No bookings yet</div>
-              <div className="admin-empty-desc">
-                Bookings from guests will appear here.
-              </div>
+              <div className="admin-empty-desc">Bookings from guests will appear here.</div>
             </div>
           )}
 
@@ -193,44 +272,15 @@ export default function Staff() {
                 </tr>
               </thead>
               <tbody>
-                {bookings.slice(0, 8).map((b) => (
-                  <tr key={b.id}>
-                    <td>
-                      <div className="cell-main">{b.profiles?.full_name || 'Guest'}</div>
-                      <div className="cell-sub">{b.profiles?.email || ''}</div>
-                    </td>
-                    <td>
-                      <div className="cell-main">Room {b.rooms?.room_number}</div>
-                      <div className="cell-sub">{b.rooms?.room_type}</div>
-                    </td>
-                    <td>
-                      <div className="cell-main" style={{ fontSize: 12 }}>
-                        <i className="fa-solid fa-calendar" style={{ marginRight: 6 }}></i>
-                        {b.check_in}
-                      </div>
-                      <div className="cell-sub">
-                        <i className="fa-solid fa-arrow-right" style={{ marginRight: 6 }}></i>
-                        {b.check_out}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`admin-pill ${b.status}`}>
-                        <i className={
-                          b.status === 'confirmed' ? 'fa-solid fa-ticket' :
-                          b.status === 'checked_out' ? 'fa-solid fa-door-open' :
-                          'fa-solid fa-clock'
-                        }></i>
-                        {b.status}
-                      </span>
-                    </td>
-                  </tr>
+                {bookings.slice(0, MAX_BOOKINGS_DISPLAYED).map((booking) => (
+                  <BookingRow key={booking.id} booking={booking} />
                 ))}
               </tbody>
             </table>
           )}
         </div>
 
-        {/* All Rooms */}
+        {/* ---- Room Status ---- */}
         <div className="admin-panel">
           <div className="admin-panel-header">
             <h3 className="admin-panel-title">
@@ -240,7 +290,7 @@ export default function Staff() {
 
           {loading && (
             <div className="admin-loading">
-              <i className="fa-solid fa-spinner"></i> Loading…
+              <i className="fa-solid fa-spinner fa-spin mr-1"></i> Loading…
             </div>
           )}
 
@@ -248,48 +298,19 @@ export default function Staff() {
             <div className="admin-empty">
               <i className="fa-solid fa-bed"></i>
               <div className="admin-empty-title">No rooms yet</div>
-              <div className="admin-empty-desc">
-                Wait for admin to add rooms.
-              </div>
+              <div className="admin-empty-desc">Wait for admin to add rooms.</div>
             </div>
           )}
 
           {!loading && rooms.length > 0 && (
-            <div style={{ maxHeight: 500, overflowY: 'auto' }}>
-              {rooms.map((r) => (
-                <div
-                  key={r.id}
-                  className="space-between"
-                  style={{
-                    padding: '12px 0',
-                    borderBottom: '1px solid #f0f4f8'
-                  }}
-                >
-                  <div>
-                    <div className="cell-main">Room {r.room_number}</div>
-                    <div className="cell-sub">
-                      {r.room_type} · ₱{Number(r.price).toLocaleString()}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span className={`admin-pill ${r.status}`}>
-                      {r.status}
-                    </span>
-                    <button
-                      className="app-btn app-btn-secondary app-btn-sm"
-                      onClick={() => updateRoomStatus(
-                        r.id,
-                        r.status === 'available' ? 'maintenance' : 'available'
-                      )}
-                    >
-                      {r.status === 'available' ? '→ Maint' : '→ Available'}
-                    </button>
-                  </div>
-                </div>
+            <div className="staff-room-list">
+              {rooms.map((room) => (
+                <RoomRow key={room.id} room={room} onToggleStatus={handleUpdateRoomStatus} />
               ))}
             </div>
           )}
         </div>
+
       </div>
     </StaffLayout>
   );

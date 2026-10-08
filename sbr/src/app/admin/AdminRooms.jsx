@@ -1,70 +1,289 @@
-/* ============================================================
-   src/app/admin/AdminRooms.jsx
-   Room Management — lahat ng icons Font Awesome.
-   ============================================================ */
-
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
+// --- Constants ---
+const ROOM_TYPES = ['Standard', 'Deluxe', 'Suite', 'Beachfront'];
+
+// Defines the cycle order for the "Next Status" action.
+// available → occupied → maintenance → available → ...
+const STATUS_CYCLE = {
+  available: 'occupied',
+  occupied: 'maintenance',
+  maintenance: 'available'
+};
+
+const INITIAL_FORM = {
+  room_number: '',
+  room_type: 'Standard',
+  price: '',
+  nfc_reader_id: ''
+};
+
+// Defines the filter options for the rooms dropdown.
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'available', label: 'Available' },
+  { key: 'occupied', label: 'Occupied' },
+  { key: 'maintenance', label: 'Maintenance' }
+];
+
+// REUSABLE SUB-COMPONENTS
+// StatCard Component
+// Displays a large KPI card on the room management dashboard.
+function StatCard({ color, icon, label, value, sub }) {
+  return (
+    <div className={`admin-stat-card ${color}`}>
+      <div className="admin-stat-top">
+        <span className="admin-stat-label">{label}</span>
+        <span className="admin-stat-icon">
+          <i className={`fa-solid ${icon}`}></i>
+        </span>
+      </div>
+      <div>
+        <div className="admin-stat-value">{value}</div>
+        <div className="admin-stat-sub">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
+// AddRoomForm Component
+// Renders the form for adding a new room.
+function AddRoomForm({ form, onChange, onSubmit, error, message }) {
+  return (
+    <div className="admin-panel mb-4">
+      <div className="admin-panel-header">
+        <h3 className="admin-panel-title">
+          <i className="fa-solid fa-plus"></i> Add New Room
+        </h3>
+      </div>
+
+      <form onSubmit={onSubmit} className="row">
+        <div className="col">
+          <label className="admin-label" htmlFor="room-number">Room Number</label>
+          <input
+            id="room-number"
+            className="admin-input"
+            placeholder="e.g. 101"
+            value={form.room_number}
+            onChange={(e) => onChange('room_number', e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="col">
+          <label className="admin-label" htmlFor="room-type">Room Type</label>
+          <select
+            id="room-type"
+            className="admin-select"
+            value={form.room_type}
+            onChange={(e) => onChange('room_type', e.target.value)}
+          >
+            {ROOM_TYPES.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col">
+          <label className="admin-label" htmlFor="room-price">Price per Night</label>
+          <input
+            id="room-price"
+            className="admin-input"
+            type="number"
+            placeholder="1500"
+            value={form.price}
+            onChange={(e) => onChange('price', e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="col">
+          <label className="admin-label" htmlFor="room-nfc">NFC Reader ID</label>
+          <input
+            id="room-nfc"
+            className="admin-input"
+            placeholder="Optional"
+            value={form.nfc_reader_id}
+            onChange={(e) => onChange('nfc_reader_id', e.target.value)}
+          />
+        </div>
+
+        <div className="col col-fixed-140">
+          <label className="admin-label invisible">Add</label>
+          <button type="submit" className="app-btn app-btn-primary w-full">
+            <i className="fa-solid fa-plus mr-1"></i> Add Room
+          </button>
+        </div>
+      </form>
+
+      {error && <p className="admin-error">{error}</p>}
+      {message && <p className="admin-success">{message}</p>}
+    </div>
+  );
+}
+
+// RoomRow Component
+// Renders a single room in the rooms table with action buttons.
+function RoomRow({ room, updatingId, onCycleStatus, onDelete }) {
+  const isUpdating = updatingId === room.id;
+
+  return (
+    <tr>
+      <td><strong>{room.room_number}</strong></td>
+      <td>{room.room_type}</td>
+      <td>₱{Number(room.price).toLocaleString()}</td>
+      <td className="muted">{room.nfc_reader_id || '—'}</td>
+      <td>
+        <span className={`admin-pill ${room.status}`}>{room.status}</span>
+      </td>
+      <td>
+        <div className="row-actions">
+          <button
+            className="app-btn app-btn-secondary app-btn-sm"
+            onClick={() => onCycleStatus(room)}
+            disabled={isUpdating}
+          >
+            <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-rotate'}`}></i>
+            {isUpdating ? 'Updating…' : 'Next'}
+          </button>
+          <button
+            className="app-btn app-btn-danger app-btn-sm"
+            onClick={() => onDelete(room)}
+            disabled={isUpdating}
+          >
+            <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-trash'}`}></i>
+            {isUpdating ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// MAIN ADMIN ROOMS COMPONENT
+// AdminRooms Component
+// Displays all rooms with filtering, adding, status cycling, and deletion.
 export default function AdminRooms() {
+  // --- State Management ---
   const [rooms, setRooms] = useState([]);
   const [filter, setFilter] = useState('all');
-  const [form, setForm] = useState({
-    room_number: '', room_type: 'Standard', price: '', nfc_reader_id: ''
-  });
-  const [err, setErr] = useState('');
-  const [msg, setMsg] = useState('');
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
 
-  async function refresh() {
+  // DATA FETCHING
+  // Fetches all rooms, sorted by room number.
+  async function fetchRooms() {
     try {
-      const { data, error } = await supabase
-        .from('rooms').select('*').order('room_number', { ascending: true });
-      if (error) throw error;
+      setError('');
+      const { data, error: fetchError } = await supabase
+        .from('rooms')
+        .select('*')
+        .order('room_number', { ascending: true });
+
+      if (fetchError) throw fetchError;
       setRooms(data || []);
-    } catch (e) {
-      setErr('Cannot load rooms: ' + e.message);
+    } catch (err) {
+      setError('Cannot load rooms: ' + err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    fetchRooms();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function addRoom(e) {
+  // FORM HANDLERS
+  // Generic input change handler for the add-room form.
+  function handleFormChange(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  // Adds a new room to the database.
+  async function handleAddRoom(e) {
     e.preventDefault();
-    setErr(''); setMsg('');
-    if (!form.room_number || !form.price) return setErr('Kailangan ng room number at price.');
+    setError('');
+    setMessage('');
 
-    const { error } = await supabase.from('rooms').insert({
-      room_number: form.room_number.trim(),
-      room_type: form.room_type,
-      price: Number(form.price),
-      nfc_reader_id: form.nfc_reader_id || null,
-      status: 'available'
-    });
+    if (!form.room_number.trim() || !form.price) {
+      return setError('Room number and price are required.');
+    }
 
-    if (error) return setErr(error.message);
-    setMsg(`Room ${form.room_number} added.`);
-    setForm({ room_number: '', room_type: 'Standard', price: '', nfc_reader_id: '' });
-    refresh();
+    try {
+      const { error: insertError } = await supabase.from('rooms').insert({
+        room_number: form.room_number.trim(),
+        room_type: form.room_type,
+        price: Number(form.price),
+        nfc_reader_id: form.nfc_reader_id.trim() || null,
+        status: 'available'
+      });
+
+      if (insertError) throw insertError;
+
+      setMessage(`Room ${form.room_number} added successfully.`);
+      setForm(INITIAL_FORM);
+      await fetchRooms();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  async function cycleStatus(room) {
-    const next = { available: 'occupied', occupied: 'maintenance', maintenance: 'available' }[room.status] || 'available';
-    await supabase.from('rooms').update({ status: next }).eq('id', room.id);
-    refresh();
+  // ROW ACTIONS
+  // Cycles the status of a room through the STATUS_CYCLE.
+  async function handleCycleStatus(room) {
+    const nextStatus = STATUS_CYCLE[room.status] || 'available';
+    setError('');
+    setMessage('');
+    setUpdatingId(room.id);
+
+    try {
+      const { error: updateError } = await supabase
+        .from('rooms')
+        .update({ status: nextStatus })
+        .eq('id', room.id);
+
+      if (updateError) throw updateError;
+      await fetchRooms();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  async function deleteRoom(id, number) {
-    if (!confirm(`Delete Room ${number}?`)) return;
-    await supabase.from('rooms').delete().eq('id', id);
-    setMsg(`Room ${number} deleted.`);
-    refresh();
+  // Deletes a room after confirmation.
+  async function handleDelete(room) {
+    const confirmed = window.confirm(`Delete Room ${room.room_number}?`);
+    if (!confirmed) return;
+
+    setError('');
+    setMessage('');
+    setUpdatingId(room.id);
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('rooms')
+        .delete()
+        .eq('id', room.id);
+
+      if (deleteError) throw deleteError;
+
+      setMessage(`Room ${room.room_number} deleted.`);
+      await fetchRooms();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  const filtered = filter === 'all' ? rooms : rooms.filter((r) => r.status === filter);
+  // DERIVED DATA
+  /** Counts per status for stat cards and filter dropdown. */
   const counts = {
     all: rooms.length,
     available: rooms.filter((r) => r.status === 'available').length,
@@ -72,152 +291,106 @@ export default function AdminRooms() {
     maintenance: rooms.filter((r) => r.status === 'maintenance').length
   };
 
+  /** Rooms after applying the active filter. */
+  const filteredRooms = filter === 'all'
+    ? rooms
+    : rooms.filter((r) => r.status === filter);
+
+  // RENDER
   return (
     <AdminLayout>
       <div className="admin-welcome">
         <h1>Room Management</h1>
-        <p>Add, update, at i-manage ang lahat ng rooms ng resort.</p>
+        <p>Add, update, and manage all rooms in the resort.</p>
       </div>
 
+      {/*KPI STAT CARDS*/}
       <div className="admin-stat-grid">
-        <div className="admin-stat-card blue">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Total Rooms</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-bed"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.all}</div>
-            <div className="admin-stat-sub">All rooms</div>
-          </div>
-        </div>
-        <div className="admin-stat-card green">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Available</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-circle-check"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.available}</div>
-            <div className="admin-stat-sub">Ready to book</div>
-          </div>
-        </div>
-        <div className="admin-stat-card orange">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Occupied</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-user-lock"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.occupied}</div>
-            <div className="admin-stat-sub">Currently in use</div>
-          </div>
-        </div>
-        <div className="admin-stat-card purple">
-          <div className="admin-stat-top">
-            <span className="admin-stat-label">Maintenance</span>
-            <span className="admin-stat-icon"><i className="fa-solid fa-screwdriver-wrench"></i></span>
-          </div>
-          <div>
-            <div className="admin-stat-value">{counts.maintenance}</div>
-            <div className="admin-stat-sub">Under repair</div>
-          </div>
-        </div>
+        <StatCard
+          color="blue"
+          icon="fa-bed"
+          label="Total Rooms"
+          value={counts.all}
+          sub="All rooms"
+        />
+        <StatCard
+          color="green"
+          icon="fa-circle-check"
+          label="Available"
+          value={counts.available}
+          sub="Ready to book"
+        />
+        <StatCard
+          color="orange"
+          icon="fa-user-lock"
+          label="Occupied"
+          value={counts.occupied}
+          sub="Currently in use"
+        />
+        <StatCard
+          color="purple"
+          icon="fa-screwdriver-wrench"
+          label="Maintenance"
+          value={counts.maintenance}
+          sub="Under repair"
+        />
       </div>
 
-      <div className="admin-panel" style={{ marginBottom: 20 }}>
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-plus"></i> Add New Room
-          </h3>
-        </div>
+      {/*ADD ROOM FORM*/}
+      <AddRoomForm
+        form={form}
+        onChange={handleFormChange}
+        onSubmit={handleAddRoom}
+        error={error}
+        message={message}
+      />
 
-        <form onSubmit={addRoom} className="row">
-          <div className="col">
-            <label className="admin-label">Room Number</label>
-            <input className="admin-input" placeholder="e.g. 101"
-              value={form.room_number}
-              onChange={(e) => setForm({ ...form, room_number: e.target.value })} required />
-          </div>
-          <div className="col">
-            <label className="admin-label">Room Type</label>
-            <select className="admin-select" value={form.room_type}
-              onChange={(e) => setForm({ ...form, room_type: e.target.value })}>
-              <option>Standard</option>
-              <option>Deluxe</option>
-              <option>Suite</option>
-              <option>Beachfront</option>
-            </select>
-          </div>
-          <div className="col">
-            <label className="admin-label">Price per Night</label>
-            <input className="admin-input" type="number" placeholder="1500"
-              value={form.price}
-              onChange={(e) => setForm({ ...form, price: e.target.value })} required />
-          </div>
-          <div className="col">
-            <label className="admin-label">NFC Reader ID</label>
-            <input className="admin-input" placeholder="Optional"
-              value={form.nfc_reader_id}
-              onChange={(e) => setForm({ ...form, nfc_reader_id: e.target.value })} />
-          </div>
-          <div className="col" style={{ flex: '0 0 140px' }}>
-            <label className="admin-label" style={{ visibility: 'hidden' }}>Add</label>
-            <button className="app-btn app-btn-primary" style={{ width: '100%' }}>
-              <i className="fa-solid fa-plus"></i> Add Room
-            </button>
-          </div>
-        </form>
-
-        {err && <p className="admin-error">{err}</p>}
-        {msg && <p className="admin-success">{msg}</p>}
-      </div>
-
+      {/*ROOMS TABLE*/}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
             <i className="fa-solid fa-bed"></i> All Rooms ({counts.all})
           </h3>
-          <select className="admin-select" style={{ maxWidth: 180, marginBottom: 0 }}
-            value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="all">All ({counts.all})</option>
-            <option value="available">Available ({counts.available})</option>
-            <option value="occupied">Occupied ({counts.occupied})</option>
-            <option value="maintenance">Maintenance ({counts.maintenance})</option>
+          <select
+            className="admin-select panel-select"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            {FILTERS.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label} ({counts[f.key]})
+              </option>
+            ))}
           </select>
         </div>
 
         {loading && <p className="muted center">Loading…</p>}
-        {!loading && rooms.length === 0 && <p className="muted center">Wala pang rooms.</p>}
+
+        {!loading && rooms.length === 0 && (
+          <p className="muted center">No rooms yet. Add one above to get started.</p>
+        )}
 
         {!loading && rooms.length > 0 && (
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Room #</th><th>Type</th><th>Price</th>
-                <th>NFC Reader</th><th>Status</th><th>Actions</th>
+                <th>Room #</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>NFC Reader</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
-                <tr key={r.id}>
-                  <td><strong>{r.room_number}</strong></td>
-                  <td>{r.room_type}</td>
-                  <td>₱{Number(r.price).toLocaleString()}</td>
-                  <td className="muted">{r.nfc_reader_id || '—'}</td>
-                  <td>
-                    <span className={`admin-pill ${r.status}`}>{r.status}</span>
-                  </td>
-                  <td>
-                    <button className="app-btn app-btn-secondary"
-                      onClick={() => cycleStatus(r)}
-                      style={{ padding: '6px 10px', fontSize: 12 }}>
-                      <i className="fa-solid fa-rotate"></i> Next
-                    </button>{' '}
-                    <button className="app-btn app-btn-danger"
-                      onClick={() => deleteRoom(r.id, r.room_number)}
-                      style={{ padding: '6px 10px', fontSize: 12 }}>
-                      <i className="fa-solid fa-trash"></i> Delete
-                    </button>
-                  </td>
-                </tr>
+              {filteredRooms.map((room) => (
+                <RoomRow
+                  key={room.id}
+                  room={room}
+                  updatingId={updatingId}
+                  onCycleStatus={handleCycleStatus}
+                  onDelete={handleDelete}
+                />
               ))}
             </tbody>
           </table>
