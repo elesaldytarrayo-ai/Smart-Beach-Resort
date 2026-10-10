@@ -3,35 +3,29 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
-// Login Component
-// Renders the login form and handles authentication via Supabase.
-// Redirects users to their respective dashboards based on their role.
 export default function Login() {
   const navigate = useNavigate();
-  
-  // Form State
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  // Handles the login form submission.
-  // Authenticates the user, fetches their role, and redirects them.
   async function handleLogin(e) {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setErr('');
+    setLoggingIn(true);
 
     try {
-      // 1. Authenticate with Supabase Auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ 
-        email: email.trim(), 
-        password 
+      // 1. Authenticate with Supabase
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password
       });
 
       if (authError) throw authError;
 
-      // 2. Fetch the user's role from the profiles table
+      // 2. Get role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -42,85 +36,105 @@ export default function Login() {
         console.warn('Could not fetch profile role, defaulting to "user".', profileError);
       }
 
-      // 3. Determine the correct dashboard based on role
+      // 3. Redirect by role
       const role = profile?.role || 'user';
-      const redirectPath = role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/user';
-      
-      navigate(redirectPath);
-      
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'staff') navigate('/staff');
+      else navigate('/user');
+
     } catch (err) {
-      setError(err.message || 'Failed to login. Please check your credentials.');
+      setErr(err.message || 'Failed to login. Please check your credentials.');
     } finally {
-      setLoading(false);
+      setLoggingIn(false);
     }
   }
 
   return (
-    <AppLayout nav={false}>
+    <AppLayout nav={false} footer={false}>
       <div className="auth-wrap">
         <div className="auth-card">
-          
-          {/* Header Icon & Text */}
+          {/* Header */}
           <div className="auth-icon">
             <i className="fa-solid fa-lock"></i>
           </div>
+
           <h2>Welcome Back</h2>
           <p className="subtitle">Sign in to your Smart Beach Resort account</p>
 
           {/* Login Form */}
           <form onSubmit={handleLogin}>
-            <input
-              className="neu-input"
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              aria-label="Email address"
-            />
-            <input
-              className="neu-input"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              aria-label="Password"
-            />
+            {/* Email field */}
+            <div className="admin-field">
+              <label>
+                <i className="fa-solid fa-envelope"></i> Email
+              </label>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-envelope"></i>
+                <input
+                  className="admin-input"
+                  type="email"
+                  placeholder=" Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
 
-            {/* Error Feedback */}
-            {error && (
-              <p className="error-text" aria-live="polite">
-                <i className="fa-solid fa-circle-exclamation mr-1"></i>
-                {error}
-              </p>
-            )}
+            {/* Password field */}
+            <div className="admin-field">
+              <label>
+                <i className="fa-solid fa-lock"></i> Password
+              </label>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-key"></i>
+                <input
+                  className="admin-input"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
 
-            {/* Submit Button */}
-            <button 
-              type="submit" 
-              className="neu-button primary btn-full-width" 
-              disabled={loading}
+            {/* Forgot link */}
+            <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 16 }}>
+              <Link to="/forgot" className="auth-forgot-link">
+                Forgot password?
+              </Link>
+            </div>
+
+            {/* Error */}
+            {err && <p className="admin-error">{err}</p>}
+
+            {/* Submit */}
+            <button
+              className="app-btn app-btn-primary"
+              disabled={loggingIn}
+              style={{ width: '100%', padding: '12px 20px', fontSize: 14 }}
+              type="submit"
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-right-to-bracket'} mr-1`}></i>
-              {loading ? 'Logging in…' : 'Sign In'}
+              <i className={`fa-solid ${loggingIn ? 'fa-spinner fa-spin' : 'fa-right-to-bracket'}`}></i>
+              {loggingIn ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
-          {/* Navigation Links */}
-          <p className="muted mt-3 text-center">
-            <Link to="/forgot">Forgot password?</Link>
-            {' · '}
-            <Link to="/register">Create account</Link>
-          </p>
+          {/* Divider */}
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
 
-          <p className="muted mt-2 text-center">
-            <Link to="/">
-              <i className="fa-solid fa-arrow-left mr-1"></i>
-              Back to home
+          {/* Create account link */}
+          <p className="auth-alt">
+            Don't have an account?{' '}
+            <Link to="/register" className="auth-link">
+              Create one
             </Link>
           </p>
-          
         </div>
       </div>
     </AppLayout>

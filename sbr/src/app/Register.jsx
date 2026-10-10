@@ -3,38 +3,29 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
-// Register Component
-// Renders the registration form and handles account creation via Supabase.
-// Creates an auth user, updates the profile with a phone number, and redirects to login.
 export default function Register() {
   const navigate = useNavigate();
-  
-  // Form State
-  const [form, setForm] = useState({ 
-    full_name: '', 
-    email: '', 
-    phone: '', 
-    password: '' 
+
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    password: ''
   });
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Generic input change handler.
-  // Updates the corresponding field in the form state.
+  // Generic input handler
   function handleInputChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  // Handles the registration form submission.
-  // Signs up the user, updates their profile, and redirects to login.
   async function handleRegister(e) {
     e.preventDefault();
-    
-    // Reset previous states
-    setError('');
-    setSuccessMessage('');
+    setErr('');
+    setOk('');
     setLoading(true);
 
     try {
@@ -47,9 +38,9 @@ export default function Register() {
 
       if (signUpError) throw signUpError;
 
-      // 2. Update the profile with the phone number (if user session exists)
+      // 2. Update profile with phone (if session exists)
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -61,106 +52,140 @@ export default function Register() {
         }
       }
 
-      // 3. Show success and redirect
-      setSuccessMessage('Account created! Redirecting…');
-      setTimeout(() => navigate('/login'), 1200);
-      
+      // 3. Success + redirect
+      setOk('Account created! Redirecting to login…');
+      setTimeout(() => navigate('/login'), 1400);
+
     } catch (err) {
-      setError(err.message || 'Failed to create account. Please try again.');
+      setErr(err.message || 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <AppLayout nav={false}>
+    <AppLayout nav={false} footer={false}>
       <div className="auth-wrap">
         <div className="auth-card">
-          
-          {/* Header Icon & Text */}
+          {/* Header */}
           <div className="auth-icon">
             <i className="fa-solid fa-user-plus"></i>
           </div>
+
           <h2>Create Account</h2>
           <p className="subtitle">Join Smart Beach Resort today</p>
 
-          {/* Registration Form */}
+          {/* Form */}
           <form onSubmit={handleRegister}>
-            <input
-              className="neu-input"
-              name="full_name"
-              placeholder="Full name"
-              value={form.full_name}
-              onChange={handleInputChange}
-              required
-              aria-label="Full name"
-            />
-            <input
-              className="neu-input"
-              type="email"
-              name="email"
-              placeholder="Email address"
-              value={form.email}
-              onChange={handleInputChange}
-              required
-              aria-label="Email address"
-            />
-            <input
-              className="neu-input"
-              name="phone"
-              placeholder="Phone number"
-              value={form.phone}
-              onChange={handleInputChange}
-              aria-label="Phone number"
-            />
-            <input
-              className="neu-input"
-              type="password"
-              name="password"
-              placeholder="Password (min 6 chars)"
-              value={form.password}
-              onChange={handleInputChange}
-              minLength={6}
-              required
-              aria-label="Password"
-            />
+            {/* Full name */}
+            <div className="admin-field">
+              <label>
+                <i className="fa-solid fa-user"></i> Full Name
+              </label>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-user"></i>
+                <input
+                  className="admin-input"
+                  name="full_name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={form.full_name}
+                  onChange={handleInputChange}
+                  required
+                  autoComplete="name"
+                />
+              </div>
+            </div>
 
-            {/* Feedback Messages */}
-            {error && (
-              <p className="error-text" aria-live="polite">
-                <i className="fa-solid fa-circle-exclamation mr-1"></i>
-                {error}
-              </p>
-            )}
-            {successMessage && (
-              <p className="success-text" aria-live="polite">
-                <i className="fa-solid fa-circle-check mr-1"></i>
-                {successMessage}
-              </p>
-            )}
+            {/* Email */}
+            <div className="admin-field">
+              <label>
+                <i className="fa-solid fa-envelope"></i> Email
+              </label>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-envelope"></i>
+                <input
+                  className="admin-input"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={form.email}
+                  onChange={handleInputChange}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
 
-            {/* Submit Button */}
-            <button 
-              type="submit" 
-              className="neu-button primary btn-full-width" 
+            {/* Phone */}
+            <div className="admin-field">
+              <label>
+                <i className="fa-solid fa-phone"></i> Phone
+              </label>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-phone"></i>
+                <input
+                  className="admin-input"
+                  name="phone"
+                  type="tel"
+                  placeholder="0912 345 6789"
+                  value={form.phone}
+                  onChange={handleInputChange}
+                  autoComplete="tel"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="admin-field">
+              <label>
+                <i className="fa-solid fa-lock"></i> Password
+              </label>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-key"></i>
+                <input
+                  className="admin-input"
+                  name="password"
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={form.password}
+                  onChange={handleInputChange}
+                  minLength={6}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+              <p className="admin-field-hint">Minimum 6 characters</p>
+            </div>
+
+            {/* Error / Success */}
+            {err && <p className="admin-error">{err}</p>}
+            {ok && <p className="admin-success">{ok}</p>}
+
+            {/* Submit */}
+            <button
+              className="app-btn app-btn-primary"
               disabled={loading}
+              style={{ width: '100%', padding: '12px 20px', fontSize: 14 }}
+              type="submit"
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-user-plus'} mr-1`}></i>
-              {loading ? 'Creating…' : 'Create Account'}
+              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-user-plus'}`}></i>
+              {loading ? 'Creating account…' : 'Create Account'}
             </button>
           </form>
 
-          {/* Navigation Links */}
-          <p className="muted mt-3 text-center">
-            Already have an account? <Link to="/login">Login</Link>
-          </p>
-          <p className="muted mt-2 text-center">
-            <Link to="/">
-              <i className="fa-solid fa-arrow-left mr-1"></i>
-              Back to home
+          {/* Divider */}
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
+
+          {/* Login link */}
+          <p className="auth-alt">
+            Already have an account?{' '}
+            <Link to="/login" className="auth-link">
+              Sign in
             </Link>
           </p>
-          
         </div>
       </div>
     </AppLayout>
