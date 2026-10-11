@@ -1,21 +1,41 @@
 // src/supabase.js
-// Public Supabase client for the browser (uses anon key, respects RLS).
+// Public Supabase client for the browser.
 
 import { createClient } from '@supabase/supabase-js';
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase configuration. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+  );
+}
+
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
+  supabaseUrl,
+  supabaseAnonKey
 );
 
-// Helper: return the current user's role (or null if logged out).
+// Return the current user's role, or null if logged out.
 export async function getMyRole() {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-  const { data: profile } = await supabase
+  const { data: userData, error: userError } =
+    await supabase.auth.getUser();
+
+  if (userError || !userData.user) {
+    return null;
+  }
+
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', data.user.id)
+    .eq('id', userData.user.id)
     .single();
+
+  if (profileError) {
+    console.error('Failed to load user role:', profileError.message);
+    return null;
+  }
+
   return profile?.role || 'user';
 }
