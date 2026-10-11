@@ -30,12 +30,7 @@ function toISODate(value, fallbackNow = true) {
   return fallbackNow ? new Date().toISOString() : null;
 }
 
-/* ------------------------------------------------------------
-   ⭐ BULLETPROOF PAYMENT SAVE
-   - Uses UPSERT (insert or update by booking_id)
-   - Ignores "duplicate key" errors if they somehow happen
-   - Never throws on duplicate
-   ------------------------------------------------------------ */
+// ⭐ BULLETPROOF PAYMENT SAVE
 async function savePayment({ bookingId, amount, method, paymentId, paidAt, payerInfo }) {
   const paidAtISO = toISODate(paidAt);
 
@@ -389,6 +384,58 @@ app.post('/api/checkout', authUser, async (req, res) => {
 
     res.json({ ok: true, nfc: { rawToken: token.raw, purpose: 'check_out' } });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CANCEL BOOKING — soft cancel for PAID bookings only
+app.post('/api/bookings/cancel', authUser, async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+    if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
+
+    const { data: booking, error: bErr } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (bErr || !booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
+    if (booking.status === 'checked_out') {
+      return res.status(400).json({ error: 'Cannot cancel a checked-out booking' });
+    }
+
+    // Only allow soft cancel for paid bookings. Unpaid must be deleted via Supabase.
+    if (booking.payment_status !== 'paid') {
+      return res.status(400).json({ error: 'Unpaid bookings must be deleted, not cancelled.' });
+    }
+
+    // Invalidate active NFC tokens
+    await supabaseAdmin
+      .from('nfc_tokens')
+      .update({
+        status: 'invalidated',
+        invalidated_at: new Date().toISOString()
+      })
+      .eq('booking_id', bookingId)
+      .eq('status', 'active');
+
+    // Soft cancel: keep the record but mark as cancelled
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'cancelled',
+        payment_status: 'cancelled'
+      })
+      .eq('id', bookingId);
+
+    res.json({ ok: true, message: 'Booking cancelled' });
+  } catch (err) {
+    console.error('cancel booking error:', err);
     res.status(500).json({ error: err.message });
   }
 });
