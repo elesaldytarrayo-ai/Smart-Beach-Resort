@@ -1,12 +1,15 @@
+// Imports — React hooks, routing, Supabase client, and user layout wrapper
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 import UserLayout from './UserLayout.jsx';
 
-//REUSABLE SUB-COMPONENTS
+// ============================================================
+// REUSABLE SUB-COMPONENTS
+// ============================================================
 
-// StatCard Component
-// Displays a single mini statistic on the dashboard.
+// StatCard — displays a single mini statistic on the dashboard
+// Used for the small number cards at the top (available rooms, bookings, etc.)
 function StatCard({ icon, color, label, value }) {
   return (
     <div className="admin-mini-stat">
@@ -21,12 +24,13 @@ function StatCard({ icon, color, label, value }) {
   );
 }
 
-// StatusPill Component
-// Renders a colored pill badge for payment or booking statuses.
+// StatusPill — renders a colored pill badge for payment or booking statuses
+// Shows a small colored badge (paid, pending, confirmed, etc.)
 function StatusPill({ type, value }) {
-  // Determine the appropriate icon based on the status type and value
+  // Pick the right icon based on the status type and value
+  // Different icons depending on whether it's a payment or booking status
   let icon = 'fa-circle';
-  
+
   if (type === 'payment') {
     icon = value === 'paid' ? 'fa-circle-check' : 'fa-hourglass-half';
   } else if (type === 'booking') {
@@ -43,23 +47,28 @@ function StatusPill({ type, value }) {
   );
 }
 
+// ============================================================
 // MAIN USER DASHBOARD COMPONENT
+// ============================================================
 
 export default function User() {
   const navigate = useNavigate();
 
-  // --- State Management ---
+  // State — profile, rooms, bookings, loading, and error
+  // Stores all the data needed for the dashboard
   const [profile, setProfile] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetches all required dashboard data (profile, rooms, bookings) in parallel.
-  // Redirects to login if the user is not authenticated.
+  // fetchDashboardData — loads profile, rooms, and bookings in parallel
+  // Redirects to login if the user is not authenticated
+  // Fetches all three data sources at the same time for speed
   async function fetchDashboardData() {
     try {
-      // 1. Verify Authentication
+      // 1. Verify authentication
+      // Make sure the user is logged in before fetching data
       const { data: authData, error: authError } = await supabase.auth.getUser();
       if (authError || !authData?.user) {
         navigate('/login');
@@ -68,7 +77,8 @@ export default function User() {
 
       const userId = authData.user.id;
 
-      // 2. Fetch Data in Parallel for Performance
+      // 2. Fetch data in parallel for performance
+      // Gets profile, rooms, and the user's bookings all at once
       const [profileRes, roomsRes, bookingsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
         supabase.from('rooms').select('*').order('room_number'),
@@ -78,7 +88,8 @@ export default function User() {
           .order('created_at', { ascending: false })
       ]);
 
-      // 3. Update State (with safety checks)
+      // 3. Update state (with safety checks)
+      // Saves the data into state if any was returned
       if (profileRes.data) setProfile(profileRes.data);
       if (roomsRes.data) setRooms(roomsRes.data);
       if (bookingsRes.data) setBookings(bookingsRes.data);
@@ -91,24 +102,30 @@ export default function User() {
     }
   }
 
+  // Load dashboard data on mount
+  // Calls fetch when the page first loads
   useEffect(() => {
     fetchDashboardData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Derived Statistics
+  // Derived statistics
+  // Calculates the numbers shown in the mini stats
   const availableCount = rooms.filter((r) => r.status === 'available').length;
   const activeBookings = bookings.filter((b) => b.status !== 'checked_out').length;
   const paidCount = bookings.filter((b) => b.payment_status === 'paid').length;
 
+  // Render — welcome header, mini stats, available rooms, recent bookings
   return (
     <UserLayout>
-      {/*WELCOME HEADER*/}
+
+      {/* Welcome header — greeting with the user's name */}
       <div className="admin-welcome">
         <h1>Welcome back, {profile?.full_name?.split(' ')[0] || 'Guest'}!</h1>
         <p>Here's an overview of your bookings and available rooms.</p>
       </div>
 
-      {/*MINI STATS*/}
+      {/* Mini stats — available rooms, bookings, active, paid */}
+      {/* Four small cards showing the counts */}
       <div className="admin-mini-stats">
         <StatCard icon="fa-bed" color="blue" label="Available Rooms" value={availableCount} />
         <StatCard icon="fa-ticket" color="green" label="My Bookings" value={bookings.length} />
@@ -118,7 +135,7 @@ export default function User() {
 
       {error && <p className="admin-error">{error}</p>}
 
-      {/*AVAILABLE ROOMS PANEL*/}
+      {/* Available rooms panel — grid of available rooms */}
       <div className="admin-panel mb-4">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -129,12 +146,14 @@ export default function User() {
           </Link>
         </div>
 
+        {/* Loading state — spinner while data is loading */}
         {loading && (
           <div className="admin-loading">
             <i className="fa-solid fa-spinner fa-spin"></i> Loading…
           </div>
         )}
 
+        {/* Empty state — no rooms */}
         {!loading && rooms.length === 0 && (
           <div className="admin-empty">
             <i className="fa-solid fa-bed"></i>
@@ -143,6 +162,7 @@ export default function User() {
           </div>
         )}
 
+        {/* Room cards — only the first 4 rooms are shown */}
         {!loading && rooms.length > 0 && (
           <div className="room-grid">
             {rooms.slice(0, 4).map((room) => (
@@ -161,6 +181,7 @@ export default function User() {
           </div>
         )}
 
+        {/* Book a Room button */}
         <div className="text-center mt-4">
           <Link to="/user/booking">
             <button className="app-btn app-btn-primary">
@@ -170,7 +191,7 @@ export default function User() {
         </div>
       </div>
 
-      {/*RECENT BOOKINGS PANEL*/}
+      {/* Recent bookings panel — table of the latest 5 bookings */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -181,6 +202,7 @@ export default function User() {
           </Link>
         </div>
 
+        {/* Empty state — no bookings */}
         {!loading && bookings.length === 0 && (
           <div className="admin-empty">
             <i className="fa-solid fa-calendar-xmark"></i>
@@ -189,6 +211,7 @@ export default function User() {
           </div>
         )}
 
+        {/* Bookings table — only the first 5 bookings */}
         {!loading && bookings.length > 0 && (
           <table className="admin-table">
             <thead>
@@ -228,6 +251,7 @@ export default function User() {
           </table>
         )}
       </div>
+
     </UserLayout>
   );
 }

@@ -7,6 +7,7 @@ import HomePage from './app/HomePage.jsx';
 import Login from './app/Login.jsx';
 import Register from './app/Register.jsx';
 import ForgotPassword from './app/ForgotPassword.jsx';
+import ResetPassword from './app/ResetPassword.jsx';
 
 // User pages
 import User from './app/user/User.jsx';
@@ -66,6 +67,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* User */}
       <Route path="/user" element={<Protected role="user"><User /></Protected>} />

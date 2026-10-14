@@ -1,18 +1,22 @@
+// Imports — React hooks, Supabase, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
-const REFRESH_INTERVAL_MS = 10000;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
-// Maps a payment method string to its corresponding Font Awesome icon.
-// Falls back to a generic credit-card icon for unknown methods.
+const REFRESH_INTERVAL_MS = 10000; // Refresh payments every 10 seconds
+
+// Maps a payment method string to its corresponding Font Awesome icon
+// Falls back to a generic credit-card icon for unknown methods
 const METHOD_ICON_MAP = {
   paymongo: 'fa-mobile-screen',
   'manual-admin': 'fa-user-shield'
 };
 
-// Defines the filter options for the dropdown.
+// Defines the filter options for the dropdown
 const FILTERS = [
   { key: 'all',     label: 'All' },
   { key: 'paid',    label: 'Paid' },
@@ -20,9 +24,12 @@ const FILTERS = [
   { key: 'failed',  label: 'Failed' }
 ];
 
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a large KPI card on the payments dashboard.
+// ============================================================
+
+// StatCard — displays a large KPI card on the payments dashboard
+// Used for the big colored cards at the top (total, paid, pending, revenue)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -40,8 +47,7 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// MethodIcon Component
-// Renders the payment method with its corresponding icon.
+// MethodIcon — renders the payment method with its corresponding icon
 function MethodIcon({ method }) {
   const icon = METHOD_ICON_MAP[method] || 'fa-credit-card';
   return (
@@ -52,16 +58,14 @@ function MethodIcon({ method }) {
   );
 }
 
-// FormattedDate Component
-// Renders a date consistently with time, or an em-dash if missing.
+// FormattedDate — renders a date consistently with time, or an em-dash if missing
 function FormattedDate({ value }) {
   if (!value) return <span className="muted">—</span>;
   return <span className="muted">{new Date(value).toLocaleString()}</span>;
 }
 
-// TruncatedId Component
-// Renders the first 8 characters of an ID with an ellipsis, 
-// with the full ID shown on hover.
+// TruncatedId — renders the first 8 characters of an ID with an ellipsis
+// Full ID is shown on hover via title attribute
 function TruncatedId({ value }) {
   if (!value) return <span className="muted">—</span>;
   return (
@@ -71,8 +75,8 @@ function TruncatedId({ value }) {
   );
 }
 
-// TruncatedText Component
-// Renders the first N characters of a text value, with the full text on hover.
+// TruncatedText — renders the first N characters of a text value
+// Full text is shown on hover via title attribute
 function TruncatedText({ value, length = 12 }) {
   if (!value) return <span className="muted">—</span>;
   return (
@@ -82,8 +86,8 @@ function TruncatedText({ value, length = 12 }) {
   );
 }
 
-// PaymentRow Component
-// Renders a single payment row in the payments table.
+// PaymentRow — renders a single payment row in the payments table
+// Shows payment ID, booking ID, guest, room, amount, method, status, reference, paymongo ID, paid date
 function PaymentRow({ payment }) {
   const guest = payment.bookings?.profiles;
   const room = payment.bookings?.rooms;
@@ -111,19 +115,26 @@ function PaymentRow({ payment }) {
   );
 }
 
+// ============================================================
 // MAIN ADMIN PAYMENTS COMPONENT
-// AdminPayments Component
-// Displays all payment transactions with filtering, search, and KPIs.
+// ============================================================
+
+// AdminPayments — displays all payment transactions with filtering, search, and KPIs
 export default function AdminPayments() {
-  // --- State Management ---
+
+  // State — payments, filter, search, loading, error
   const [payments, setPayments] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches all payments with their related booking, profile, and room data.
+  // ============================================================
+
+  // fetchPayments — fetches all payments with related booking, profile, and room data
+  // isInitialLoad controls whether to show the loading spinner
   async function fetchPayments(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
     try {
@@ -149,14 +160,18 @@ export default function AdminPayments() {
     }
   }
 
+  // Load payments on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchPayments(true);
     const interval = setInterval(() => fetchPayments(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // DERIVED DATA
-  /** Counts per status for stat cards and filter dropdown. */
+  // ============================================================
+
+  // Counts per status for stat cards and filter dropdown
   const counts = {
     all: payments.length,
     paid: payments.filter((p) => p.status === 'paid').length,
@@ -164,15 +179,15 @@ export default function AdminPayments() {
     failed: payments.filter((p) => p.status === 'failed').length
   };
 
-  /** Total revenue from paid payments. */
+  // Total revenue from paid payments
   const totalRevenue = payments
     .filter((p) => p.status === 'paid')
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  /** Count of PayMongo-processed payments for the sub-label. */
+  // Count of PayMongo-processed payments for the sub-label
   const paymongoCount = payments.filter((p) => p.method === 'paymongo').length;
 
-  /** Payments after applying the active filter and search query. */
+  // Payments after applying the active filter and search query
   const filteredPayments = payments.filter((payment) => {
     if (filter !== 'all' && payment.status !== filter) return false;
 
@@ -194,15 +209,20 @@ export default function AdminPayments() {
     return true;
   });
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Payments</h1>
         <p>All payment transactions (PayMongo + manual).</p>
       </div>
 
-      {/* KPI STAT CARDS*/}
+      {/* KPI stat cards — total, paid, pending, revenue */}
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
@@ -234,7 +254,7 @@ export default function AdminPayments() {
         />
       </div>
 
-      {/*TOOLBAR*/}
+      {/* Toolbar — search, filter dropdown, refresh button */}
       <div className="admin-panel mb-4">
         <div className="row row-center">
           <div className="col">
@@ -264,10 +284,10 @@ export default function AdminPayments() {
         </div>
       </div>
 
-      {/*FEEDBACK*/}
+      {/* Feedback messages */}
       {error && <p className="admin-error mb-2">{error}</p>}
 
-      {/*PAYMENTS TABLE*/}
+      {/* Payments table */}
       <div className="admin-panel table-scroll-wrapper">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -305,6 +325,7 @@ export default function AdminPayments() {
           </table>
         )}
       </div>
+
     </AdminLayout>
   );
 }

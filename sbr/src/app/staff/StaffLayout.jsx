@@ -1,484 +1,345 @@
-import { useEffect, useState, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+// Imports — React hooks, routing, Supabase, NFC reader, and layout wrapper
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
+import { readNFC } from '../../nfc.js';
+import StaffLayout from './StaffLayout.jsx';
 
-// --- Constants ---
-const READ_KEY = 'sbr:staff-notif-read';
-const NOTIF_POLL_MS = 15000;
-const SEARCH_DEBOUNCE_MS = 250;
-const MAX_NOTIFICATIONS = 10;
-const MAX_SEARCH_RESULTS = 5;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
-// UTILITY HELPERS
-// Formats a date string into a relative time string (e.g., "5m ago").
-function relativeTime(date) {
-  if (!date) return '';
-  const diff = Date.now() - new Date(date).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return 'just now';
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(date).toLocaleDateString();
+const API = 'http://localhost:5000';         // Backend API URL
+const REFRESH_INTERVAL_MS = 10000;           // Refresh dashboard every 10 seconds
+const MAX_BOOKINGS_DISPLAYED = 8;            // Max bookings to show in the table
+
+// ============================================================
+// REUSABLE SUB-COMPONENTS
+// ============================================================
+
+// StatCard — displays a single mini statistic on the dashboard
+// Used for the small number cards at the top (total rooms, available, etc.)
+function StatCard({ icon, color, label, value }) {
+  return (
+    <div className="admin-mini-stat">
+      <div className={`admin-mini-stat-icon ${color}`}>
+        <i className={`fa-solid ${icon}`}></i>
+      </div>
+      <div className="admin-mini-stat-body">
+        <div className="admin-mini-stat-label">{label}</div>
+        <div className="admin-mini-stat-value">{value}</div>
+      </div>
+    </div>
+  );
 }
 
-// Retrieves the list of read notification IDs from localStorage.
-function getReadIds() {
-  try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); }
-  catch { return []; }
-}
-
-// Saves the list of read notification IDs to localStorage.
-function saveReadIds(ids) {
-  localStorage.setItem(READ_KEY, JSON.stringify(ids));
-}
-
-// SUB-COMPONENTS
-// StaffSidebar Component
-// Renders the sidebar with navigation links and staff info.
-function StaffSidebar({ profile, menu, isActive, onLogout }) {
-  const initial = (profile?.full_name || 'S').charAt(0).toUpperCase();
-  const firstName = profile?.full_name?.split(' ')[0] || 'Staff';
+// BookingRow — renders a single row in the recent bookings table
+// Shows guest info, room, dates, and status pill
+function BookingRow({ booking }) {
+  // Pick the right icon based on booking status
+  let statusIcon = 'fa-clock';
+  if (booking.status === 'confirmed') statusIcon = 'fa-ticket';
+  else if (booking.status === 'checked_out') statusIcon = 'fa-door-open';
 
   return (
-    <aside className="admin-sidebar">
-      {/* Logo */}
-      <div className="admin-logo">
-        <div className="admin-logo-icon">
-          <i className="fa-solid fa-bell-concierge"></i>
+    <tr>
+      <td>
+        <div className="cell-main">{booking.profiles?.full_name || 'Guest'}</div>
+        <div className="cell-sub">{booking.profiles?.email || ''}</div>
+      </td>
+      <td>
+        <div className="cell-main">Room {booking.rooms?.room_number}</div>
+        <div className="cell-sub">{booking.rooms?.room_type}</div>
+      </td>
+      <td>
+        <div className="cell-main text-sm">
+          <i className="fa-solid fa-calendar mr-1"></i>
+          {booking.check_in}
         </div>
-        <div className="admin-logo-text">
-          <div className="admin-logo-title">SBR</div>
-          <div className="admin-logo-subtitle">Front Desk</div>
+        <div className="cell-sub">
+          <i className="fa-solid fa-arrow-right mr-1"></i>
+          {booking.check_out}
+        </div>
+      </td>
+      <td>
+        <span className={`admin-pill ${booking.status}`}>
+          <i className={`fa-solid ${statusIcon}`}></i>
+          {booking.status}
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+// RoomRow — renders a single room with status toggle in the room status panel
+// Allows staff to toggle between "available" and "maintenance"
+function RoomRow({ room, onToggleStatus }) {
+  const nextStatus = room.status === 'available' ? 'maintenance' : 'available';
+  const buttonLabel = room.status === 'available' ? '→ Maint' : '→ Available';
+
+  return (
+    <div className="staff-room-row space-between">
+      <div>
+        <div className="cell-main">Room {room.room_number}</div>
+        <div className="cell-sub">
+          {room.room_type} · ₱{Number(room.price).toLocaleString()}
         </div>
       </div>
-
-      {/* User Card */}
-      <div className="admin-user-card">
-        <div className="admin-user-avatar">{initial}</div>
-        <div className="admin-user-info">
-          <div className="admin-user-name">{firstName}</div>
-          <div className="admin-user-role">Staff</div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="admin-nav">
-        {menu.map((item) => (
-          <Link
-            key={item.label}
-            to={item.to}
-            className={`admin-nav-item ${isActive(item.to) ? 'active' : ''}`}
-          >
-            <span className="admin-nav-icon"><i className={`fa-solid ${item.icon}`}></i></span>
-            <span className="admin-nav-label">{item.label}</span>
-          </Link>
-        ))}
-
-        <div className="admin-nav-divider" />
-
-        {/* Logout */}
+      <div className="staff-room-actions">
+        <span className={`admin-pill ${room.status}`}>{room.status}</span>
         <button
-          className="admin-nav-item bg-transparent border-none w-full text-left cursor-pointer"
-          onClick={onLogout}
+          className="app-btn app-btn-secondary app-btn-sm"
+          onClick={() => onToggleStatus(room.id, nextStatus)}
         >
-          <span className="admin-nav-icon"><i className="fa-solid fa-right-from-bracket"></i></span>
-          <span className="admin-nav-label">Sign Out</span>
-        </button>
-      </nav>
-    </aside>
-  );
-}
-
-// SearchDropdown Component
-// Displays search results for reservations and rooms.
-function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemClick }) {
-  if (!searchQuery.trim()) return null;
-
-  return (
-    <div className="admin-search-dropdown">
-      {!hasSearchResults && (
-        <div className="admin-search-empty">No results for "{searchQuery}"</div>
-      )}
-
-      {searchResults.bookings.length > 0 && (
-        <div className="admin-search-group">
-          <div className="admin-search-group-title">
-            <i className="fa-solid fa-calendar-check mr-1"></i> Reservations
-          </div>
-          {searchResults.bookings.map((booking) => (
-            <button
-              key={booking.id}
-              className="admin-search-item"
-              onClick={() => onItemClick('/staff/reservations')}
-            >
-              <div>
-                <strong>{booking.profiles?.full_name || 'Guest'}</strong>
-                <div className="admin-search-item-sub">
-                  Room {booking.rooms?.room_number} · {booking.status}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {searchResults.rooms.length > 0 && (
-        <div className="admin-search-group">
-          <div className="admin-search-group-title">
-            <i className="fa-solid fa-bed mr-1"></i> Rooms
-          </div>
-          {searchResults.rooms.map((room) => (
-            <button
-              key={room.id}
-              className="admin-search-item"
-              onClick={() => onItemClick('/staff')}
-            >
-              <div>
-                <strong>Room {room.room_number}</strong>
-                <div className="admin-search-item-sub">
-                  {room.room_type} · {room.status}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// NotificationsDropdown Component
-// Displays a list of staff-facing booking notifications.
-function NotificationsDropdown({ notifications, onMarkAllRead, onItemClick }) {
-  return (
-    <div className="admin-notif-dropdown">
-      <div className="admin-dropdown-header">
-        <strong>Notifications</strong>
-        {notifications.length > 0 && (
-          <button className="admin-dropdown-link" onClick={onMarkAllRead}>
-            Mark all read
-          </button>
-        )}
-      </div>
-
-      {notifications.length === 0 && (
-        <div className="admin-dropdown-empty">No notifications yet.</div>
-      )}
-
-      {notifications.length > 0 && (
-        <div className="admin-notif-list">
-          {notifications.map((notif) => {
-            const isRead = getReadIds().includes(notif.id);
-            return (
-              <button
-                key={notif.id}
-                className={`admin-notif-item ${isRead ? 'read' : 'unread'}`}
-                onClick={() => onItemClick(notif.link)}
-              >
-                <span className="admin-notif-icon">
-                  <i className={`fa-solid ${notif.icon}`}></i>
-                </span>
-                <div className="admin-notif-content">
-                  <div className="admin-notif-title">{notif.title}</div>
-                  <div className="admin-notif-message">{notif.message}</div>
-                  <div className="admin-notif-time">{relativeTime(notif.time)}</div>
-                </div>
-                {!isRead && <span className="admin-notif-dot" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="admin-dropdown-footer">
-        <button className="admin-dropdown-link" onClick={() => onItemClick('/staff/reservations')}>
-          View all reservations →
+          {buttonLabel}
         </button>
       </div>
     </div>
   );
 }
 
-// UserMenuDropdown Component
-// Displays the staff profile dropdown menu.
-function UserMenuDropdown({ profile, onNavigate, onLogout }) {
-  const initial = (profile?.full_name || 'S').charAt(0).toUpperCase();
+// ============================================================
+// MAIN STAFF DASHBOARD COMPONENT
+// ============================================================
 
-  return (
-    <div className="admin-user-dropdown">
-      <div className="admin-user-dropdown-header">
-        <div className="admin-topbar-avatar avatar-lg">{initial}</div>
-        <div>
-          <div className="fw-bold text-sm">{profile?.full_name || 'Staff'}</div>
-          <div className="muted text-sm">{profile?.email}</div>
-        </div>
-      </div>
-
-      <div className="admin-user-dropdown-divider" />
-
-      <button className="admin-user-dropdown-item" onClick={() => onNavigate('/staff')}>
-        <i className="fa-solid fa-gauge-high"></i><span>Dashboard</span>
-      </button>
-      <button className="admin-user-dropdown-item" onClick={() => onNavigate('/staff/reservations')}>
-        <i className="fa-solid fa-calendar-check"></i><span>Reservations</span>
-      </button>
-
-      <div className="admin-user-dropdown-divider" />
-
-      <button className="admin-user-dropdown-item danger" onClick={onLogout}>
-        <i className="fa-solid fa-right-from-bracket"></i><span>Sign Out</span>
-      </button>
-    </div>
-  );
-}
-
-// MAIN STAFF LAYOUT COMPONENT
-// StaffLayout Component
-// The main wrapper for all staff-facing pages. Handles global state
-// like notifications, search, and staff profile.
-export default function StaffLayout({ children }) {
+// Staff — renders the staff-facing dashboard for front desk operations
+export default function Staff() {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // --- State Management ---
-  const [profile, setProfile] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState({ bookings: [], rooms: [] });
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  // State — rooms, bookings, message, error, loading
+  const [rooms, setRooms] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // --- Refs for Click-Outside Detection ---
-  const searchRef = useRef(null);
-  const notifRef = useRef(null);
-  const userMenuRef = useRef(null);
-
-  const initial = (profile?.full_name || 'S').charAt(0).toUpperCase();
-  const firstName = profile?.full_name?.split(' ')[0] || 'Staff';
-
+  // ============================================================
   // DATA FETCHING
-  /** Fetches the current staff member's profile. */
-  async function fetchProfile() {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
-    const { data } = await supabase
-      .from('profiles').select('*').eq('id', auth.user.id).single();
-    setProfile(data);
-  }
+  // ============================================================
 
-  /** Fetches and maps notifications from recent bookings (staff scope). */
-  async function fetchNotifications() {
+  // fetchDashboardData — fetches rooms and recent bookings in parallel
+  async function fetchDashboardData() {
     try {
-      const { data } = await supabase
-        .from('bookings')
-        .select('id, status, payment_status, total_amount, check_in, created_at, profiles(full_name), rooms(room_number)')
-        .order('created_at', { ascending: false })
-        .limit(MAX_NOTIFICATIONS);
+      setError('');
 
-      const notifs = (data || []).map((booking) => ({
-        id: `bk-${booking.id}`,
-        icon: booking.status === 'pending' ? 'fa-calendar-plus' :
-              booking.status === 'confirmed' ? 'fa-calendar-check' :
-              booking.status === 'checked_out' ? 'fa-door-open' : 'fa-calendar',
-        title: `Room ${booking.rooms?.room_number || '—'} — ${booking.status}`,
-        message: `${booking.profiles?.full_name || 'Guest'} · ₱${Number(booking.total_amount || 0).toLocaleString()}`,
-        time: booking.created_at,
-        link: '/staff/reservations'
-      }));
-
-      setNotifications(notifs);
-    } catch (err) {
-      console.error('Load notifications error:', err);
-    }
-  }
-
-  /** Marks all notifications as read. */
-  function markAllRead() {
-    const ids = notifications.map((n) => n.id);
-    saveReadIds(ids);
-    setUnreadCount(0);
-    setNotifications([...notifications]); // Force re-render
-  }
-
-  /** Performs a debounced search across reservations and rooms (staff scope). */
-  async function performSearch(query) {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      setSearchResults({ bookings: [], rooms: [] });
-      return;
-    }
-
-    try {
-      const [bookingsRes, roomsRes] = await Promise.all([
+      // Fetch rooms and bookings at the same time
+      const [roomsRes, bookingsRes] = await Promise.all([
+        supabase.from('rooms').select('*').order('room_number'),
         supabase.from('bookings')
-          .select('id, status, check_in, check_out, total_amount, profiles(full_name,email), rooms(room_number)')
+          .select('*, profiles(full_name, email), rooms(room_number, room_type)')
           .order('created_at', { ascending: false })
-          .limit(50),
-        supabase.from('rooms')
-          .select('id, room_number, room_type, price, status')
-          .limit(50)
+          .limit(20)
       ]);
 
-      const bookings = (bookingsRes.data || []).filter((b) =>
-        `${b.profiles?.full_name || ''} ${b.profiles?.email || ''} ${b.rooms?.room_number || ''}`
-          .toLowerCase().includes(q)
-      ).slice(0, MAX_SEARCH_RESULTS);
+      if (roomsRes.error) throw roomsRes.error;
+      if (bookingsRes.error) throw bookingsRes.error;
 
-      const rooms = (roomsRes.data || []).filter((r) =>
-        `${r.room_number} ${r.room_type}`.toLowerCase().includes(q)
-      ).slice(0, MAX_SEARCH_RESULTS);
-
-      setSearchResults({ bookings, rooms });
+      setRooms(roomsRes.data || []);
+      setBookings(bookingsRes.data || []);
     } catch (err) {
-      console.error('Search error:', err);
+      console.error('Staff data fetch error:', err);
+      setError(err.message || 'Failed to load dashboard data.');
+    } finally {
+      setLoading(false);
     }
   }
 
-  // EFFECTS
-  // Initial Profile Load
+  // Load data on mount and refresh every 10 seconds
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  // Notification Polling
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, NOTIF_POLL_MS);
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update Unread Count
-  useEffect(() => {
-    const read = getReadIds();
-    setUnreadCount(notifications.filter((n) => !read.includes(n.id)).length);
-  }, [notifications]);
+  // ============================================================
+  // ACTIONS
+  // ============================================================
 
-  // Debounced Search
-  useEffect(() => {
-    const timer = setTimeout(() => performSearch(searchQuery), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  // handleUpdateRoomStatus — updates the status of a room (available ↔ maintenance)
+  async function handleUpdateRoomStatus(roomId, status) {
+    setError('');
+    try {
+      const { error: updateError } = await supabase
+        .from('rooms')
+        .update({ status })
+        .eq('id', roomId);
 
-  // Click Outside Handler
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (searchRef.current && !searchRef.current.contains(event.target)) setSearchOpen(false);
-      if (notifRef.current && !notifRef.current.contains(event.target)) setNotifOpen(false);
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) setUserMenuOpen(false);
+      if (updateError) throw updateError;
+      await fetchDashboardData();
+    } catch (err) {
+      setError(err.message);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // HANDLERS
-  /** Signs the staff member out and redirects to login. */
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    navigate('/login');
   }
 
-  /** Closes search and navigates to a path. */
-  function handleNavigate(path) {
-    setSearchOpen(false);
-    setSearchQuery('');
-    navigate(path);
+  // handleNfcCheckIn — reads an NFC tag and verifies it as a check-in token
+  async function handleNfcCheckIn() {
+    setError('');
+    setMessage('');
+
+    try {
+      // 1. Read the NFC tag
+      const readResult = await readNFC();
+      if (!readResult.ok) {
+        throw new Error(`NFC read failed: ${readResult.error}`);
+      }
+
+      // 2. Send to backend for verification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired. Please log in again.');
+
+      const response = await fetch(`${API}/api/nfc/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ rawToken: readResult.text, purpose: 'check_in' })
+      });
+
+      const json = await response.json();
+      if (!json.ok) throw new Error(json.error);
+
+      setMessage(`Check-in verified for booking ${json.bookingId.slice(0, 8)}…`);
+      await fetchDashboardData();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
-  const menu = [
-    { icon: 'fa-gauge-high',     label: 'Dashboard',    to: '/staff' },
-    { icon: 'fa-calendar-check', label: 'Reservations', to: '/staff/reservations' }
-  ];
+  // ============================================================
+  // DERIVED STATISTICS
+  // ============================================================
 
-  const isActive = (path) => path === '/staff'
-    ? location.pathname === '/staff'
-    : location.pathname.startsWith(path);
+  const today = new Date().toISOString().slice(0, 10);
 
-  const hasSearchResults = searchResults.bookings.length > 0 || searchResults.rooms.length > 0;
+  // Count rooms by status
+  const roomCounts = {
+    all: rooms.length,
+    available: rooms.filter((r) => r.status === 'available').length,
+    occupied: rooms.filter((r) => r.status === 'occupied').length
+  };
+
+  // Count today's check-ins
+  const todayCheckins = bookings.filter((b) => b.check_in === today).length;
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
-    <div className="admin-layout">
-      <StaffSidebar profile={profile} menu={menu} isActive={isActive} onLogout={handleLogout} />
+    <StaffLayout>
 
-      <div className="admin-main">
-        <div className="admin-topbar">
+      {/* Welcome header */}
+      <div className="admin-welcome">
+        <h1>Staff Dashboard</h1>
+        <p>Front desk operations · Room management · NFC check-in</p>
+      </div>
 
-          {/*SEARCH*/}
-          <div className="admin-search position-relative" ref={searchRef}>
-            <i className="fa-solid fa-magnifying-glass"></i>
-            <input
-              type="text"
-              placeholder="Search reservations or rooms..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setSearchOpen(true); }}
-              onFocus={() => setSearchOpen(true)}
-            />
-            {searchOpen && (
-              <SearchDropdown
-                searchResults={searchResults}
-                searchQuery={searchQuery}
-                hasSearchResults={hasSearchResults}
-                onItemClick={handleNavigate}
-              />
-            )}
-          </div>
+      {/* Mini stats — total rooms, available, occupied, today's check-ins */}
+      <div className="admin-mini-stats">
+        <StatCard icon="fa-bed" color="blue" label="Total Rooms" value={roomCounts.all} />
+        <StatCard icon="fa-circle-check" color="green" label="Available" value={roomCounts.available} />
+        <StatCard icon="fa-user-lock" color="orange" label="Occupied" value={roomCounts.occupied} />
+        <StatCard icon="fa-calendar-check" color="purple" label="Today's Check-ins" value={todayCheckins} />
+      </div>
 
-          <div className="admin-topbar-actions">
+      {error && <p className="admin-error">{error}</p>}
+      {message && <p className="admin-success">{message}</p>}
 
-            {/*NOTIFICATIONS*/}
-            <div className="position-relative" ref={notifRef}>
-              <button
-                className="admin-bell"
-                onClick={() => {
-                  setNotifOpen(!notifOpen);
-                  if (!notifOpen) markAllRead();
-                }}
-                title="Notifications"
-              >
-                <i className="fa-solid fa-bell"></i>
-                {unreadCount > 0 && (
-                  <span className="admin-bell-badge">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-              {notifOpen && (
-                <NotificationsDropdown
-                  notifications={notifications}
-                  onMarkAllRead={markAllRead}
-                  onItemClick={(link) => { setNotifOpen(false); navigate(link); }}
-                />
-              )}
-            </div>
-
-            {/*USER MENU*/}
-            <div className="position-relative" ref={userMenuRef}>
-              <div className="admin-topbar-user" onClick={() => setUserMenuOpen(!userMenuOpen)}>
-                <div className="admin-topbar-avatar">{initial}</div>
-                <span className="admin-topbar-name">{firstName}</span>
-                <i className="fa-solid fa-chevron-down text-sm text-muted"></i>
-              </div>
-              {userMenuOpen && (
-                <UserMenuDropdown
-                  profile={profile}
-                  onNavigate={(path) => { setUserMenuOpen(false); navigate(path); }}
-                  onLogout={handleLogout}
-                />
-              )}
-            </div>
-
-          </div>
+      {/* Front desk NFC panel */}
+      <div className="admin-panel mb-4">
+        <div className="admin-panel-header">
+          <h3 className="admin-panel-title">
+            <i className="fa-solid fa-bell-concierge"></i> Front Desk
+          </h3>
+          <button className="app-btn app-btn-primary" onClick={handleNfcCheckIn}>
+            <i className="fa-solid fa-wifi mr-1"></i> Tap NFC to Check-In
+          </button>
         </div>
-
-        {/*PAGE CONTENT*/}
-        <div className="admin-content">
-          {children}
+        <div className="admin-info-banner">
+          <i className="fa-solid fa-circle-info"></i>
+          <div>
+            Tap the guest's NFC tag to verify check-in. Make sure the tag matches the room's NFC reader.
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Two-column grid — recent bookings and room status */}
+      <div className="admin-dashboard-grid">
+
+        {/* Recent bookings panel */}
+        <div className="admin-panel">
+          <div className="admin-panel-header">
+            <h3 className="admin-panel-title">
+              <i className="fa-solid fa-calendar-check"></i> Recent Bookings
+            </h3>
+          </div>
+
+          {loading && (
+            <div className="admin-loading">
+              <i className="fa-solid fa-spinner fa-spin mr-1"></i> Loading…
+            </div>
+          )}
+
+          {!loading && bookings.length === 0 && (
+            <div className="admin-empty">
+              <i className="fa-solid fa-calendar-xmark"></i>
+              <div className="admin-empty-title">No bookings yet</div>
+              <div className="admin-empty-desc">Bookings from guests will appear here.</div>
+            </div>
+          )}
+
+          {!loading && bookings.length > 0 && (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Guest</th>
+                  <th>Room</th>
+                  <th>Dates</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.slice(0, MAX_BOOKINGS_DISPLAYED).map((booking) => (
+                  <BookingRow key={booking.id} booking={booking} />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Room status panel */}
+        <div className="admin-panel">
+          <div className="admin-panel-header">
+            <h3 className="admin-panel-title">
+              <i className="fa-solid fa-bed"></i> Room Status
+            </h3>
+          </div>
+
+          {loading && (
+            <div className="admin-loading">
+              <i className="fa-solid fa-spinner fa-spin mr-1"></i> Loading…
+            </div>
+          )}
+
+          {!loading && rooms.length === 0 && (
+            <div className="admin-empty">
+              <i className="fa-solid fa-bed"></i>
+              <div className="admin-empty-title">No rooms yet</div>
+              <div className="admin-empty-desc">Wait for admin to add rooms.</div>
+            </div>
+          )}
+
+          {!loading && rooms.length > 0 && (
+            <div className="staff-room-list">
+              {rooms.map((room) => (
+                <RoomRow key={room.id} room={room} onToggleStatus={handleUpdateRoomStatus} />
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+    </StaffLayout>
   );
 }

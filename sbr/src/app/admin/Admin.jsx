@@ -1,15 +1,16 @@
+// Imports — React hooks, routing, Supabase, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
-const REFRESH_INTERVAL_MS = 10000;
-const RECENT_BOOKINGS_LIMIT = 6;
-const DONUT_RADIUS = 70;
+//Constans
+const REFRESH_INTERVAL_MS = 10000;            // Refresh dashboard every 10 seconds
+const RECENT_BOOKINGS_LIMIT = 6;              // Max recent bookings to show
+const DONUT_RADIUS = 70;                      // Donut chart radius
 const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS;
 
-/** Default state for the stats object — makes the shape explicit. */
+// Default state for the stats object — makes the shape explicit
 const INITIAL_STATS = {
   rooms: 0, availableRooms: 0, occupiedRooms: 0, maintenanceRooms: 0,
   users: 0, staff: 0, admins: 0,
@@ -19,9 +20,9 @@ const INITIAL_STATS = {
   revenue: 0, todayRevenue: 0, todayCheckins: 0
 };
 
-// REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a large KPI card on the admin dashboard.
+// Reusable Sub-Components
+// StatCard — displays a large KPI card on the admin dashboard
+// Used for the big colored cards at the top (total rooms, guests, etc.)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -39,8 +40,8 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// RecentReservationsTable Component
-// Renders the recent reservations panel with loading/empty states.
+// RecentReservationsTable — renders the recent reservations panel
+// Shows a table of the latest bookings with loading/empty states
 function RecentReservationsTable({ bookings, loading }) {
   return (
     <div className="admin-panel">
@@ -87,12 +88,13 @@ function RecentReservationsTable({ bookings, loading }) {
   );
 }
 
-// RoomOccupancyChart Component
-// Renders the SVG donut chart showing room occupancy breakdown.
+// RoomOccupancyChart — renders the SVG donut chart showing room occupancy
+// Shows occupied, available, and maintenance counts
 function RoomOccupancyChart({ stats }) {
   const totalRooms = stats.rooms || 1;
   const occupiedPercent = Math.round((stats.occupiedRooms / totalRooms) * 100);
 
+  // Calculate arc lengths for the donut segments
   const occupiedDash = (stats.occupiedRooms / totalRooms) * DONUT_CIRCUMFERENCE;
   const availableDash = (stats.availableRooms / totalRooms) * DONUT_CIRCUMFERENCE;
 
@@ -130,6 +132,7 @@ function RoomOccupancyChart({ stats }) {
           </div>
         </div>
 
+        {/* Legend — occupied, available, maintenance */}
         <div className="admin-donut-legend">
           <div className="admin-legend-item">
             <span className="admin-legend-left">
@@ -155,26 +158,27 @@ function RoomOccupancyChart({ stats }) {
   );
 }
 
-// MAIN ADMIN DASHBOARD COMPONENT
-// Admin Component
-// Renders the admin dashboard with KPIs, recent reservations, 
+// Main Admin Dashboard Components
+// Admin — renders the admin dashboard with KPIs, recent reservations,
 // and room occupancy. Auto-refreshes every 10 seconds.
 export default function Admin() {
-  // --- State Management ---
+
+  // State — profile, stats, recent bookings, loading
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState(INITIAL_STATS);
   const [recentBookings, setRecentBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // DATA FETCHING
-  // Fetches all dashboard data in parallel.
+  // Data Fetching
+  // fetchDashboardData — fetches all dashboard data in parallel
+  // isInitialLoad controls whether to show the loading spinner
   async function fetchDashboardData(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
 
     try {
       const today = new Date().toISOString().slice(0, 10);
 
-      // --- Profile Fetch (independent) ---
+      // --- Profile fetch (independent) ---
       const { data: auth } = await supabase.auth.getUser();
       if (auth?.user) {
         const { data: profileData } = await supabase
@@ -182,7 +186,8 @@ export default function Admin() {
         setProfile(profileData);
       }
 
-      // --- Count Queries (18 parallel requests) ---
+      // --- Count queries (18 parallel requests) ---
+      // Fetches all counts at the same time for speed
       const [
         roomsRes, availableRes, occupiedRes, maintenanceRes,
         usersRes, staffRes, adminsRes,
@@ -215,7 +220,7 @@ export default function Admin() {
           .limit(RECENT_BOOKINGS_LIMIT)
       ]);
 
-      // --- Derive Revenue ---
+      // --- Derive revenue ---
       const totalRevenue = (allPaymentsRes.data || [])
         .filter((p) => p.status === 'paid')
         .reduce((sum, p) => sum + Number(p.amount || 0), 0);
@@ -223,7 +228,7 @@ export default function Admin() {
       const todayRevenue = (todayPaymentsRes.data || [])
         .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-      // --- Consolidate Stats ---
+      // --- Consolidate stats ---
       setStats({
         rooms: roomsRes.count || 0,
         availableRooms: availableRes.count || 0,
@@ -252,27 +257,29 @@ export default function Admin() {
     }
   }
 
-  // EFFECTS
+  // Load dashboard on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchDashboardData(true);
     const interval = setInterval(() => fetchDashboardData(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // DERIVED VALUES
+  // Derived Values
   const firstName = profile?.full_name?.split(' ')[0] || 'Admin';
   const totalRooms = stats.rooms || 1;
   const occupiedPercent = Math.round((stats.occupiedRooms / totalRooms) * 100);
 
-  // RENDER
+  // Render
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Welcome, {firstName}!</h1>
         <p>Here's what's happening with your beach resort today.</p>
       </div>
 
-      {/*KPI STAT CARDS*/}
+      {/* KPI stat cards — total rooms, guests, check-ins, payments */}
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
@@ -304,11 +311,12 @@ export default function Admin() {
         />
       </div>
 
-      {/*DASHBOARD GRID*/}
+      {/* Dashboard grid — recent reservations + room occupancy */}
       <div className="admin-dashboard-grid">
         <RecentReservationsTable bookings={recentBookings} loading={loading} />
         <RoomOccupancyChart stats={stats} />
       </div>
+
     </AdminLayout>
   );
 }

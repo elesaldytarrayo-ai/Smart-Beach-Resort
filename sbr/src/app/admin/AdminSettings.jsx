@@ -1,13 +1,17 @@
+// Imports — React hooks, Supabase, encryption helpers, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import { decrypt, encrypt } from '../../encryption.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
-const RESORT_KEY = 'sbr:resortSettings';
-const BACKEND_URL = 'http://localhost:5000';
+// ============================================================
+// CONSTANTS
+// ============================================================
 
-/** Default resort settings, used when no saved settings are found. */
+const RESORT_KEY = 'sbr:resortSettings';       // localStorage key for resort settings
+const BACKEND_URL = 'http://localhost:5000';   // Backend API URL for health check
+
+// Default resort settings, used when no saved settings are found
 const DEFAULT_RESORT = {
   name: 'Smart Beach Resort',
   tagline: 'Your beach escape awaits',
@@ -16,7 +20,7 @@ const DEFAULT_RESORT = {
   currency: 'PHP'
 };
 
-/** Default system status while backend connectivity is being checked. */
+// Default system status while backend connectivity is being checked
 const INITIAL_SYSTEM_STATUS = {
   backend: 'checking',
   supabase: 'checking',
@@ -24,7 +28,7 @@ const INITIAL_SYSTEM_STATUS = {
   nfc: 'checking'
 };
 
-/** Initial system summary counts. */
+// Initial system summary counts
 const INITIAL_SUMMARY = {
   totalBookings: 0,
   totalPayments: 0,
@@ -32,15 +36,15 @@ const INITIAL_SUMMARY = {
   totalUsers: 0
 };
 
-/** Supported currency options for the resort settings. */
+// Supported currency options for the resort settings
 const CURRENCIES = [
   { value: 'PHP', label: 'PHP (₱)' },
   { value: 'USD', label: 'USD ($)' },
   { value: 'EUR', label: 'EUR (€)' }
 ];
 
-// Configuration for the system status KPI cards.
-// Each entry maps a status key to its display metadata.
+// Configuration for the system status KPI cards
+// Each entry maps a status key to its display metadata
 const SYSTEM_STATUS_ITEMS = [
   { key: 'backend', color: 'blue', icon: 'fa-server', label: 'Backend API', sub: 'localhost:5000' },
   { key: 'supabase', color: 'green',  icon: 'fa-database', label: 'Supabase', sub: 'Database connection' },
@@ -48,7 +52,7 @@ const SYSTEM_STATUS_ITEMS = [
   { key: 'nfc', color: 'purple', icon: 'fa-satellite-dish', label: 'NFC Service', sub: 'Token service' }
 ];
 
-// Configuration for the system summary list.
+// Configuration for the system summary list
 const SUMMARY_ITEMS = [
   { key: 'totalBookings', label: 'Total Bookings', color: '#1e5fa8' },
   { key: 'totalPayments', label: 'Total Payments', color: '#22c55e' },
@@ -56,9 +60,11 @@ const SUMMARY_ITEMS = [
   { key: 'totalUsers', label: 'Total Users', color: '#7c3aed' }
 ];
 
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// SystemStatusCard Component
-// Displays a single system health KPI.
+// ============================================================
+
+// SystemStatusCard — displays a single system health KPI
 function SystemStatusCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -76,8 +82,8 @@ function SystemStatusCard({ color, icon, label, value, sub }) {
   );
 }
 
-// AdminProfileForm Component
-// Renders the admin profile edit form.
+// AdminProfileForm — renders the admin profile edit form
+// Fields: full name, email (read-only), phone
 function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
   return (
     <div className="admin-panel">
@@ -88,6 +94,7 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
       </div>
 
       <form onSubmit={onSubmit}>
+        {/* Full name field */}
         <label className="admin-label" htmlFor="admin-name">Full Name</label>
         <input
           id="admin-name"
@@ -97,6 +104,7 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
           placeholder="Juan Dela Cruz"
         />
 
+        {/* Email field (read-only) */}
         <label className="admin-label" htmlFor="admin-email">Email</label>
         <input
           id="admin-email"
@@ -105,6 +113,7 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
           disabled
         />
 
+        {/* Phone field */}
         <label className="admin-label" htmlFor="admin-phone">Phone</label>
         <input
           id="admin-phone"
@@ -114,9 +123,11 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
           placeholder="0912 345 6789"
         />
 
+        {/* Feedback messages */}
         {error && <p className="admin-error mt-1">{error}</p>}
         {message && <p className="admin-success mt-1">{message}</p>}
 
+        {/* Save button */}
         <button type="submit" className="app-btn app-btn-primary w-full mt-2">
           <i className="fa-solid fa-floppy-disk mr-1"></i> Save Profile
         </button>
@@ -125,8 +136,8 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
   );
 }
 
-// PasswordForm Component
-// Renders the password change form.
+// PasswordForm — renders the password change form
+// Fields: new password, confirm password
 function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, message }) {
   return (
     <div className="admin-panel">
@@ -137,6 +148,7 @@ function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, me
       </div>
 
       <form onSubmit={onSubmit}>
+        {/* New password field */}
         <label className="admin-label" htmlFor="new-pw">New Password</label>
         <input
           id="new-pw"
@@ -150,6 +162,7 @@ function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, me
           autoComplete="new-password"
         />
 
+        {/* Confirm password field */}
         <label className="admin-label" htmlFor="confirm-pw">Confirm Password</label>
         <input
           id="confirm-pw"
@@ -163,9 +176,11 @@ function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, me
           autoComplete="new-password"
         />
 
+        {/* Feedback messages */}
         {error && <p className="admin-error mt-1">{error}</p>}
         {message && <p className="admin-success mt-1">{message}</p>}
 
+        {/* Update button */}
         <button type="submit" className="app-btn app-btn-primary w-full mt-2">
           <i className="fa-solid fa-lock mr-1"></i> Update Password
         </button>
@@ -174,8 +189,8 @@ function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, me
   );
 }
 
-// ResortInfoForm Component
-// Renders the resort information edit form.
+// ResortInfoForm — renders the resort information edit form
+// Fields: resort name, tagline, contact, address, currency
 function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
   return (
     <div className="admin-panel">
@@ -186,6 +201,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
       </div>
 
       <form onSubmit={onSubmit}>
+        {/* Resort name field */}
         <label className="admin-label" htmlFor="resort-name">Resort Name</label>
         <input
           id="resort-name"
@@ -194,6 +210,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
           onChange={(e) => onChange('name', e.target.value)}
         />
 
+        {/* Tagline field */}
         <label className="admin-label" htmlFor="resort-tagline">Tagline</label>
         <input
           id="resort-tagline"
@@ -202,6 +219,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
           onChange={(e) => onChange('tagline', e.target.value)}
         />
 
+        {/* Contact field */}
         <label className="admin-label" htmlFor="resort-contact">Contact</label>
         <input
           id="resort-contact"
@@ -210,6 +228,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
           onChange={(e) => onChange('contact', e.target.value)}
         />
 
+        {/* Address field */}
         <label className="admin-label" htmlFor="resort-address">Address</label>
         <input
           id="resort-address"
@@ -218,6 +237,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
           onChange={(e) => onChange('address', e.target.value)}
         />
 
+        {/* Currency dropdown */}
         <label className="admin-label" htmlFor="resort-currency">Currency</label>
         <select
           id="resort-currency"
@@ -230,9 +250,11 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
           ))}
         </select>
 
+        {/* Feedback messages */}
         {error && <p className="admin-error mt-1">{error}</p>}
         {message && <p className="admin-success mt-1">{message}</p>}
 
+        {/* Save button */}
         <button type="submit" className="app-btn app-btn-primary w-full mt-2">
           <i className="fa-solid fa-floppy-disk mr-1"></i> Save Resort Info
         </button>
@@ -241,8 +263,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
   );
 }
 
-// SystemSummary Component
-// Renders the high-level counts of bookings, payments, rooms, and users.
+// SystemSummary — renders the high-level counts of bookings, payments, rooms, and users
 function SystemSummary({ summary }) {
   return (
     <div className="admin-panel">
@@ -252,6 +273,7 @@ function SystemSummary({ summary }) {
         </h3>
       </div>
 
+      {/* Summary list with colored dots */}
       <div className="admin-donut-legend">
         {SUMMARY_ITEMS.map((item) => (
           <div key={item.key} className="admin-legend-item">
@@ -267,6 +289,7 @@ function SystemSummary({ summary }) {
         ))}
       </div>
 
+      {/* App version footer */}
       <p className="muted mt-3 text-sm text-center">
         Smart Beach Resort · v1.0.0
         <br />
@@ -276,33 +299,39 @@ function SystemSummary({ summary }) {
   );
 }
 
-// MAIN ADMIN SETTINGS COMPONENS
-// AdminSettings Component
-// Renders the admin settings page with profile, password, resort info,
-// and live system status.
+// ============================================================
+// MAIN ADMIN SETTINGS COMPONENT
+// ============================================================
+
+// AdminSettings — renders the admin settings page with profile, password,
+// resort info, and live system status
 export default function AdminSettings() {
-  // --- Profile State ---
+
+  // --- Profile state ---
   const [profile, setProfile] = useState({ full_name: '', email: '', phone: '' });
   const [profileError, setProfileError] = useState('');
   const [profileMessage, setProfileMessage] = useState('');
 
-  // --- Password State ---
+  // --- Password state ---
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
 
-  // --- Resort State ---
+  // --- Resort state ---
   const [resort, setResort] = useState(DEFAULT_RESORT);
   const [resortError, setResortError] = useState('');
   const [resortMessage, setResortMessage] = useState('');
 
-  // --- System State ---
+  // --- System state ---
   const [systemStatus, setSystemStatus] = useState(INITIAL_SYSTEM_STATUS);
   const [summary, setSummary] = useState(INITIAL_SUMMARY);
 
+  // ============================================================
   // DATA FETCHING
-  // Checks the backend health endpoint and returns a normalized status object.
+  // ============================================================
+
+  // checkSystemStatus — checks the backend health endpoint and returns a normalized status object
   async function checkSystemStatus() {
     try {
       const response = await fetch(`${BACKEND_URL}/`);
@@ -320,9 +349,9 @@ export default function AdminSettings() {
     }
   }
 
-  // Fetches profile, resort settings, system status, and summary counts.
+  // loadSettings — fetches profile, resort settings, system status, and summary counts
   async function loadSettings() {
-    // 1. Profile
+    // 1. Profile — fetch the admin's profile and decrypt phone
     const { data: auth } = await supabase.auth.getUser();
     if (auth?.user) {
       const { data: profileData } = await supabase
@@ -336,16 +365,16 @@ export default function AdminSettings() {
       }
     }
 
-    // 2. Resort Settings (from localStorage)
+    // 2. Resort settings (from localStorage)
     const stored = localStorage.getItem(RESORT_KEY);
     if (stored) {
       try { setResort(JSON.parse(stored)); } catch { /* fall back to defaults */ }
     }
 
-    // 3. System Status (from backend health check)
+    // 3. System status (from backend health check)
     setSystemStatus(await checkSystemStatus());
 
-    // 4. Summary Counts (parallel queries)
+    // 4. Summary counts (parallel queries)
     const [bookingsRes, paymentsRes, roomsRes, usersRes] = await Promise.all([
       supabase.from('bookings').select('*', { count: 'exact', head: true }),
       supabase.from('payments').select('*', { count: 'exact', head: true }),
@@ -361,12 +390,16 @@ export default function AdminSettings() {
     });
   }
 
+  // Load settings on mount
   useEffect(() => {
     loadSettings();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // FORM HANDLERS
-  // Saves the admin's profile (name + encrypted phone).
+  // ============================================================
+
+  // handleSaveProfile — saves the admin's profile (name + encrypted phone)
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileError('');
@@ -391,7 +424,7 @@ export default function AdminSettings() {
     }
   }
 
-  // Updates the admin's password via Supabase Auth.
+  // handleChangePassword — updates the admin's password via Supabase Auth
   async function handleChangePassword(e) {
     e.preventDefault();
     setPasswordError('');
@@ -417,7 +450,7 @@ export default function AdminSettings() {
     }
   }
 
-  // Saves the resort settings to localStorage.
+  // handleSaveResort — saves the resort settings to localStorage
   function handleSaveResort(e) {
     e.preventDefault();
     setResortError('');
@@ -431,15 +464,20 @@ export default function AdminSettings() {
     }
   }
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Settings</h1>
         <p>Manage your admin profile, resort info, and view system status.</p>
       </div>
 
-      {/*SYSTEM STATUS CARDS*/}
+      {/* System status cards — backend, supabase, paymongo, nfc */}
       <div className="admin-stat-grid mb-4">
         {SYSTEM_STATUS_ITEMS.map((item) => (
           <SystemStatusCard
@@ -453,10 +491,10 @@ export default function AdminSettings() {
         ))}
       </div>
 
-      {/*TWO-COLUMN GRID*/}
+      {/* Two-column grid — profile/password on left, resort/summary on right */}
       <div className="admin-dashboard-grid">
 
-        {/* Left Column: Profile + Password */}
+        {/* Left column: Profile + Password */}
         <div className="settings-column">
           <AdminProfileForm
             profile={profile}
@@ -478,7 +516,7 @@ export default function AdminSettings() {
           />
         </div>
 
-        {/* Right Column: Resort Info + Summary */}
+        {/* Right column: Resort Info + Summary */}
         <div className="settings-column">
           <ResortInfoForm
             resort={resort}
@@ -491,6 +529,7 @@ export default function AdminSettings() {
         </div>
 
       </div>
+
     </AdminLayout>
   );
 }

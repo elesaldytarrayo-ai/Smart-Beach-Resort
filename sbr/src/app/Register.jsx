@@ -1,11 +1,14 @@
+// Imports — React hook, routing, Supabase client, and layout wrapper
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
+// Register — creates a new user account and redirects to login
 export default function Register() {
   const navigate = useNavigate();
 
+  // Form states — all fields, error, success, and loading indicator
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -16,12 +19,13 @@ export default function Register() {
   const [ok, setOk] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Generic input handler
+  // handleInputChange — updates the form state for any input field
   function handleInputChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  // handleRegister — creates the auth user, updates profile, then redirects
   async function handleRegister(e) {
     e.preventDefault();
     setErr('');
@@ -63,21 +67,23 @@ export default function Register() {
     }
   }
 
+  // Render — auth card with registration form and navigation links
   return (
     <AppLayout nav={false} footer={false}>
       <div className="auth-wrap">
         <div className="auth-card">
-          {/* Header */}
+
+          {/* Header — icon, title, and subtitle */}
           <div className="auth-icon">
             <i className="fa-solid fa-user-plus"></i>
           </div>
-
           <h2>Create Account</h2>
           <p className="subtitle">Join Smart Beach Resort today</p>
 
-          {/* Form */}
+          {/* Form — full name, email, phone, password, feedback, submit */}
           <form onSubmit={handleRegister}>
-            {/* Full name */}
+
+            {/* Full name field */}
             <div className="admin-field">
               <label>
                 <i className="fa-solid fa-user"></i> Full Name
@@ -97,7 +103,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Email */}
+            {/* Email field */}
             <div className="admin-field">
               <label>
                 <i className="fa-solid fa-envelope"></i> Email
@@ -117,7 +123,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Phone */}
+            {/* Phone field */}
             <div className="admin-field">
               <label>
                 <i className="fa-solid fa-phone"></i> Phone
@@ -136,7 +142,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password field */}
             <div className="admin-field">
               <label>
                 <i className="fa-solid fa-lock"></i> Password
@@ -158,11 +164,11 @@ export default function Register() {
               <p className="admin-field-hint">Minimum 6 characters</p>
             </div>
 
-            {/* Error / Success */}
+            {/* Error / success messages */}
             {err && <p className="admin-error">{err}</p>}
             {ok && <p className="admin-success">{ok}</p>}
 
-            {/* Submit */}
+            {/* Submit button */}
             <button
               className="app-btn app-btn-primary"
               disabled={loading}
@@ -174,18 +180,18 @@ export default function Register() {
             </button>
           </form>
 
-          {/* Divider */}
+          {/* Footer — divider and login link */}
           <div className="auth-divider">
             <span>or</span>
           </div>
 
-          {/* Login link */}
           <p className="auth-alt">
             Already have an account?{' '}
             <Link to="/login" className="auth-link">
               Sign in
             </Link>
           </p>
+
         </div>
       </div>
     </AppLayout>

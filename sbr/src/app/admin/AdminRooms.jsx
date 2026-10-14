@@ -1,11 +1,16 @@
+// Imports — React hooks, Supabase, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+// Available room types for the dropdown
 const ROOM_TYPES = ['Standard', 'Deluxe', 'Suite', 'Beachfront'];
 
-// Defines the cycle order for the "Next Status" action.
+// Defines the cycle order for the "Next Status" action
 // available → occupied → maintenance → available → ...
 const STATUS_CYCLE = {
   available: 'occupied',
@@ -13,6 +18,7 @@ const STATUS_CYCLE = {
   maintenance: 'available'
 };
 
+// Initial state for the add-room form
 const INITIAL_FORM = {
   room_number: '',
   room_type: 'Standard',
@@ -20,7 +26,7 @@ const INITIAL_FORM = {
   nfc_reader_id: ''
 };
 
-// Defines the filter options for the rooms dropdown.
+// Defines the filter options for the rooms dropdown
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'available', label: 'Available' },
@@ -28,9 +34,12 @@ const FILTERS = [
   { key: 'maintenance', label: 'Maintenance' }
 ];
 
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a large KPI card on the room management dashboard.
+// ============================================================
+
+// StatCard — displays a large KPI card on the room management dashboard
+// Used for the big colored cards at the top (total, available, occupied, maintenance)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -48,8 +57,8 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// AddRoomForm Component
-// Renders the form for adding a new room.
+// AddRoomForm — renders the form for adding a new room
+// Fields: room number, room type, price, NFC reader ID
 function AddRoomForm({ form, onChange, onSubmit, error, message }) {
   return (
     <div className="admin-panel mb-4">
@@ -60,6 +69,8 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
       </div>
 
       <form onSubmit={onSubmit} className="row">
+
+        {/* Room number field */}
         <div className="col">
           <label className="admin-label" htmlFor="room-number">Room Number</label>
           <input
@@ -72,6 +83,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
           />
         </div>
 
+        {/* Room type dropdown */}
         <div className="col">
           <label className="admin-label" htmlFor="room-type">Room Type</label>
           <select
@@ -86,6 +98,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
           </select>
         </div>
 
+        {/* Price field */}
         <div className="col">
           <label className="admin-label" htmlFor="room-price">Price per Night</label>
           <input
@@ -99,6 +112,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
           />
         </div>
 
+        {/* NFC reader ID field (optional) */}
         <div className="col">
           <label className="admin-label" htmlFor="room-nfc">NFC Reader ID</label>
           <input
@@ -110,6 +124,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
           />
         </div>
 
+        {/* Submit button */}
         <div className="col col-fixed-140">
           <label className="admin-label invisible">Add</label>
           <button type="submit" className="app-btn app-btn-primary w-full">
@@ -118,14 +133,15 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
         </div>
       </form>
 
+      {/* Feedback messages */}
       {error && <p className="admin-error">{error}</p>}
       {message && <p className="admin-success">{message}</p>}
     </div>
   );
 }
 
-// RoomRow Component
-// Renders a single room in the rooms table with action buttons.
+// RoomRow — renders a single room in the rooms table with action buttons
+// Shows room number, type, price, NFC reader, status, and actions (cycle, delete)
 function RoomRow({ room, updatingId, onCycleStatus, onDelete }) {
   const isUpdating = updatingId === room.id;
 
@@ -140,6 +156,8 @@ function RoomRow({ room, updatingId, onCycleStatus, onDelete }) {
       </td>
       <td>
         <div className="row-actions">
+
+          {/* Cycle status button */}
           <button
             className="app-btn app-btn-secondary app-btn-sm"
             onClick={() => onCycleStatus(room)}
@@ -148,6 +166,8 @@ function RoomRow({ room, updatingId, onCycleStatus, onDelete }) {
             <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-rotate'}`}></i>
             {isUpdating ? 'Updating…' : 'Next'}
           </button>
+
+          {/* Delete button */}
           <button
             className="app-btn app-btn-danger app-btn-sm"
             onClick={() => onDelete(room)}
@@ -162,11 +182,14 @@ function RoomRow({ room, updatingId, onCycleStatus, onDelete }) {
   );
 }
 
+// ============================================================
 // MAIN ADMIN ROOMS COMPONENT
-// AdminRooms Component
-// Displays all rooms with filtering, adding, status cycling, and deletion.
+// ============================================================
+
+// AdminRooms — displays all rooms with filtering, adding, status cycling, and deletion
 export default function AdminRooms() {
-  // --- State Management ---
+
+  // State — rooms, filter, form, error, message, loading, updatingId
   const [rooms, setRooms] = useState([]);
   const [filter, setFilter] = useState('all');
   const [form, setForm] = useState(INITIAL_FORM);
@@ -175,8 +198,11 @@ export default function AdminRooms() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches all rooms, sorted by room number.
+  // ============================================================
+
+  // fetchRooms — fetches all rooms, sorted by room number
   async function fetchRooms() {
     try {
       setError('');
@@ -194,22 +220,27 @@ export default function AdminRooms() {
     }
   }
 
+  // Load rooms on mount
   useEffect(() => {
     fetchRooms();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // FORM HANDLERS
-  // Generic input change handler for the add-room form.
+  // ============================================================
+
+  // handleFormChange — generic input change handler for the add-room form
   function handleFormChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  // Adds a new room to the database.
+  // handleAddRoom — adds a new room to the database
   async function handleAddRoom(e) {
     e.preventDefault();
     setError('');
     setMessage('');
 
+    // Validate required fields
     if (!form.room_number.trim() || !form.price) {
       return setError('Room number and price are required.');
     }
@@ -233,8 +264,11 @@ export default function AdminRooms() {
     }
   }
 
+  // ============================================================
   // ROW ACTIONS
-  // Cycles the status of a room through the STATUS_CYCLE.
+  // ============================================================
+
+  // handleCycleStatus — cycles the status of a room through STATUS_CYCLE
   async function handleCycleStatus(room) {
     const nextStatus = STATUS_CYCLE[room.status] || 'available';
     setError('');
@@ -256,7 +290,7 @@ export default function AdminRooms() {
     }
   }
 
-  // Deletes a room after confirmation.
+  // handleDelete — deletes a room after confirmation
   async function handleDelete(room) {
     const confirmed = window.confirm(`Delete Room ${room.room_number}?`);
     if (!confirmed) return;
@@ -282,8 +316,11 @@ export default function AdminRooms() {
     }
   }
 
+  // ============================================================
   // DERIVED DATA
-  /** Counts per status for stat cards and filter dropdown. */
+  // ============================================================
+
+  // Counts per status for stat cards and filter dropdown
   const counts = {
     all: rooms.length,
     available: rooms.filter((r) => r.status === 'available').length,
@@ -291,20 +328,25 @@ export default function AdminRooms() {
     maintenance: rooms.filter((r) => r.status === 'maintenance').length
   };
 
-  /** Rooms after applying the active filter. */
+  // Rooms after applying the active filter
   const filteredRooms = filter === 'all'
     ? rooms
     : rooms.filter((r) => r.status === filter);
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Room Management</h1>
         <p>Add, update, and manage all rooms in the resort.</p>
       </div>
 
-      {/*KPI STAT CARDS*/}
+      {/* KPI stat cards — total, available, occupied, maintenance */}
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
@@ -336,7 +378,7 @@ export default function AdminRooms() {
         />
       </div>
 
-      {/*ADD ROOM FORM*/}
+      {/* Add room form */}
       <AddRoomForm
         form={form}
         onChange={handleFormChange}
@@ -345,7 +387,7 @@ export default function AdminRooms() {
         message={message}
       />
 
-      {/*ROOMS TABLE*/}
+      {/* Rooms table */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -396,6 +438,7 @@ export default function AdminRooms() {
           </table>
         )}
       </div>
+
     </AdminLayout>
   );
 }

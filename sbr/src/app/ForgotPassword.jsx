@@ -1,14 +1,20 @@
+// Imports — React, routing, Supabase client, and layout wrapper
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
+// ForgotPassword — sends a password reset link to the user's email
 export default function ForgotPassword() {
+
+  // Form states — email input, feedback messages, and loading indicator
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // handleReset — sends the reset email via Supabase
+  // Uses a generic message to prevent email enumeration attacks
   async function handleReset(e) {
     e.preventDefault();
 
@@ -19,9 +25,7 @@ export default function ForgotPassword() {
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
-        {
-          redirectTo: `${window.location.origin}/reset-password`
-        }
+        { redirectTo: `${window.location.origin}/reset-password` }
       );
 
       if (resetError) {
@@ -37,19 +41,20 @@ export default function ForgotPassword() {
     }
   }
 
+  // Render — auth card with email form, feedback, and back-to-login link
   return (
     <AppLayout nav={false}>
       <div className="auth-wrap">
         <div className="auth-card">
 
-          {/* Header */}
+          {/* Header — icon, title, and subtitle */}
           <div className="auth-icon">
             <i className="fa-solid fa-key"></i>
           </div>
           <h2>Forgot Password</h2>
           <p className="subtitle">We'll send a reset link to your email</p>
 
-          {/* Form */}
+          {/* Form — email input, error/success messages, and submit button */}
           <form onSubmit={handleReset}>
             <div className="admin-field">
               <label htmlFor="forgot-email">
@@ -70,11 +75,9 @@ export default function ForgotPassword() {
               </div>
             </div>
 
-            {/* Feedback */}
             {error && <p className="admin-error">{error}</p>}
             {message && <p className="admin-success">{message}</p>}
 
-            {/* Submit */}
             <button
               type="submit"
               className="app-btn app-btn-primary"
@@ -86,7 +89,7 @@ export default function ForgotPassword() {
             </button>
           </form>
 
-          {/* Back to Login */}
+          {/* Footer — divider and back-to-login link */}
           <div className="auth-divider">
             <span>or</span>
           </div>

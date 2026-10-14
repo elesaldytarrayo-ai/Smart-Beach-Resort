@@ -1,16 +1,20 @@
+// Imports — React hook, routing, Supabase client, and layout wrapper
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
+// Login — signs in the user and redirects based on their role
 export default function Login() {
   const navigate = useNavigate();
 
+  // Form states — email, password, error message, and loading indicator
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
+  // handleLogin — authenticates the user, fetches their role, then redirects
   async function handleLogin(e) {
     e.preventDefault();
     setErr('');
@@ -49,21 +53,23 @@ export default function Login() {
     }
   }
 
+  // Render — auth card with login form and navigation links
   return (
     <AppLayout nav={false} footer={false}>
       <div className="auth-wrap">
         <div className="auth-card">
-          {/* Header */}
+
+          {/* Header — icon, title, and subtitle */}
           <div className="auth-icon">
             <i className="fa-solid fa-lock"></i>
           </div>
-
           <h2>Welcome Back</h2>
           <p className="subtitle">Sign in to your Smart Beach Resort account</p>
 
-          {/* Login Form */}
+          {/* Login form — email, password, forgot link, error, submit */}
           <form onSubmit={handleLogin}>
-            {/* Email */}
+
+            {/* Email field */}
             <div className="admin-field">
               <label htmlFor="login-email">
                 <i className="fa-solid fa-envelope"></i> Email
@@ -84,7 +90,7 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password field */}
             <div className="admin-field">
               <label htmlFor="login-password">
                 <i className="fa-solid fa-lock"></i> Password
@@ -105,17 +111,17 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Forgot link */}
+            {/* Forgot password link */}
             <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 16 }}>
               <Link to="/forgot" className="auth-forgot-link">
                 Forgot password?
               </Link>
             </div>
 
-            {/* Error */}
+            {/* Error message */}
             {err && <p className="admin-error">{err}</p>}
 
-            {/* Submit */}
+            {/* Submit button */}
             <button
               className="app-btn app-btn-primary"
               disabled={loggingIn}
@@ -127,18 +133,18 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Divider */}
+          {/* Footer — divider and create account link */}
           <div className="auth-divider">
             <span>or</span>
           </div>
 
-          {/* Create account link */}
           <p className="auth-alt">
             Don't have an account?{' '}
             <Link to="/register" className="auth-link">
               Create one
             </Link>
           </p>
+
         </div>
       </div>
     </AppLayout>

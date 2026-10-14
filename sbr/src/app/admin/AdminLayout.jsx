@@ -1,17 +1,24 @@
+// Imports — React hooks, routing, and Supabase client
 import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 
-// --- Constants ---
-const READ_KEY = 'sbr:admin-notif-read';
-const NOTIF_POLL_MS = 15000;
-const SEARCH_DEBOUNCE_MS = 250;
-const MAX_NOTIFICATIONS = 10;
-const MAX_SEARCH_RESULTS = 4;
-const FETCH_LIMIT = 50;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
+const READ_KEY = 'sbr:admin-notif-read';     // localStorage key for read notifications
+const NOTIF_POLL_MS = 15000;                 // Poll notifications every 15 seconds
+const SEARCH_DEBOUNCE_MS = 250;              // Debounce search input by 250ms
+const MAX_NOTIFICATIONS = 10;                // Max notifications to show
+const MAX_SEARCH_RESULTS = 4;                // Max search results per category
+const FETCH_LIMIT = 50;                      // Max records to fetch per search query
+
+// ============================================================
 // UTILITY HELPERS
-// Formats a date string into a relative time string (e.g., "5m ago").
+// ============================================================
+
+// relativeTime — formats a date string into a relative time string (e.g., "5m ago")
 function relativeTime(date) {
   if (!date) return '';
   const diff = Date.now() - new Date(date).getTime();
@@ -25,27 +32,29 @@ function relativeTime(date) {
   return new Date(date).toLocaleDateString();
 }
 
-// Retrieves the list of read notification IDs from localStorage.
+// getReadIds — retrieves the list of read notification IDs from localStorage
 function getReadIds() {
   try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); }
   catch { return []; }
 }
 
-// Saves the list of read notification IDs to localStorage.
+// saveReadIds — saves the list of read notification IDs to localStorage
 function saveReadIds(ids) {
   localStorage.setItem(READ_KEY, JSON.stringify(ids));
 }
 
+// ============================================================
 // SUB-COMPONENTS
-// AdminSidebar Component
-// Renders the sidebar with navigation links and admin info.
+// ============================================================
+
+// AdminSidebar — renders the sidebar with navigation links and admin info
 function AdminSidebar({ profile, menu, isActive, onLogout }) {
   const initial = (profile?.full_name || 'A').charAt(0).toUpperCase();
   const firstName = profile?.full_name?.split(' ')[0] || 'Admin';
 
   return (
     <aside className="admin-sidebar">
-      {/* Logo */}
+      {/* Logo — brand icon and text */}
       <div className="admin-logo">
         <div className="admin-logo-icon">
           <i className="fa-solid fa-umbrella-beach"></i>
@@ -56,7 +65,7 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
         </div>
       </div>
 
-      {/* User Card */}
+      {/* User card — avatar, name, and role */}
       <div className="admin-user-card">
         <div className="admin-user-avatar">{initial}</div>
         <div className="admin-user-info">
@@ -65,7 +74,7 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — menu links and sign out button */}
       <nav className="admin-nav">
         {menu.map((item) => (
           <Link
@@ -80,7 +89,7 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
 
         <div className="admin-nav-divider" />
 
-        {/* Logout */}
+        {/* Sign out button */}
         <button
           className="admin-nav-item bg-transparent border-none w-full text-left cursor-pointer"
           onClick={onLogout}
@@ -93,8 +102,7 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
   );
 }
 
-// SearchGroup Component
-// Renders a single group of search results (Rooms, Users, Bookings, Payments).
+// SearchGroup — renders a single group of search results (Rooms, Users, Bookings, Payments)
 function SearchGroup({ icon, title, items, renderItem, onItemClick, targetPath }) {
   if (items.length === 0) return null;
 
@@ -116,11 +124,11 @@ function SearchGroup({ icon, title, items, renderItem, onItemClick, targetPath }
   );
 }
 
-// SearchDropdown Component
-// Displays categorized search results for rooms, users, bookings, and payments.
+// SearchDropdown — displays categorized search results for rooms, users, bookings, payments
 function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemClick }) {
   if (!searchQuery.trim()) return null;
 
+  // Define the four search groups with their render logic
   const groups = [
     {
       key: 'rooms',
@@ -184,10 +192,12 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
 
   return (
     <div className="admin-search-dropdown">
+      {/* Empty state */}
       {!hasSearchResults && (
         <div className="admin-search-empty">No results for "{searchQuery}"</div>
       )}
 
+      {/* Render each search group */}
       {groups.map((group) => (
         <SearchGroup
           key={group.key}
@@ -203,11 +213,11 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
   );
 }
 
-// NotificationsDropdown Component
-// Displays a list of recent activity notifications.
+// NotificationsDropdown — displays a list of recent activity notifications
 function NotificationsDropdown({ notifications, onMarkAllRead, onItemClick }) {
   return (
     <div className="admin-notif-dropdown">
+      {/* Header — title and mark all read button */}
       <div className="admin-dropdown-header">
         <strong>Notifications</strong>
         {notifications.length > 0 && (
@@ -217,10 +227,12 @@ function NotificationsDropdown({ notifications, onMarkAllRead, onItemClick }) {
         )}
       </div>
 
+      {/* Empty state */}
       {notifications.length === 0 && (
         <div className="admin-dropdown-empty">No notifications yet.</div>
       )}
 
+      {/* Notification list */}
       {notifications.length > 0 && (
         <div className="admin-notif-list">
           {notifications.map((notif) => {
@@ -246,6 +258,7 @@ function NotificationsDropdown({ notifications, onMarkAllRead, onItemClick }) {
         </div>
       )}
 
+      {/* Footer — view all activity link */}
       <div className="admin-dropdown-footer">
         <button className="admin-dropdown-link" onClick={() => onItemClick('/admin/bookings')}>
           View all activity →
@@ -255,11 +268,11 @@ function NotificationsDropdown({ notifications, onMarkAllRead, onItemClick }) {
   );
 }
 
-// UserMenuDropdown Component
-// Displays the admin profile dropdown menu.
+// UserMenuDropdown — displays the admin profile dropdown menu
 function UserMenuDropdown({ profile, onNavigate, onLogout }) {
   const initial = (profile?.full_name || 'A').charAt(0).toUpperCase();
 
+  // Menu items for the admin dropdown
   const menuItems = [
     { icon: 'fa-gear',       label: 'Settings',     to: '/admin/settings' },
     { icon: 'fa-chart-line', label: 'Dashboard',    to: '/admin' },
@@ -268,6 +281,7 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
 
   return (
     <div className="admin-user-dropdown">
+      {/* Header — avatar, name, and email */}
       <div className="admin-user-dropdown-header">
         <div className="admin-topbar-avatar avatar-lg">{initial}</div>
         <div>
@@ -278,6 +292,7 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
 
       <div className="admin-user-dropdown-divider" />
 
+      {/* Menu items */}
       {menuItems.map((item) => (
         <button
           key={item.label}
@@ -291,6 +306,7 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
 
       <div className="admin-user-dropdown-divider" />
 
+      {/* Sign out */}
       <button className="admin-user-dropdown-item danger" onClick={onLogout}>
         <i className="fa-solid fa-right-from-bracket"></i>
         <span>Sign Out</span>
@@ -299,15 +315,17 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
   );
 }
 
+// ============================================================
 // MAIN ADMIN LAYOUT COMPONENT
-// AdminLayout Component
-// The main wrapper for all admin-facing pages. Handles global state
-// like notifications, search, and admin profile.
+// ============================================================
+
+// AdminLayout — main wrapper for all admin-facing pages
+// Handles global state like notifications, search, and admin profile
 export default function AdminLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- State Management ---
+  // State — profile, search, notifications, and dropdown toggles
   const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState({
@@ -319,7 +337,7 @@ export default function AdminLayout({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // --- Refs for Click-Outside Detection ---
+  // Refs — used for click-outside detection on dropdowns
   const searchRef = useRef(null);
   const notifRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -327,8 +345,11 @@ export default function AdminLayout({ children }) {
   const initial = (profile?.full_name || 'A').charAt(0).toUpperCase();
   const firstName = profile?.full_name?.split(' ')[0] || 'Admin';
 
+  // ============================================================
   // DATA FETCHING
-  /** Fetches the current admin's profile. */
+  // ============================================================
+
+  // fetchProfile — fetches the current admin's profile
   async function fetchProfile() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
@@ -337,10 +358,11 @@ export default function AdminLayout({ children }) {
     setProfile(data);
   }
 
-  // Fetches recent activity from both bookings and payments,
-  // merges them into a unified notification list, and sorts by time.
+  // fetchNotifications — fetches recent activity from bookings and payments,
+  // merges them into a unified notification list, and sorts by time
   async function fetchNotifications() {
     try {
+      // Fetch bookings and payments in parallel
       const [bookingsRes, paymentsRes] = await Promise.all([
         supabase
           .from('bookings')
@@ -357,6 +379,7 @@ export default function AdminLayout({ children }) {
 
       const notifs = [];
 
+      // Map bookings into notifications
       (bookingsRes.data || []).forEach((booking) => {
         notifs.push({
           id: `bk-${booking.id}`,
@@ -369,6 +392,7 @@ export default function AdminLayout({ children }) {
         });
       });
 
+      // Map payments into notifications
       (paymentsRes.data || []).forEach((payment) => {
         notifs.push({
           id: `pay-${payment.id}`,
@@ -381,6 +405,7 @@ export default function AdminLayout({ children }) {
         });
       });
 
+      // Sort by time (newest first) and limit
       notifs.sort((a, b) => new Date(b.time) - new Date(a.time));
       setNotifications(notifs.slice(0, MAX_NOTIFICATIONS));
     } catch (err) {
@@ -388,7 +413,7 @@ export default function AdminLayout({ children }) {
     }
   }
 
-  /** Marks all notifications as read. */
+  // markAllRead — marks all notifications as read
   function markAllRead() {
     const ids = notifications.map((n) => n.id);
     saveReadIds(ids);
@@ -396,8 +421,8 @@ export default function AdminLayout({ children }) {
     setNotifications([...notifications]); // Force re-render
   }
 
-  // Performs a debounced search across four categories: rooms, users, 
-  // bookings, and payments.
+  // performSearch — performs a debounced search across four categories
+  // (rooms, users, bookings, payments)
   async function performSearch(query) {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -406,6 +431,7 @@ export default function AdminLayout({ children }) {
     }
 
     try {
+      // Fetch all four categories in parallel
       const [roomsRes, usersRes, bookingsRes, paymentsRes] = await Promise.all([
         supabase.from('rooms')
           .select('id, room_number, room_type, price, status')
@@ -423,19 +449,23 @@ export default function AdminLayout({ children }) {
           .limit(FETCH_LIMIT)
       ]);
 
+      // Filter rooms by room number or type
       const rooms = (roomsRes.data || []).filter((r) =>
         `${r.room_number} ${r.room_type}`.toLowerCase().includes(q)
       ).slice(0, MAX_SEARCH_RESULTS);
 
+      // Filter users by name or email
       const users = (usersRes.data || []).filter((u) =>
         `${u.full_name || ''} ${u.email || ''}`.toLowerCase().includes(q)
       ).slice(0, MAX_SEARCH_RESULTS);
 
+      // Filter bookings by guest, room, or ID
       const bookings = (bookingsRes.data || []).filter((b) =>
         `${b.profiles?.full_name || ''} ${b.profiles?.email || ''} ${b.rooms?.room_number || ''} ${b.id}`
           .toLowerCase().includes(q)
       ).slice(0, MAX_SEARCH_RESULTS);
 
+      // Filter payments by reference, method, guest, or ID
       const payments = (paymentsRes.data || []).filter((p) =>
         `${p.reference || ''} ${p.method || ''} ${p.bookings?.profiles?.full_name || ''} ${p.id}`
           .toLowerCase().includes(q)
@@ -447,32 +477,35 @@ export default function AdminLayout({ children }) {
     }
   }
 
+  // ============================================================
   // EFFECTS
-  // Initial Profile Load
+  // ============================================================
+
+  // Load profile on mount
   useEffect(() => {
     fetchProfile();
   }, []);
 
-  // Notification Polling
+  // Poll notifications every NOTIF_POLL_MS
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, NOTIF_POLL_MS);
     return () => clearInterval(interval);
   }, []);
 
-  // Update Unread Count
+  // Update unread count whenever notifications change
   useEffect(() => {
     const read = getReadIds();
     setUnreadCount(notifications.filter((n) => !read.includes(n.id)).length);
   }, [notifications]);
 
-  // Debounced Search
+  // Debounced search — waits SEARCH_DEBOUNCE_MS before searching
   useEffect(() => {
     const timer = setTimeout(() => performSearch(searchQuery), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Click Outside Handler
+  // Click outside — closes dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchRef.current && !searchRef.current.contains(event.target)) setSearchOpen(false);
@@ -483,20 +516,24 @@ export default function AdminLayout({ children }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ============================================================
   // HANDLERS
-  /** Signs the admin out and redirects to login. */
+  // ============================================================
+
+  // handleLogout — signs the admin out and redirects to login
   async function handleLogout() {
     await supabase.auth.signOut();
     navigate('/login');
   }
 
-  /** Closes search and navigates to a path. */
+  // handleNavigate — closes search and navigates to a path
   function handleNavigate(path) {
     setSearchOpen(false);
     setSearchQuery('');
     navigate(path);
   }
 
+  // Sidebar menu items
   const menu = [
     { icon: 'fa-chart-line', label: 'Dashboard', to: '/admin' },
     { icon: 'fa-bed', label: 'Rooms', to: '/admin/rooms' },
@@ -508,24 +545,34 @@ export default function AdminLayout({ children }) {
     { icon: 'fa-gear', label: 'Settings', to: '/admin/settings' }
   ];
 
+  // isActive — checks if a menu path is currently active
   const isActive = (path) => path === '/admin'
     ? location.pathname === '/admin'
     : location.pathname.startsWith(path);
 
+  // hasSearchResults — true if any search results exist
   const hasSearchResults =
     searchResults.rooms.length > 0 ||
     searchResults.users.length > 0 ||
     searchResults.bookings.length > 0 ||
     searchResults.payments.length > 0;
 
+  // ============================================================
+  // RENDER
+  // ============================================================
+
   return (
     <div className="admin-layout">
+
+      {/* Sidebar — navigation and admin info */}
       <AdminSidebar profile={profile} menu={menu} isActive={isActive} onLogout={handleLogout} />
 
       <div className="admin-main">
+
+        {/* Topbar — search, notifications, and user menu */}
         <div className="admin-topbar">
 
-          {/*SEARCH*/}
+          {/* Search bar and dropdown */}
           <div className="admin-search position-relative" ref={searchRef}>
             <i className="fa-solid fa-magnifying-glass"></i>
             <input
@@ -547,7 +594,7 @@ export default function AdminLayout({ children }) {
 
           <div className="admin-topbar-actions">
 
-            {/*NOTIFICATIONS*/}
+            {/* Notifications bell and dropdown */}
             <div className="position-relative" ref={notifRef}>
               <button
                 className="admin-bell"
@@ -573,7 +620,7 @@ export default function AdminLayout({ children }) {
               )}
             </div>
 
-            {/*USER MENU*/}
+            {/* User menu — avatar and dropdown */}
             <div className="position-relative" ref={userMenuRef}>
               <div className="admin-topbar-user" onClick={() => setUserMenuOpen(!userMenuOpen)}>
                 <div className="admin-topbar-avatar">{initial}</div>
@@ -592,10 +639,11 @@ export default function AdminLayout({ children }) {
           </div>
         </div>
 
-        {/*PAGE CONTENT*/}
+        {/* Page content — renders the child component */}
         <div className="admin-content">
           {children}
         </div>
+
       </div>
     </div>
   );

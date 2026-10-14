@@ -1,32 +1,36 @@
+// Imports — React hooks, Supabase, encryption helpers, and layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import { encrypt, decrypt } from '../../encryption.js';
 import UserLayout from './UserLayout.jsx';
 
-// UserProfile Component
-// Renders two forms: one for personal info updates and one for password changes.
+// UserProfile — renders two forms: one for personal info, one for password
 export default function UserProfile() {
-  // Profile State ---
+
+  // --- Profile state — full name, email, and phone ---
   const [profile, setProfile] = useState({ full_name: '', email: '', phone: '' });
-  
-  // --- Password State ---
+
+  // --- Password state — new password and confirm password ---
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // --- UI Feedback State (split per form) ---
+  // --- Feedback state — split per form (profile vs password) ---
   const [profileError, setProfileError] = useState('');
   const [profileMessage, setProfileMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
 
-  // --- Loading States ---
+  // --- Loading states — initial load, saving profile, changing password ---
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
+  // ============================================================
   // DATA FETCHING
-  // Loads the current user's profile and decrypts the phone number.
-  // Redirects implicitly by returning early if there is no active session.
+  // ============================================================
+
+  // loadProfile — loads the user's profile and decrypts the phone number
+  // Returns early if there's no active session (no redirect needed)
   async function loadProfile() {
     setLoading(true);
     try {
@@ -41,6 +45,7 @@ export default function UserProfile() {
 
       if (error) throw error;
 
+      // Decrypt phone if it exists
       setProfile({
         full_name: data.full_name || '',
         email: data.email || auth.user.email || '',
@@ -54,12 +59,16 @@ export default function UserProfile() {
     }
   }
 
+  // Load profile on mount
   useEffect(() => {
     loadProfile();
   }, []);
 
+  // ============================================================
   // FORM HANDLERS
-  // Saves the personal information (name and encrypted phone) to Supabase.
+  // ============================================================
+
+  // handleSaveProfile — saves name and encrypted phone to Supabase
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileError('');
@@ -70,6 +79,7 @@ export default function UserProfile() {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth?.user) throw new Error('No active session. Please log in again.');
 
+      // Encrypt phone before saving
       const updatePayload = {
         full_name: profile.full_name.trim(),
         phone: profile.phone ? encrypt(profile.phone.trim()) : null
@@ -90,7 +100,7 @@ export default function UserProfile() {
     }
   }
 
-  // Updates the user's password via Supabase Auth.
+  // handleChangePassword — updates password via Supabase Auth
   async function handleChangePassword(e) {
     e.preventDefault();
     setPasswordError('');
@@ -119,16 +129,24 @@ export default function UserProfile() {
     }
   }
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <UserLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>My Profile</h1>
         <p>Update your personal information and change your password.</p>
       </div>
 
       <div className="admin-dashboard-grid">
-        {/*PERSONAL INFO*/}
+
+        {/* ============================================================
+            PERSONAL INFO PANEL
+            ============================================================ */}
         <div className="admin-panel">
           <div className="admin-panel-header">
             <h3 className="admin-panel-title">
@@ -137,7 +155,8 @@ export default function UserProfile() {
           </div>
 
           <form onSubmit={handleSaveProfile}>
-            {/* Full Name */}
+
+            {/* Full name field */}
             <div className="admin-field">
               <label htmlFor="full-name">
                 <i className="fa-solid fa-user"></i> Full Name
@@ -153,7 +172,7 @@ export default function UserProfile() {
               />
             </div>
 
-            {/* Email (read-only) */}
+            {/* Email field (read-only) */}
             <div className="admin-field">
               <label htmlFor="email">
                 <i className="fa-solid fa-envelope"></i> Email
@@ -167,7 +186,7 @@ export default function UserProfile() {
               <p className="admin-field-hint">Email cannot be changed.</p>
             </div>
 
-            {/* Phone */}
+            {/* Phone field */}
             <div className="admin-field">
               <label htmlFor="phone">
                 <i className="fa-solid fa-phone"></i> Phone
@@ -182,10 +201,11 @@ export default function UserProfile() {
               />
             </div>
 
-            {/* Feedback */}
+            {/* Feedback messages */}
             {profileError && <p className="admin-error">{profileError}</p>}
             {profileMessage && <p className="admin-success">{profileMessage}</p>}
 
+            {/* Save button */}
             <div className="admin-form-actions">
               <button type="submit" className="app-btn app-btn-primary" disabled={savingProfile || loading}>
                 <i className={`fa-solid ${savingProfile ? 'fa-spinner fa-spin' : 'fa-floppy-disk'}`}></i>
@@ -195,7 +215,9 @@ export default function UserProfile() {
           </form>
         </div>
 
-        {/*CHANGE PASSWORD*/}
+        {/* ============================================================
+            CHANGE PASSWORD PANEL
+            ============================================================ */}
         <div className="admin-panel">
           <div className="admin-panel-header">
             <h3 className="admin-panel-title">
@@ -204,7 +226,8 @@ export default function UserProfile() {
           </div>
 
           <form onSubmit={handleChangePassword}>
-            {/* New Password */}
+
+            {/* New password field */}
             <div className="admin-field">
               <label htmlFor="new-password">
                 <i className="fa-solid fa-lock"></i> New Password
@@ -222,7 +245,7 @@ export default function UserProfile() {
               />
             </div>
 
-            {/* Confirm Password */}
+            {/* Confirm password field */}
             <div className="admin-field">
               <label htmlFor="confirm-password">
                 <i className="fa-solid fa-lock"></i> Confirm Password
@@ -240,10 +263,11 @@ export default function UserProfile() {
               />
             </div>
 
-            {/* Feedback */}
+            {/* Feedback messages */}
             {passwordError && <p className="admin-error">{passwordError}</p>}
             {passwordMessage && <p className="admin-success">{passwordMessage}</p>}
 
+            {/* Update button */}
             <div className="admin-form-actions">
               <button type="submit" className="app-btn app-btn-primary" disabled={changingPassword}>
                 <i className={`fa-solid ${changingPassword ? 'fa-spinner fa-spin' : 'fa-shield-halved'}`}></i>
@@ -252,6 +276,7 @@ export default function UserProfile() {
             </div>
           </form>
         </div>
+
       </div>
     </UserLayout>
   );

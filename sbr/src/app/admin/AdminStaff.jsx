@@ -1,11 +1,15 @@
+// Imports — React hooks, Supabase, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
-const API = 'http://localhost:5000';
+// ============================================================
+// CONSTANTS
+// ============================================================
 
-/** Empty form shape, used for both initial state and reset. */
+const API = 'http://localhost:5000'; // Backend API URL
+
+// Empty form shape, used for both initial state and reset
 const INITIAL_FORM = {
   full_name: '',
   email: '',
@@ -13,9 +17,12 @@ const INITIAL_FORM = {
   password: ''
 };
 
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// StaffStatCard Component
-// Displays a single KPI card for the staff dashboard.
+// ============================================================
+
+// StaffStatCard — displays a single KPI card for the staff dashboard
+// Shows total staff count
 function StaffStatCard({ icon, label, value, sub }) {
   return (
     <div className="admin-stat-card blue">
@@ -33,8 +40,8 @@ function StaffStatCard({ icon, label, value, sub }) {
   );
 }
 
-// CreateStaffForm Component
-// Renders the form for creating a new staff account.
+// CreateStaffForm — renders the form for creating a new staff account
+// Fields: full name, email, phone, temporary password
 function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) {
   return (
     <div className="admin-panel">
@@ -49,6 +56,8 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
       </p>
 
       <form onSubmit={onSubmit}>
+
+        {/* Full name field */}
         <label className="admin-label" htmlFor="staff-name">Full Name</label>
         <input
           id="staff-name"
@@ -59,6 +68,7 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
           required
         />
 
+        {/* Email field */}
         <label className="admin-label" htmlFor="staff-email">Email</label>
         <input
           id="staff-email"
@@ -70,6 +80,7 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
           required
         />
 
+        {/* Phone field */}
         <label className="admin-label" htmlFor="staff-phone">Phone</label>
         <input
           id="staff-phone"
@@ -79,6 +90,7 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
           onChange={(e) => onChange('phone', e.target.value)}
         />
 
+        {/* Temporary password field */}
         <label className="admin-label" htmlFor="staff-password">Temporary Password</label>
         <input
           id="staff-password"
@@ -92,9 +104,11 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
           autoComplete="new-password"
         />
 
+        {/* Feedback messages */}
         {error && <p className="admin-error">{error}</p>}
         {message && <p className="admin-success">{message}</p>}
 
+        {/* Submit button */}
         <button
           type="submit"
           className="app-btn app-btn-primary w-full mt-2"
@@ -108,8 +122,8 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
   );
 }
 
-// StaffTable Component
-// Renders the list of existing staff members.
+// StaffTable — renders the list of existing staff members
+// Shows name and email for each staff account
 function StaffTable({ staffList }) {
   return (
     <div className="admin-panel">
@@ -119,10 +133,12 @@ function StaffTable({ staffList }) {
         </h3>
       </div>
 
+      {/* Empty state */}
       {staffList.length === 0 && (
         <p className="muted center">No staff accounts yet.</p>
       )}
 
+      {/* Staff table */}
       {staffList.length > 0 && (
         <table className="admin-table">
           <thead>
@@ -145,22 +161,28 @@ function StaffTable({ staffList }) {
   );
 }
 
-// MAIN ADMIN STAFF COMPONENS
-// AdminStaff Component
-// Allows the admin to create and view staff accounts. The actual
-// account creation is delegated to the backend Admin API so that
-// we can bypass Supabase's signUp rate limits and auto-confirm
-// the email in a single call.
+// ============================================================
+// MAIN ADMIN STAFF COMPONENT
+// ============================================================
+
+// AdminStaff — allows the admin to create and view staff accounts
+// The actual account creation is delegated to the backend Admin API
+// so that we can bypass Supabase's signUp rate limits and auto-confirm
+// the email in a single call
 export default function AdminStaff() {
-  // --- State Management ---
+
+  // State — form, staffList, loading, error, message
   const [form, setForm] = useState(INITIAL_FORM);
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches all profiles with the 'staff' role.
+  // ============================================================
+
+  // fetchStaff — fetches all profiles with the 'staff' role
   async function fetchStaff() {
     try {
       const { data, error: fetchError } = await supabase
@@ -177,18 +199,22 @@ export default function AdminStaff() {
     }
   }
 
+  // Load staff on mount
   useEffect(() => {
     fetchStaff();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // FORM HANDLERS
-  // Generic input change handler.
+  // ============================================================
+
+  // handleChange — generic input change handler
   function handleChange(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  // Creates a new staff account via the backend Admin API.
-  // On success, clears the form and refreshes the staff list.
+  // handleCreateStaff — creates a new staff account via the backend Admin API
+  // On success, clears the form and refreshes the staff list
   async function handleCreateStaff(e) {
     e.preventDefault();
     setError('');
@@ -224,15 +250,20 @@ export default function AdminStaff() {
     }
   }
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Staff Management</h1>
         <p>Create new staff accounts for the resort.</p>
       </div>
 
-      {/*KPI STAT CARDS*/}
+      {/* KPI stat card — total staff */}
       <div className="admin-stat-grid">
         <StaffStatCard
           icon="fa-user-tie"
@@ -242,7 +273,7 @@ export default function AdminStaff() {
         />
       </div>
 
-      {/*TWO-COLUMN GRID*/}
+      {/* Two-column grid — create form and staff table */}
       <div className="admin-dashboard-grid">
         <CreateStaffForm
           form={form}
@@ -254,6 +285,7 @@ export default function AdminStaff() {
         />
         <StaffTable staffList={staffList} />
       </div>
+
     </AdminLayout>
   );
 }

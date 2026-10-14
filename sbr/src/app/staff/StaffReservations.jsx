@@ -1,20 +1,27 @@
+// Imports — React hooks, Supabase, and staff layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import StaffLayout from './StaffLayout.jsx';
 
-// --- Constants ---
-const REFRESH_INTERVAL_MS = 10000;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
+const REFRESH_INTERVAL_MS = 10000; // Refresh reservations every 10 seconds
+
+// Filter definitions for the filter chips
 const FILTERS = [
-  { key: 'all',         label: 'All',         icon: 'fa-list' },
-  { key: 'pending',     label: 'Pending',     icon: 'fa-clock' },
-  { key: 'confirmed',   label: 'Confirmed',   icon: 'fa-ticket' },
+  { key: 'all', label: 'All', icon: 'fa-list' },
+  { key: 'pending', label: 'Pending', icon: 'fa-clock' },
+  { key: 'confirmed', label: 'Confirmed', icon: 'fa-ticket' },
   { key: 'checked_out', label: 'Checked out', icon: 'fa-door-open' }
 ];
 
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a single mini statistic on the reservations dashboard.
+// ============================================================
+
+// StatCard — displays a single mini statistic on the reservations dashboard
 function StatCard({ icon, color, label, value }) {
   return (
     <div className="admin-mini-stat">
@@ -29,8 +36,7 @@ function StatCard({ icon, color, label, value }) {
   );
 }
 
-// FilterChip Component
-// Renders a single filter chip with an active state and count.
+// FilterChip — renders a single filter chip with an active state and count
 function FilterChip({ filter, label, icon, count, isActive, onClick }) {
   return (
     <button
@@ -43,8 +49,7 @@ function FilterChip({ filter, label, icon, count, isActive, onClick }) {
   );
 }
 
-// PaymentPill Component
-// Renders a colored pill for the payment status.
+// PaymentPill — renders a colored pill for the payment status
 function PaymentPill({ status }) {
   const icon = status === 'paid' ? 'fa-circle-check' : 'fa-hourglass-half';
   return (
@@ -54,8 +59,7 @@ function PaymentPill({ status }) {
   );
 }
 
-// StatusPill Component
-// Renders a colored pill for the booking status.
+// StatusPill — renders a colored pill for the booking status
 function StatusPill({ status }) {
   let icon = 'fa-clock';
   if (status === 'confirmed') icon = 'fa-ticket';
@@ -68,8 +72,7 @@ function StatusPill({ status }) {
   );
 }
 
-// ReservationRow Component
-// Renders a single row of the reservations table with actions.
+// ReservationRow — renders a single row of the reservations table with actions
 function ReservationRow({ booking, updatingId, onSetStatus }) {
   const isUpdating = updatingId === booking.id;
 
@@ -89,6 +92,8 @@ function ReservationRow({ booking, updatingId, onSetStatus }) {
       <td><StatusPill status={booking.status} /></td>
       <td>
         <div className="row-actions row-actions-end">
+
+          {/* Pending → Confirm button */}
           {booking.status === 'pending' && (
             <button
               className="app-btn app-btn-primary app-btn-sm"
@@ -100,6 +105,7 @@ function ReservationRow({ booking, updatingId, onSetStatus }) {
             </button>
           )}
 
+          {/* Confirmed → Check-out button */}
           {booking.status === 'confirmed' && (
             <button
               className="app-btn app-btn-danger app-btn-sm"
@@ -111,6 +117,7 @@ function ReservationRow({ booking, updatingId, onSetStatus }) {
             </button>
           )}
 
+          {/* Checked out → Done label */}
           {booking.status === 'checked_out' && (
             <span className="muted text-sm">
               <i className="fa-solid fa-circle-check mr-1"></i> Done
@@ -122,11 +129,14 @@ function ReservationRow({ booking, updatingId, onSetStatus }) {
   );
 }
 
+// ============================================================
 // MAIN STAFF RESERVATIONS COMPONENT
-// StaffReservations Component
-// Displays all reservations with filters, search, and status actions.
+// ============================================================
+
+// StaffReservations — displays all reservations with filters, search, and actions
 export default function StaffReservations() {
-  // --- State Management ---
+
+  // State — bookings, filter, search, loading, updatingId, error, message
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -135,8 +145,12 @@ export default function StaffReservations() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches all reservations.
+  // ============================================================
+
+  // fetchReservations — fetches all reservations from the database
+  // isInitialLoad controls whether to show the loading spinner
   async function fetchReservations(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
     try {
@@ -155,14 +169,18 @@ export default function StaffReservations() {
     }
   }
 
+  // Load reservations on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchReservations(true);
     const interval = setInterval(() => fetchReservations(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // ACTIONS
-  // Updates the status of a booking after user confirmation.
+  // ============================================================
+
+  // handleSetStatus — updates the status of a booking after confirmation
   async function handleSetStatus(booking, newStatus) {
     const confirmed = window.confirm(`Change status to "${newStatus}"?`);
     if (!confirmed) return;
@@ -188,8 +206,11 @@ export default function StaffReservations() {
     }
   }
 
+  // ============================================================
   // DERIVED DATA
-  /** Counts per status for stat cards and filter chips. */
+  // ============================================================
+
+  // Counts per status for stat cards and filter chips
   const counts = {
     all: bookings.length,
     pending: bookings.filter((b) => b.status === 'pending').length,
@@ -197,7 +218,7 @@ export default function StaffReservations() {
     checked_out: bookings.filter((b) => b.status === 'checked_out').length
   };
 
-  /** Bookings after applying filter and search. */
+  // Bookings after applying filter and search
   const filteredBookings = bookings.filter((booking) => {
     if (filter !== 'all' && booking.status !== filter) return false;
 
@@ -213,15 +234,20 @@ export default function StaffReservations() {
     return true;
   });
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <StaffLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Reservations</h1>
         <p>All bookings from guests. Auto-refreshes every 10 seconds.</p>
       </div>
 
-      {/*MINI STATS*/}
+      {/* Mini stats — total, pending, confirmed, checked out */}
       <div className="admin-mini-stats">
         <StatCard icon="fa-calendar-check" color="blue"   label="Total" value={counts.all} />
         <StatCard icon="fa-clock" color="orange" label="Pending" value={counts.pending} />
@@ -236,7 +262,7 @@ export default function StaffReservations() {
           </h3>
         </div>
 
-        {/*FILTER CHIPS*/}
+        {/* Filter chips — all, pending, confirmed, checked out */}
         <div className="admin-chips">
           {FILTERS.map((f) => (
             <FilterChip
@@ -251,7 +277,7 @@ export default function StaffReservations() {
           ))}
         </div>
 
-        {/*TOOLBAR*/}
+        {/* Toolbar — search bar and refresh button */}
         <div className="admin-toolbar">
           <div className="admin-toolbar-search">
             <i className="fa-solid fa-magnifying-glass"></i>
@@ -266,18 +292,18 @@ export default function StaffReservations() {
           </button>
         </div>
 
-        {/*FEEDBACK*/}
+        {/* Feedback messages */}
         {error && <p className="admin-error">{error}</p>}
         {message && <p className="admin-success">{message}</p>}
 
-        {/*LOADING*/}
+        {/* Loading state */}
         {loading && (
           <div className="admin-loading">
             <i className="fa-solid fa-spinner fa-spin"></i> Loading…
           </div>
         )}
 
-        {/*EMPTY*/}
+        {/* Empty state */}
         {!loading && filteredBookings.length === 0 && (
           <div className="admin-empty">
             <i className="fa-solid fa-calendar-xmark"></i>
@@ -286,7 +312,7 @@ export default function StaffReservations() {
           </div>
         )}
 
-        {/*TABLE*/}
+        {/* Reservations table */}
         {!loading && filteredBookings.length > 0 && (
           <table className="admin-table">
             <thead>

@@ -1,17 +1,23 @@
+// Imports — React hooks, routing, and Supabase client
 import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 
-// Constants
-const READ_KEY = 'sbr:user-notif-read';
-const NOTIF_POLL_MS = 15000; // Poll notifications every 15 seconds
-const SEARCH_DEBOUNCE_MS = 250;
-const MAX_NOTIFICATIONS = 10;
-const MAX_SEARCH_RESULTS = 5;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
+const READ_KEY = 'sbr:user-notif-read';      // localStorage key for read notifications
+const NOTIF_POLL_MS = 15000;                 // Poll notifications every 15 seconds
+const SEARCH_DEBOUNCE_MS = 250;              // Debounce search input by 250ms
+const MAX_NOTIFICATIONS = 10;                // Max notifications to show
+const MAX_SEARCH_RESULTS = 5;                // Max search results per category
+
+// ============================================================
 // UTILITY HELPERS
-// Formats a date string into a relative time string (e.g., "5m ago").
+// ============================================================
 
+// relativeTime — formats a date string into a relative time string (e.g., "5m ago")
 function relativeTime(date) {
   if (!date) return '';
   const diff = Date.now() - new Date(date).getTime();
@@ -25,27 +31,29 @@ function relativeTime(date) {
   return new Date(date).toLocaleDateString();
 }
 
-// Retrieves the list of read notification IDs from localStorage.
+// getReadIds — retrieves the list of read notification IDs from localStorage
 function getReadIds() {
   try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); }
   catch { return []; }
 }
 
-// Saves the list of read notification IDs to localStorage.
+// saveReadIds — saves the list of read notification IDs to localStorage
 function saveReadIds(ids) {
   localStorage.setItem(READ_KEY, JSON.stringify(ids));
 }
 
+// ============================================================
 // SUB-COMPONENTS
-// UserSidebar Component
-// Renders the sidebar with navigation links and user information.
+// ============================================================
+
+// UserSidebar — renders the sidebar with navigation links and user info
 function UserSidebar({ profile, menu, isActive, onLogout }) {
   const initial = (profile?.full_name || 'U').charAt(0).toUpperCase();
   const firstName = profile?.full_name?.split(' ')[0] || 'Guest';
 
   return (
     <aside className="admin-sidebar">
-      {/* Logo */}
+      {/* Logo — brand icon and text */}
       <div className="admin-logo">
         <div className="admin-logo-icon">
           <i className="fa-solid fa-umbrella-beach"></i>
@@ -56,7 +64,7 @@ function UserSidebar({ profile, menu, isActive, onLogout }) {
         </div>
       </div>
 
-      {/* User Card */}
+      {/* User card — avatar, name, and role */}
       <div className="admin-user-card">
         <div className="admin-user-avatar">{initial}</div>
         <div className="admin-user-info">
@@ -65,7 +73,7 @@ function UserSidebar({ profile, menu, isActive, onLogout }) {
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation — menu links and sign out button */}
       <nav className="admin-nav">
         {menu.map((item) => (
           <Link
@@ -80,7 +88,7 @@ function UserSidebar({ profile, menu, isActive, onLogout }) {
 
         <div className="admin-nav-divider" />
 
-        {/* Logout Button */}
+        {/* Sign out button */}
         <button className="admin-nav-item bg-transparent border-none w-full text-left cursor-pointer" onClick={onLogout}>
           <span className="admin-nav-icon"><i className="fa-solid fa-right-from-bracket"></i></span>
           <span className="admin-nav-label">Sign Out</span>
@@ -90,17 +98,18 @@ function UserSidebar({ profile, menu, isActive, onLogout }) {
   );
 }
 
-// SearchDropdown Component
-// Displays search results for bookings and rooms.
+// SearchDropdown — displays search results for bookings and rooms
 function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemClick }) {
   if (!searchQuery.trim()) return null;
 
   return (
     <div className="admin-search-dropdown">
+      {/* Empty state — no results */}
       {!hasSearchResults && (
         <div className="admin-search-empty">No results for "{searchQuery}"</div>
       )}
 
+      {/* Bookings group */}
       {searchResults.bookings.length > 0 && (
         <div className="admin-search-group">
           <div className="admin-search-group-title"><i className="fa-solid fa-ticket mr-1"></i> My Bookings</div>
@@ -115,6 +124,7 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
         </div>
       )}
 
+      {/* Rooms group */}
       {searchResults.rooms.length > 0 && (
         <div className="admin-search-group">
           <div className="admin-search-group-title"><i className="fa-solid fa-bed mr-1"></i> Available Rooms</div>
@@ -134,11 +144,11 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
   );
 }
 
-// NotificationsDropdown Component
-// Displays a list of user notifications.
+// NotificationsDropdown — displays a list of user notifications
 function NotificationsDropdown({ notifications, unreadCount, onMarkAllRead, onItemClick }) {
   return (
     <div className="admin-notif-dropdown">
+      {/* Header — title and mark all read button */}
       <div className="admin-dropdown-header">
         <strong>My Notifications</strong>
         {notifications.length > 0 && (
@@ -146,10 +156,12 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAllRead, onIt
         )}
       </div>
 
+      {/* Empty state */}
       {notifications.length === 0 && (
         <div className="admin-dropdown-empty">No notifications yet.</div>
       )}
 
+      {/* Notification list */}
       {notifications.length > 0 && (
         <div className="admin-notif-list">
           {notifications.map((notif) => {
@@ -173,6 +185,7 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAllRead, onIt
         </div>
       )}
 
+      {/* Footer — view bookings link */}
       <div className="admin-dropdown-footer">
         <button className="admin-dropdown-link" onClick={() => onItemClick('/user/booking')}>
           View my bookings →
@@ -182,13 +195,13 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAllRead, onIt
   );
 }
 
-// UserMenuDropdown Component
-// Displays the user profile dropdown menu.
+// UserMenuDropdown — displays the user profile dropdown menu
 function UserMenuDropdown({ profile, onNavigate, onLogout }) {
   const initial = (profile?.full_name || 'U').charAt(0).toUpperCase();
 
   return (
     <div className="admin-user-dropdown">
+      {/* Header — avatar, name, and email */}
       <div className="admin-user-dropdown-header">
         <div className="admin-topbar-avatar avatar-lg">{initial}</div>
         <div>
@@ -199,6 +212,7 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
 
       <div className="admin-user-dropdown-divider" />
 
+      {/* Menu items — dashboard, bookings, profile */}
       <button className="admin-user-dropdown-item" onClick={() => onNavigate('/user')}>
         <i className="fa-solid fa-house"></i><span>Dashboard</span>
       </button>
@@ -211,6 +225,7 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
 
       <div className="admin-user-dropdown-divider" />
 
+      {/* Sign out */}
       <button className="admin-user-dropdown-item danger" onClick={onLogout}>
         <i className="fa-solid fa-right-from-bracket"></i><span>Sign Out</span>
       </button>
@@ -218,15 +233,17 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
   );
 }
 
+// ============================================================
 // MAIN USER LAYOUT COMPONENT
-// UserLayout Component
-// The main wrapper for all user-facing pages. Handles global state
-// like notifications, search, and user profile.
+// ============================================================
+
+// UserLayout — main wrapper for all user-facing pages
+// Handles global state like notifications, search, and user profile
 export default function UserLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // State Management
+
+  // State — profile, search, notifications, and dropdown toggles
   const [profile, setProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState({ bookings: [], rooms: [] });
@@ -236,7 +253,7 @@ export default function UserLayout({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  // Refs for Click-Outside Detection
+  // Refs — used for click-outside detection on dropdowns
   const searchRef = useRef(null);
   const notifRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -244,8 +261,11 @@ export default function UserLayout({ children }) {
   const initial = (profile?.full_name || 'U').charAt(0).toUpperCase();
   const firstName = profile?.full_name?.split(' ')[0] || 'Guest';
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches the current user's profile.
+  // ============================================================
+
+  // fetchProfile — fetches the current user's profile
   async function fetchProfile() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
@@ -253,7 +273,7 @@ export default function UserLayout({ children }) {
     setProfile(data);
   }
 
-  // Fetches and maps notifications from the user's bookings.
+  // fetchNotifications — fetches and maps notifications from the user's bookings
   async function fetchNotifications() {
     try {
       const { data: auth } = await supabase.auth.getUser();
@@ -266,6 +286,7 @@ export default function UserLayout({ children }) {
         .order('created_at', { ascending: false })
         .limit(MAX_NOTIFICATIONS);
 
+      // Map each booking into a notification object
       const notifs = (data || []).map((booking) => ({
         id: `bk-${booking.id}`,
         icon: booking.payment_status === 'paid' ? 'fa-circle-check' :
@@ -283,7 +304,7 @@ export default function UserLayout({ children }) {
     }
   }
 
-  // Marks all notifications as read.
+  // markAllRead — marks all notifications as read
   function markAllRead() {
     const ids = notifications.map((n) => n.id);
     saveReadIds(ids);
@@ -292,7 +313,7 @@ export default function UserLayout({ children }) {
     setNotifications([...notifications]);
   }
 
-  // Performs a debounced search across bookings and rooms.
+  // performSearch — performs a debounced search across bookings and rooms
   async function performSearch(query) {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -303,6 +324,7 @@ export default function UserLayout({ children }) {
     try {
       const { data: auth } = await supabase.auth.getUser();
 
+      // Fetch bookings and rooms in parallel
       const [bookingsRes, roomsRes] = await Promise.all([
         supabase.from('bookings')
           .select('id, status, check_in, check_out, total_amount, rooms(room_number,room_type)')
@@ -314,10 +336,12 @@ export default function UserLayout({ children }) {
           .limit(30)
       ]);
 
+      // Filter bookings by room number or status
       const bookings = (bookingsRes.data || []).filter((b) =>
         `${b.rooms?.room_number || ''} ${b.status || ''}`.toLowerCase().includes(q)
       ).slice(0, MAX_SEARCH_RESULTS);
 
+      // Filter rooms by room number or type
       const rooms = (roomsRes.data || []).filter((r) =>
         `${r.room_number} ${r.room_type}`.toLowerCase().includes(q)
       ).slice(0, MAX_SEARCH_RESULTS);
@@ -328,32 +352,35 @@ export default function UserLayout({ children }) {
     }
   }
 
+  // ============================================================
   // EFFECTS
-  // Initial Data Load
+  // ============================================================
+
+  // Load profile on mount
   useEffect(() => {
     fetchProfile();
   }, []);
 
-  // Notification Polling
+  // Poll notifications every NOTIF_POLL_MS
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, NOTIF_POLL_MS);
     return () => clearInterval(interval);
   }, []);
 
-  // Update Unread Count
+  // Update unread count whenever notifications change
   useEffect(() => {
     const read = getReadIds();
     setUnreadCount(notifications.filter((n) => !read.includes(n.id)).length);
   }, [notifications]);
 
-  // Debounced Search
+  // Debounced search — waits SEARCH_DEBOUNCE_MS before searching
   useEffect(() => {
     const timer = setTimeout(() => performSearch(searchQuery), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Click Outside Handler
+  // Click outside — closes dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchRef.current && !searchRef.current.contains(event.target)) setSearchOpen(false);
@@ -364,40 +391,54 @@ export default function UserLayout({ children }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ============================================================
   // HANDLERS
-  // Signs the user out and redirects to login. */
+  // ============================================================
+
+  // handleLogout — signs the user out and redirects to login
   async function handleLogout() {
     await supabase.auth.signOut();
     navigate('/login');
   }
 
-  // Closes search and navigates to a path. */
+  // handleNavigate — closes search and navigates to a path
   function handleNavigate(path) {
     setSearchOpen(false);
     setSearchQuery('');
     navigate(path);
   }
 
+  // Sidebar menu items
   const menu = [
     { icon: 'fa-house',       label: 'Dashboard',   to: '/user' },
     { icon: 'fa-ticket',      label: 'My Bookings', to: '/user/booking' },
     { icon: 'fa-circle-user', label: 'Profile',     to: '/user/profile' }
   ];
 
-  const isActive = (path) => path === '/user' 
-    ? location.pathname === '/user' 
+  // isActive — checks if a menu path is currently active
+  const isActive = (path) => path === '/user'
+    ? location.pathname === '/user'
     : location.pathname.startsWith(path);
 
+  // hasSearchResults — true if any search results exist
   const hasSearchResults = searchResults.bookings.length > 0 || searchResults.rooms.length > 0;
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <div className="admin-layout">
+
+      {/* Sidebar — navigation and user info */}
       <UserSidebar profile={profile} menu={menu} isActive={isActive} onLogout={handleLogout} />
 
       <div className="admin-main">
+
+        {/* Topbar — search, notifications, and user menu */}
         <div className="admin-topbar">
-          
-          {/*SEARCH*/}
+
+          {/* Search bar and dropdown */}
           <div className="admin-search position-relative" ref={searchRef}>
             <i className="fa-solid fa-magnifying-glass"></i>
             <input
@@ -408,9 +449,9 @@ export default function UserLayout({ children }) {
               onFocus={() => setSearchOpen(true)}
             />
             {searchOpen && (
-              <SearchDropdown 
-                searchResults={searchResults} 
-                searchQuery={searchQuery} 
+              <SearchDropdown
+                searchResults={searchResults}
+                searchQuery={searchQuery}
                 hasSearchResults={hasSearchResults}
                 onItemClick={handleNavigate}
               />
@@ -418,8 +459,8 @@ export default function UserLayout({ children }) {
           </div>
 
           <div className="admin-topbar-actions">
-            
-            {/*NOTIFICATIONS*/}
+
+            {/* Notifications bell and dropdown */}
             <div className="position-relative" ref={notifRef}>
               <button
                 className="admin-bell"
@@ -437,8 +478,8 @@ export default function UserLayout({ children }) {
                 )}
               </button>
               {notifOpen && (
-                <NotificationsDropdown 
-                  notifications={notifications} 
+                <NotificationsDropdown
+                  notifications={notifications}
                   unreadCount={unreadCount}
                   onMarkAllRead={markAllRead}
                   onItemClick={(link) => { setNotifOpen(false); navigate(link); }}
@@ -446,7 +487,7 @@ export default function UserLayout({ children }) {
               )}
             </div>
 
-            {/*USER MENU*/}
+            {/* User menu — avatar and dropdown */}
             <div className="position-relative" ref={userMenuRef}>
               <div className="admin-topbar-user" onClick={() => setUserMenuOpen(!userMenuOpen)}>
                 <div className="admin-topbar-avatar">{initial}</div>
@@ -454,8 +495,8 @@ export default function UserLayout({ children }) {
                 <i className="fa-solid fa-chevron-down text-sm text-muted"></i>
               </div>
               {userMenuOpen && (
-                <UserMenuDropdown 
-                  profile={profile} 
+                <UserMenuDropdown
+                  profile={profile}
                   onNavigate={(path) => { setUserMenuOpen(false); navigate(path); }}
                   onLogout={handleLogout}
                 />
@@ -465,10 +506,11 @@ export default function UserLayout({ children }) {
           </div>
         </div>
 
-        {/*PAGE CONTENT*/}
+        {/* Page content — renders the child component */}
         <div className="admin-content">
           {children}
         </div>
+
       </div>
     </div>
   );

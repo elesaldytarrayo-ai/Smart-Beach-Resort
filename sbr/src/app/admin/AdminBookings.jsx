@@ -1,12 +1,13 @@
+// Imports — React hooks, Supabase, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
-const REFRESH_INTERVAL_MS = 10000;
+// Constants
+const REFRESH_INTERVAL_MS = 10000; // Refresh bookings every 10 seconds
 
-// Filter definitions for the reservation status dropdown.
-// A booking matches a filter if BOTH its payment AND status checks pass.
+// Filter definitions for the reservation status dropdown
+// A booking matches a filter if BOTH its payment AND status checks pass
 const FILTER_PREDICATES = {
   all: () => true,
   paid: (b) => b.payment_status === 'paid',
@@ -16,9 +17,9 @@ const FILTER_PREDICATES = {
   checked_out: (b) => b.status === 'checked_out'
 };
 
-// REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a large KPI card on the bookings dashboard.
+// Resuable Sub-Components
+// StatCard — displays a large KPI card on the bookings dashboard
+// Used for the big colored cards at the top (total, paid, unpaid, revenue)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -36,14 +37,13 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// StatusPill Component
-// Renders a colored pill for payment or booking status.
+// StatusPill — renders a colored pill for payment or booking status
 function StatusPill({ value }) {
   return <span className={`admin-pill ${value}`}>{value}</span>;
 }
 
-// ReservationRow Component
-// Renders a single row in the bookings table with action buttons.
+// ReservationRow — renders a single row in the bookings table with action buttons
+// Shows booking details and actions (mark paid, check-out)
 function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
   const isUpdating = updatingId === booking.id;
   const isUnpaid = booking.payment_status !== 'paid';
@@ -64,6 +64,8 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
       <td><StatusPill value={booking.status} /></td>
       <td>
         <div className="row-actions">
+
+          {/* Unpaid → Mark Paid button */}
           {isUnpaid && (
             <button
               className="app-btn app-btn-primary app-btn-sm"
@@ -75,6 +77,7 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
             </button>
           )}
 
+          {/* Confirmed → Check-out button */}
           {isConfirmed && (
             <button
               className="app-btn app-btn-danger app-btn-sm"
@@ -91,11 +94,11 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
   );
 }
 
-// MAIN ADMIN BOOKINGS COMPONENT
-// AdminBookings Component
-// Displays all reservations with filtering, search, and management actions.
+// Main Admin Bookings Component
+// AdminBookings — displays all reservations with filtering, search, and actions
 export default function AdminBookings() {
-  // --- State Management ---
+
+  // State — bookings, filter, search, loading, updatingId, error, message
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -104,8 +107,9 @@ export default function AdminBookings() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  // DATA FETCHING
-  // Fetches all bookings.
+  // Data Fetching
+  // fetchBookings — fetches all bookings from the database
+  // isInitialLoad controls whether to show the loading spinner
   async function fetchBookings(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
     try {
@@ -124,14 +128,15 @@ export default function AdminBookings() {
     }
   }
 
+  // Load bookings on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchBookings(true);
     const interval = setInterval(() => fetchBookings(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ACTIONS
-  // Marks a booking as paid and creates a payment record if missing.
+  // Actions
+  // handleMarkPaid — marks a booking as paid and creates a payment record
   async function handleMarkPaid(booking) {
     const confirmed = window.confirm(
       `Mark booking as PAID?\n\nGuest: ${booking.profiles?.full_name}\nAmount: ₱${booking.total_amount}`
@@ -179,7 +184,7 @@ export default function AdminBookings() {
     }
   }
 
-  // Updates the status of a booking after confirmation.
+  // handleUpdateStatus — updates the status of a booking after confirmation
   async function handleUpdateStatus(booking, newStatus) {
     const confirmed = window.confirm(`Change status to "${newStatus}"?`);
     if (!confirmed) return;
@@ -205,8 +210,8 @@ export default function AdminBookings() {
     }
   }
 
-  // DERIVED DATA
-  /** Counts per filter key for stat cards and dropdown labels. */
+  // Derived Data
+  // Counts per filter key for stat cards and dropdown labels
   const counts = {
     all: bookings.length,
     paid: bookings.filter(FILTER_PREDICATES.paid).length,
@@ -216,12 +221,12 @@ export default function AdminBookings() {
     checked_out: bookings.filter(FILTER_PREDICATES.checked_out).length
   };
 
-  /** Total revenue from paid bookings. */
+  // Total revenue from paid bookings
   const totalRevenue = bookings
     .filter(FILTER_PREDICATES.paid)
     .reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
 
-  /** Bookings after applying the active filter and search query. */
+  // Bookings after applying the active filter and search query
   const filteredBookings = bookings.filter((booking) => {
     const matchesFilter = FILTER_PREDICATES[filter]?.(booking) ?? true;
     if (!matchesFilter) return false;
@@ -238,15 +243,17 @@ export default function AdminBookings() {
     return true;
   });
 
-  // RENDER
+  // Render
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Reservations</h1>
         <p>All bookings from guests.</p>
       </div>
 
-      {/*KPI STAT CARDS*/}
+      {/* KPI stat cards — total, paid, unpaid, revenue */}
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
@@ -278,7 +285,7 @@ export default function AdminBookings() {
         />
       </div>
 
-      {/*TOOLBAR*/}
+      {/* Toolbar — search, filter dropdown, refresh button */}
       <div className="admin-panel mb-4">
         <div className="row row-center">
           <div className="col">
@@ -309,11 +316,11 @@ export default function AdminBookings() {
         </div>
       </div>
 
-      {/*FEEDBACK*/}
+      {/* Feedback messages */}
       {error && <p className="admin-error mb-2">{error}</p>}
       {message && <p className="admin-success mb-2">{message}</p>}
 
-      {/*BOOKINGS TABLE*/}
+      {/* Bookings table */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -356,6 +363,7 @@ export default function AdminBookings() {
           </table>
         )}
       </div>
+
     </AdminLayout>
   );
 }

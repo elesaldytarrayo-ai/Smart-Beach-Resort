@@ -1,17 +1,24 @@
+// Imports — React hooks, routing, Supabase, NFC reader, and layout wrapper
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
 import { readNFC } from '../../nfc.js';
 import StaffLayout from './StaffLayout.jsx';
 
-// --- Constants ---
-const API = 'http://localhost:5000';
-const REFRESH_INTERVAL_MS = 10000;
-const MAX_BOOKINGS_DISPLAYED = 8;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
+const API = 'http://localhost:5000';         // Backend API URL
+const REFRESH_INTERVAL_MS = 10000;           // Refresh dashboard every 10 seconds
+const MAX_BOOKINGS_DISPLAYED = 8;            // Max bookings to show in the table
+
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a single mini statistic on the dashboard.
+// ============================================================
+
+// StatCard — displays a single mini statistic on the dashboard
+// Used for the small number cards at the top (total rooms, available, etc.)
 function StatCard({ icon, color, label, value }) {
   return (
     <div className="admin-mini-stat">
@@ -26,9 +33,10 @@ function StatCard({ icon, color, label, value }) {
   );
 }
 
-// BookingRow Component
-// Renders a single row in the recent bookings table.
+// BookingRow — renders a single row in the recent bookings table
+// Shows guest info, room, dates, and status pill
 function BookingRow({ booking }) {
+  // Pick the right icon based on booking status
   let statusIcon = 'fa-clock';
   if (booking.status === 'confirmed') statusIcon = 'fa-ticket';
   else if (booking.status === 'checked_out') statusIcon = 'fa-door-open';
@@ -63,8 +71,8 @@ function BookingRow({ booking }) {
   );
 }
 
-// RoomRow Component
-// Renders a single room with status toggle in the room status panel.
+// RoomRow — renders a single room with status toggle in the room status panel
+// Allows staff to toggle between "available" and "maintenance"
 function RoomRow({ room, onToggleStatus }) {
   const nextStatus = room.status === 'available' ? 'maintenance' : 'available';
   const buttonLabel = room.status === 'available' ? '→ Maint' : '→ Available';
@@ -90,25 +98,31 @@ function RoomRow({ room, onToggleStatus }) {
   );
 }
 
+// ============================================================
 // MAIN STAFF DASHBOARD COMPONENT
-// Staff Component
-// Renders the staff-facing dashboard for front desk operations.
+// ============================================================
+
+// Staff — renders the staff-facing dashboard for front desk operations
 export default function Staff() {
   const navigate = useNavigate();
 
-  // --- State Management ---
+  // State — rooms, bookings, message, error, loading
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches rooms and recent bookings in parallel.
+  // ============================================================
+
+  // fetchDashboardData — fetches rooms and recent bookings in parallel
   async function fetchDashboardData() {
     try {
       setError('');
 
+      // Fetch rooms and bookings at the same time
       const [roomsRes, bookingsRes] = await Promise.all([
         supabase.from('rooms').select('*').order('room_number'),
         supabase.from('bookings')
@@ -130,14 +144,18 @@ export default function Staff() {
     }
   }
 
+  // Load data on mount and refresh every 10 seconds
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // ACTIONS
-  // Updates the status of a room (available ↔ maintenance).
+  // ============================================================
+
+  // handleUpdateRoomStatus — updates the status of a room (available ↔ maintenance)
   async function handleUpdateRoomStatus(roomId, status) {
     setError('');
     try {
@@ -153,13 +171,13 @@ export default function Staff() {
     }
   }
 
-  // Reads an NFC tag and verifies it as a check-in token.
+  // handleNfcCheckIn — reads an NFC tag and verifies it as a check-in token
   async function handleNfcCheckIn() {
     setError('');
     setMessage('');
 
     try {
-      // 1. Read NFC tag
+      // 1. Read the NFC tag
       const readResult = await readNFC();
       if (!readResult.ok) {
         throw new Error(`NFC read failed: ${readResult.error}`);
@@ -188,26 +206,36 @@ export default function Staff() {
     }
   }
 
+  // ============================================================
   // DERIVED STATISTICS
+  // ============================================================
+
   const today = new Date().toISOString().slice(0, 10);
 
+  // Count rooms by status
   const roomCounts = {
     all: rooms.length,
     available: rooms.filter((r) => r.status === 'available').length,
     occupied: rooms.filter((r) => r.status === 'occupied').length
   };
 
+  // Count today's check-ins
   const todayCheckins = bookings.filter((b) => b.check_in === today).length;
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <StaffLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Staff Dashboard</h1>
         <p>Front desk operations · Room management · NFC check-in</p>
       </div>
 
-      {/*MINI STATS*/}
+      {/* Mini stats — total rooms, available, occupied, today's check-ins */}
       <div className="admin-mini-stats">
         <StatCard icon="fa-bed" color="blue" label="Total Rooms" value={roomCounts.all} />
         <StatCard icon="fa-circle-check" color="green" label="Available" value={roomCounts.available} />
@@ -218,7 +246,7 @@ export default function Staff() {
       {error && <p className="admin-error">{error}</p>}
       {message && <p className="admin-success">{message}</p>}
 
-      {/*FRONT DESK NFC*/}
+      {/* Front desk NFC panel */}
       <div className="admin-panel mb-4">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -236,10 +264,10 @@ export default function Staff() {
         </div>
       </div>
 
-      {/*TWO-COLUMN GRID*/}
+      {/* Two-column grid — recent bookings and room status */}
       <div className="admin-dashboard-grid">
-        
-        {/* ---- Recent Bookings ---- */}
+
+        {/* Recent bookings panel */}
         <div className="admin-panel">
           <div className="admin-panel-header">
             <h3 className="admin-panel-title">
@@ -280,7 +308,7 @@ export default function Staff() {
           )}
         </div>
 
-        {/* ---- Room Status ---- */}
+        {/* Room status panel */}
         <div className="admin-panel">
           <div className="admin-panel-header">
             <h3 className="admin-panel-title">

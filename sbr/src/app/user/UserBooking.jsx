@@ -1,3 +1,4 @@
+// Imports — React hooks, routing, Supabase, NFC, encryption, and layout
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../supabase.js';
@@ -6,21 +7,32 @@ import { encrypt, decrypt } from '../../encryption.js';
 import UserLayout from './UserLayout.jsx';
 
 // --- Constants ---
+// Backend API URL (local server)
 const API = 'http://localhost:5000';
+
+// localStorage keys for pending booking and PayMongo session
 const PENDING_KEY = 'sbr:pendingBookingId';
 const SESSION_KEY = 'sbr:pendingSessionId';
+
+// sessionStorage keys for NFC token and purpose
 const NFC_TOKEN_KEY = 'sbr:lastNfcToken';
 const NFC_PURPOSE_KEY = 'sbr:nfcPurpose';
+
+// Polling settings for payment verification
 const MAX_POLL_ATTEMPTS = 5;
 const POLL_INTERVAL_MS = 2000;
+
+// Milliseconds per day (for calculating nights)
 const MS_PER_DAY = 86400000;
 
 // --- Lookup Maps ---
+// Maps payment status to Font Awesome icons
 const PAYMENT_ICONS = {
   paid: 'fa-circle-check',
   unpaid: 'fa-hourglass-half'
 };
 
+// Maps booking status to Font Awesome icons
 const BOOKING_ICONS = {
   confirmed: 'fa-ticket',
   checked_out: 'fa-door-open',
@@ -28,9 +40,12 @@ const BOOKING_ICONS = {
   pending: 'fa-clock'
 };
 
+// ============================================================
 // SUB-COMPONENTS
+// ============================================================
 
-/** Colored pill for payment/booking status. */
+/** StatusPill — colored pill for payment/booking status. */
+// Picks the right icon based on type (payment or booking)
 function StatusPill({ type, value }) {
   const icon = type === 'payment'
     ? PAYMENT_ICONS[value] || 'fa-circle'
@@ -43,7 +58,8 @@ function StatusPill({ type, value }) {
   );
 }
 
-/** Single booking card with action buttons. */
+/** BookingCard — single booking card with action buttons. */
+// Shows booking details, status, and action buttons (pay, check-in, check-out, cancel)
 function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut, onCancel, onCancelPaid }) {
   const room = booking.rooms;
   const isPaid = booking.payment_status === 'paid';
@@ -55,7 +71,7 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
   return (
     <div className="admin-panel mb-4 booking-card">
       <div className="space-between">
-        {/* Details */}
+        {/* Details — room, dates, total */}
         <div>
           <div className="cell-main">
             <i className="fa-solid fa-bed mr-2"></i>
@@ -72,7 +88,7 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
           </div>
         </div>
 
-        {/* Status */}
+        {/* Status — payment and booking pills */}
         <div className="text-right">
           <StatusPill type="payment" value={booking.payment_status} />
           <div className="mt-2">
@@ -81,8 +97,9 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions — buttons depend on booking state */}
       <div className="row-actions mt-3">
+        {/* Unpaid: Pay + Cancel */}
         {isUnpaid && !isCancelled && (
           <>
             <button
@@ -104,6 +121,7 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
           </>
         )}
 
+        {/* Paid: NFC Check-in + Check-out + Cancel */}
         {isPaid && !isCheckedOut && !isCancelled && (
           <>
             <button className="app-btn app-btn-secondary app-btn-sm mr-2" onClick={onCheckIn}>
@@ -128,12 +146,14 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
           </>
         )}
 
+        {/* Checked out: show status only */}
         {isCheckedOut && (
           <span className="muted text-sm">
             <i className="fa-solid fa-circle-check text-success mr-2"></i> Checked out
           </span>
         )}
 
+        {/* Cancelled: show status only */}
         {isCancelled && (
           <span className="muted text-sm">
             <i className="fa-solid fa-ban text-danger mr-2"></i> Cancelled
@@ -144,7 +164,9 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
   );
 }
 
+// ============================================================
 // MAIN COMPONENT
+// ============================================================
 
 export default function UserBooking() {
   const navigate = useNavigate();
@@ -165,21 +187,23 @@ export default function UserBooking() {
   /* ============================================================
      FETCH DATA
      ============================================================ */
+
+  // fetchData — loads rooms, checks auth, loads user's bookings
   async function fetchData() {
     setLoading(true);
     setError('');
     try {
-      // 1. Rooms
+      // 1. Fetch all rooms
       const { data: roomsData, error: roomsError } = await supabase
         .from('rooms').select('*').order('room_number');
       if (roomsError) throw roomsError;
       setRooms(roomsData || []);
 
-      // 2. Auth
+      // 2. Check authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) { navigate('/login'); return; }
 
-      // 3. User's bookings
+      // 3. Fetch user's bookings with room info
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*, rooms(room_number, room_type, price)')
@@ -195,9 +219,14 @@ export default function UserBooking() {
     }
   }
 
+  // Load data on mount
   useEffect(() => { fetchData(); }, []); // eslint-disable-line
 
+  // ============================================================
   // PAYMONGO VERIFICATION
+  // ============================================================
+
+  // pollPaymentVerification — polls backend to check if payment is confirmed
   async function pollPaymentVerification(bookingId, sessionId, accessToken) {
     for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
       const response = await fetch(`${API}/api/payments/verify`, {
@@ -219,6 +248,7 @@ export default function UserBooking() {
     throw new Error('Payment not yet confirmed. Please refresh in a moment.');
   }
 
+  // verifyPaymentAndIssueNFC — verifies payment, then issues NFC token
   async function verifyPaymentAndIssueNFC(bookingId) {
     setError(''); setMessage('');
     setNfcBanner('Verifying your payment with PayMongo…');
@@ -230,6 +260,7 @@ export default function UserBooking() {
       const sessionId = localStorage.getItem(SESSION_KEY);
       const result = await pollPaymentVerification(bookingId, sessionId, session.access_token);
 
+      // If NFC token returned, encrypt and write to NFC tag
       if (result.nfc?.rawToken) {
         sessionStorage.setItem(NFC_TOKEN_KEY, encrypt(result.nfc.rawToken));
         sessionStorage.setItem(NFC_PURPOSE_KEY, result.nfc.purpose || 'check_in');
@@ -249,7 +280,7 @@ export default function UserBooking() {
     }
   }
 
-  /* Handle PayMongo redirect */
+  // Handle PayMongo redirect — check URL params for success or cancelled
   useEffect(() => {
     const status = searchParams.get('status');
 
@@ -269,7 +300,11 @@ export default function UserBooking() {
     }
   }, []); // eslint-disable-line
 
+  // ============================================================
   // ACTIONS
+  // ============================================================
+
+  // handleCreateBooking — creates a new booking in the database
   async function handleCreateBooking(e) {
     e.preventDefault();
     setError(''); setMessage('');
@@ -280,6 +315,7 @@ export default function UserBooking() {
     const room = rooms.find((r) => r.id === form.room_id);
     if (!room) return setError('Room not found.');
 
+    // Calculate nights and total price
     const nights = Math.max(1, Math.round(
       (new Date(form.check_out) - new Date(form.check_in)) / MS_PER_DAY
     ));
@@ -306,6 +342,7 @@ export default function UserBooking() {
     }
   }
 
+  // handlePayWithPayMongo — redirects to PayMongo checkout
   async function handlePayWithPayMongo(booking) {
     setError(''); setMessage(''); setNfcBanner('');
     setPaying(true);
@@ -342,7 +379,7 @@ export default function UserBooking() {
     }
   }
 
-  /** Unpaid → hard delete. */
+  // handleCancelBooking — unpaid bookings are hard-deleted
   async function handleCancelBooking(booking) {
     const confirmed = window.confirm(
       `Cancel this booking?\n\n` +
@@ -379,7 +416,7 @@ export default function UserBooking() {
     }
   }
 
-  /** Paid → soft cancel via backend. */
+  // handleCancelPaidBooking — paid bookings are soft-cancelled via backend
   async function handleCancelPaidBooking(booking) {
     const confirmed = window.confirm(
       `Cancel this PAID booking?\n\n` +
@@ -418,6 +455,7 @@ export default function UserBooking() {
     }
   }
 
+  // handleNfcCheckIn — verifies NFC token for check-in
   async function handleNfcCheckIn() {
     setError(''); setMessage('');
     try {
@@ -444,6 +482,7 @@ export default function UserBooking() {
     }
   }
 
+  // handleCheckOut — invalidates old NFC and writes new checkout token
   async function handleCheckOut(booking) {
     setError(''); setMessage(''); setNfcBanner('');
     setUpdatingId(booking.id);
@@ -474,14 +513,19 @@ export default function UserBooking() {
     }
   }
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <UserLayout>
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>My Bookings</h1>
         <p>Book a room, pay online, and check in using NFC.</p>
       </div>
 
+      {/* NFC banner — shows payment/NFC status messages */}
       {nfcBanner && (
         <div className="nfc-banner mb-4" aria-live="polite">
           <i className="fa-solid fa-wifi mr-2"></i>
@@ -489,7 +533,7 @@ export default function UserBooking() {
         </div>
       )}
 
-      {/* Booking Form */}
+      {/* Booking Form — select room, check-in, check-out */}
       <div className="admin-panel mb-4">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -561,7 +605,7 @@ export default function UserBooking() {
         )}
       </div>
 
-      {/* Reservations */}
+      {/* Reservations — list of booking cards */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">

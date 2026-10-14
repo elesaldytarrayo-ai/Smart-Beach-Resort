@@ -1,23 +1,27 @@
+// Imports — React hooks, Supabase, encryption helper, and admin layout wrapper
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabase.js';
 import { decrypt } from '../../encryption.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// --- Constants ---
-const REFRESH_INTERVAL_MS = 10000;
+// ============================================================
+// CONSTANTS
+// ============================================================
 
-// Maps a user role to its Font Awesome icon.
-// Used in the role pill and the change-role dropdown.
+const REFRESH_INTERVAL_MS = 10000; // Refresh users every 10 seconds
+
+// Maps a user role to its Font Awesome icon
+// Used in the role pill and the change-role dropdown
 const ROLE_ICON_MAP = {
   admin: 'fa-user-shield',
   staff: 'fa-user-tie',
   user: 'fa-user'
 };
 
-/** Available roles for the change-role dropdown. */
+// Available roles for the change-role dropdown
 const ROLE_OPTIONS = ['user', 'staff', 'admin'];
 
-// Defines the filter options for the role dropdown.
+// Defines the filter options for the role dropdown
 const ROLE_FILTERS = [
   { key: 'all', label: 'All roles' },
   { key: 'user', label: 'Users' },
@@ -25,9 +29,12 @@ const ROLE_FILTERS = [
   { key: 'admin', label: 'Admins' }
 ];
 
+// ============================================================
 // REUSABLE SUB-COMPONENTS
-// StatCard Component
-// Displays a large KPI card on the user management dashboard.
+// ============================================================
+
+// StatCard — displays a large KPI card on the user management dashboard
+// Used for the big colored cards at the top (total, users, staff, admins)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -45,8 +52,7 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// RolePill Component
-// Renders a colored pill for a user's role.
+// RolePill — renders a colored pill for a user's role
 function RolePill({ role }) {
   const icon = ROLE_ICON_MAP[role] || 'fa-user';
   return (
@@ -57,8 +63,8 @@ function RolePill({ role }) {
   );
 }
 
-//UserRow Component
-// Renders a single user row with an inline role-change dropdown.
+// UserRow — renders a single user row with an inline role-change dropdown
+// Shows name, email, phone, role pill, created date, and role selector
 function UserRow({ user, updatingId, onRoleChange }) {
   const isUpdating = updatingId === user.id;
 
@@ -72,6 +78,7 @@ function UserRow({ user, updatingId, onRoleChange }) {
         {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
       </td>
       <td>
+        {/* Inline role change dropdown */}
         <select
           className="admin-select role-select"
           value={user.role}
@@ -87,12 +94,15 @@ function UserRow({ user, updatingId, onRoleChange }) {
   );
 }
 
+// ============================================================
 // MAIN ADMIN USERS COMPONENT
-// AdminUsers Component
-// Displays all user accounts with role filtering, search, and
-// inline role changes.
+// ============================================================
+
+// AdminUsers — displays all user accounts with role filtering, search,
+// and inline role changes
 export default function AdminUsers() {
-  // --- State Management ---
+
+  // State — users, search, roleFilter, loading, updatingId, error, message
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -101,8 +111,12 @@ export default function AdminUsers() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  // ============================================================
   // DATA FETCHING
-  // Fetches all user profiles and decrypts their phone numbers.
+  // ============================================================
+
+  // fetchUsers — fetches all user profiles and decrypts their phone numbers
+  // isInitialLoad controls whether to show the loading spinner
   async function fetchUsers(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
     try {
@@ -127,14 +141,18 @@ export default function AdminUsers() {
     }
   }
 
+  // Load users on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchUsers(true);
     const interval = setInterval(() => fetchUsers(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ============================================================
   // ACTIONS
-  // Changes the role of a user after confirmation.
+  // ============================================================
+
+  // handleRoleChange — changes the role of a user after confirmation
   async function handleRoleChange(user, newRole) {
     if (newRole === user.role) return; // No-op if the role didn't change
 
@@ -162,8 +180,11 @@ export default function AdminUsers() {
     }
   }
 
+  // ============================================================
   // DERIVED DATA
-  /** Counts per role for stat cards and filter dropdown. */
+  // ============================================================
+
+  // Counts per role for stat cards and filter dropdown
   const counts = {
     all: users.length,
     user: users.filter((u) => u.role === 'user').length,
@@ -171,7 +192,7 @@ export default function AdminUsers() {
     admin: users.filter((u) => u.role === 'admin').length
   };
 
-  /** Users after applying the role filter and search query. */
+  // Users after applying the role filter and search query
   const filteredUsers = users.filter((user) => {
     if (roleFilter !== 'all' && user.role !== roleFilter) return false;
 
@@ -183,15 +204,20 @@ export default function AdminUsers() {
     return true;
   });
 
+  // ============================================================
   // RENDER
+  // ============================================================
+
   return (
     <AdminLayout>
+
+      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>User Management</h1>
         <p>View and manage all accounts.</p>
       </div>
 
-      {/*KPI STAT CARDS*/}
+      {/* KPI stat cards — total, users, staff, admins */}
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
@@ -223,7 +249,7 @@ export default function AdminUsers() {
         />
       </div>
 
-      {/*TOOLBAR*/}
+      {/* Toolbar — search, role filter dropdown, refresh button */}
       <div className="admin-panel mb-4">
         <div className="row row-center">
           <div className="col">
@@ -251,11 +277,11 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/*FEEDBACK*/}
+      {/* Feedback messages */}
       {error && <p className="admin-error mb-2">{error}</p>}
       {message && <p className="admin-success mb-2">{message}</p>}
 
-      {/*USERS TABLE*/}
+      {/* Users table */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -294,6 +320,7 @@ export default function AdminUsers() {
           </table>
         )}
       </div>
+
     </AdminLayout>
   );
 }
