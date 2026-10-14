@@ -268,11 +268,17 @@ i[class] {
 
 /* ============================================================
    5. AUTH PAGES (login, register, forgot, reset)
+   Uses two class systems:
+   - Legacy: .login-*, .register-*, .forgot-*, .reset-*
+   - New:    .auth-* (used by Register.jsx and others)
    ============================================================ */
+
+/* Wrap — full viewport, centered */
 .login-wrap,
 .register-wrap,
 .forgot-wrap,
-.reset-wrap {
+.reset-wrap,
+.auth-wrap {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -284,10 +290,12 @@ i[class] {
     linear-gradient(180deg, #eaf4fa 0%, #d5e8f3 100%);
 }
 
+/* Card */
 .login-card,
 .register-card,
 .forgot-card,
-.reset-card {
+.reset-card,
+.auth-card {
   width: 100%;
   max-width: 440px;
   background: #fff;
@@ -299,10 +307,12 @@ i[class] {
   border: 1px solid #e5ebf0;
 }
 
+/* Top gradient bar */
 .login-card::before,
 .register-card::before,
 .forgot-card::before,
-.reset-card::before {
+.reset-card::before,
+.auth-card::before {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -310,22 +320,28 @@ i[class] {
   background: linear-gradient(90deg, var(--lagoon), var(--sky), var(--foam), var(--sky), var(--lagoon));
 }
 
+/* Headings */
 .login-card h2,
 .register-card h2,
 .forgot-card h2,
-.reset-card h2 { text-align: center; margin-bottom: 6px; color: var(--deep-sea); }
+.reset-card h2,
+.auth-card h2 { text-align: center; margin: 0 0 6px; color: var(--deep-sea); }
 
+/* Subtitles */
 .login-subtitle,
 .register-subtitle,
 .forgot-subtitle,
-.reset-subtitle { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+.reset-subtitle,
+.auth-card .subtitle { text-align: center; color: var(--muted); font-size: 13px; margin: 0 0 24px; }
 
 .reset-center { text-align: center; }
 
+/* Icon circle */
 .login-icon,
 .register-icon,
 .forgot-icon,
-.reset-icon {
+.reset-icon,
+.auth-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -335,12 +351,13 @@ i[class] {
   background: rgba(45,142,207,0.1);
   border-radius: 50%;
 }
-
 .login-icon i,
 .register-icon i,
 .forgot-icon i,
-.reset-icon i { color: var(--icon-blue); font-size: 32px; }
+.reset-icon i,
+.auth-icon i { color: var(--icon-blue) !important; font-size: 32px; }
 
+/* Forgot password link */
 .login-forgot-link {
   font-size: 12.5px;
   font-weight: 600;
@@ -350,10 +367,12 @@ i[class] {
 }
 .login-forgot-link:hover { color: #1e5fa8; text-decoration: underline; }
 
+/* Divider */
 .login-divider,
 .register-divider,
 .forgot-divider,
-.reset-divider {
+.reset-divider,
+.auth-divider {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -365,22 +384,27 @@ i[class] {
 .login-divider::before, .login-divider::after,
 .register-divider::before, .register-divider::after,
 .forgot-divider::before, .forgot-divider::after,
-.reset-divider::before, .reset-divider::after {
+.reset-divider::before, .reset-divider::after,
+.auth-divider::before, .auth-divider::after {
   content: "";
   flex: 1;
   height: 1px;
   background: #e5ebf0;
 }
 
+/* Footer text */
 .login-alt,
 .register-alt,
 .forgot-alt,
-.reset-alt { text-align: center; font-size: 13px; color: #6b7f95; margin: 0; }
+.reset-alt,
+.auth-alt { text-align: center; font-size: 13px; color: #6b7f95; margin: 0; }
 
+/* Footer links */
 .login-link,
 .register-link,
 .forgot-link,
-.reset-link {
+.reset-link,
+.auth-link {
   background: none;
   border: none;
   color: #2d8ecf;
@@ -394,17 +418,21 @@ i[class] {
 .login-link:hover,
 .register-link:hover,
 .forgot-link:hover,
-.reset-link:hover { text-decoration: underline; }
+.reset-link:hover,
+.auth-link:hover { text-decoration: underline; }
 
+/* Fields */
 .login-field,
 .register-field,
 .forgot-field,
-.reset-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.reset-field,
+.auth-card .admin-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 
 .login-field label,
 .register-field label,
 .forgot-field label,
-.reset-field label {
+.reset-field label,
+.auth-card .admin-field label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-soft);
@@ -415,32 +443,41 @@ i[class] {
 .login-field label i,
 .register-field label i,
 .forgot-field label i,
-.reset-field label i { color: var(--icon-blue); font-size: 11px; width: 14px; }
+.reset-field label i,
+.auth-card .admin-field label i { color: var(--icon-blue) !important; font-size: 11px; width: 14px; }
 
+/* Input wrappers */
 .login-input-wrap,
 .register-input-wrap,
 .forgot-input-wrap,
-.reset-input-wrap { position: relative; display: flex; align-items: center; }
+.reset-input-wrap,
+.auth-card .admin-input-wrap { position: relative; display: flex; align-items: center; }
 
 .login-input-wrap > i,
 .register-input-wrap > i,
 .forgot-input-wrap > i,
-.reset-input-wrap > i {
+.reset-input-wrap > i,
+.auth-card .admin-input-wrap > i {
   position: absolute;
   left: 14px;
-  color: var(--icon-blue);
+  color: var(--icon-blue) !important;
   font-size: 13px;
   pointer-events: none;
+  z-index: 1;
 }
+
+/* Inputs */
 .login-input-wrap .login-input,
 .register-input-wrap .register-input,
 .forgot-input-wrap .forgot-input,
-.reset-input-wrap .reset-input { padding-left: 38px; }
+.reset-input-wrap .reset-input,
+.auth-card .admin-input-wrap .admin-input { padding-left: 38px; margin-bottom: 0; }
 
 .login-input,
 .register-input,
 .forgot-input,
-.reset-input {
+.reset-input,
+.auth-card .admin-input {
   width: 100%;
   padding: 11px 14px;
   background: #fff;
@@ -455,20 +492,26 @@ i[class] {
 .login-input:hover,
 .register-input:hover,
 .forgot-input:hover,
-.reset-input:hover { border-color: #b5cbe0; }
+.reset-input:hover,
+.auth-card .admin-input:hover { border-color: #b5cbe0; }
 
 .login-input:focus,
 .register-input:focus,
 .forgot-input:focus,
-.reset-input:focus { border-color: var(--icon-blue); box-shadow: 0 0 0 4px rgba(45,142,207,0.12); }
+.reset-input:focus,
+.auth-card .admin-input:focus { border-color: var(--icon-blue); box-shadow: 0 0 0 4px rgba(45,142,207,0.12); }
 
 .login-input::placeholder,
 .register-input::placeholder,
 .forgot-input::placeholder,
-.reset-input::placeholder { color: #a8b8c8; }
+.reset-input::placeholder,
+.auth-card .admin-input::placeholder { color: #a8b8c8; }
 
-.register-field-hint { font-size: 11px; color: var(--muted); margin-top: -2px; font-style: italic; }
+/* Field hint */
+.register-field-hint,
+.auth-card .admin-field-hint { font-size: 11px; color: var(--muted); margin: -2px 0 0; font-style: italic; }
 
+/* Error messages */
 .login-error,
 .register-error,
 .forgot-error,
@@ -477,7 +520,8 @@ i[class] {
 .user-error,
 .booking-error,
 .profile-error,
-.staff-error {
+.staff-error,
+.auth-card .admin-error {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -491,6 +535,7 @@ i[class] {
   margin: 8px 0;
 }
 
+/* Success messages */
 .login-success,
 .register-success,
 .forgot-success,
@@ -498,7 +543,8 @@ i[class] {
 .admin-success,
 .booking-success,
 .profile-success,
-.staff-success {
+.staff-success,
+.auth-card .admin-success {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -512,6 +558,7 @@ i[class] {
   margin: 8px 0;
 }
 
+/* Buttons — shared base */
 .login-btn,
 .register-btn,
 .forgot-btn,
@@ -521,7 +568,8 @@ i[class] {
 .staff-btn,
 .booking-btn,
 .profile-btn,
-.home-btn {
+.home-btn,
+.app-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -538,6 +586,7 @@ i[class] {
   text-decoration: none;
 }
 
+/* Primary buttons */
 .login-btn-primary,
 .register-btn-primary,
 .forgot-btn-primary,
@@ -547,7 +596,8 @@ i[class] {
 .staff-btn-primary,
 .booking-btn-primary,
 .profile-btn-primary,
-.page-btn-primary {
+.page-btn-primary,
+.app-btn-primary {
   background: linear-gradient(135deg, var(--wave), var(--lagoon));
   color: #fff;
   box-shadow: 0 4px 12px rgba(45,142,207,0.3);
@@ -561,7 +611,8 @@ i[class] {
 .staff-btn-primary i,
 .booking-btn-primary i,
 .profile-btn-primary i,
-.page-btn-primary i { color: #fff !important; }
+.page-btn-primary i,
+.app-btn-primary i { color: #fff !important; }
 
 .login-btn-primary:hover,
 .register-btn-primary:hover,
@@ -572,7 +623,8 @@ i[class] {
 .staff-btn-primary:hover,
 .booking-btn-primary:hover,
 .profile-btn-primary:hover,
-.page-btn-primary:hover {
+.page-btn-primary:hover,
+.app-btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(45,142,207,0.4);
 }
@@ -583,12 +635,15 @@ i[class] {
 .reset-btn-primary:disabled,
 .admin-btn-primary:disabled,
 .booking-btn-primary:disabled,
-.profile-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.profile-btn-primary:disabled,
+.app-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+/* Secondary buttons */
 .admin-btn-secondary,
 .staff-btn-secondary,
 .booking-btn-secondary,
-.page-btn-secondary {
+.page-btn-secondary,
+.app-btn-secondary {
   background: #fff;
   color: var(--text);
   border: 1px solid #d8e2ec;
@@ -596,12 +651,15 @@ i[class] {
 .admin-btn-secondary i,
 .staff-btn-secondary i,
 .booking-btn-secondary i,
-.page-btn-secondary i { color: var(--icon-blue) !important; }
+.page-btn-secondary i,
+.app-btn-secondary i { color: var(--icon-blue) !important; }
 .admin-btn-secondary:hover,
 .staff-btn-secondary:hover,
 .booking-btn-secondary:hover,
-.page-btn-secondary:hover { background: #f9fbfd; border-color: var(--icon-blue); }
+.page-btn-secondary:hover,
+.app-btn-secondary:hover { background: #f9fbfd; border-color: var(--icon-blue); }
 
+/* Danger buttons */
 .admin-btn-danger,
 .staff-btn-danger,
 .booking-btn-danger {
@@ -616,6 +674,7 @@ i[class] {
 .staff-btn-danger:hover,
 .booking-btn-danger:hover { background: #ffe0e4; border-color: var(--danger); }
 
+/* Small buttons */
 .admin-btn-sm,
 .staff-btn-sm,
 .booking-btn-sm { padding: 6px 12px; font-size: 12px; }
@@ -1856,7 +1915,6 @@ i[class] {
 
 /* ============================================================
    17. LOADING / ACCESS-CHECK SCREEN
-   Full-viewport flex center for route guards and auth checks.
    ============================================================ */
 .loading-screen,
 .access-screen,
@@ -1969,6 +2027,7 @@ i[class] {
   .register-card,
   .forgot-card,
   .reset-card,
+  .auth-card,
   .loading-card { padding: 32px 22px; }
 
   .admin-toolbar,

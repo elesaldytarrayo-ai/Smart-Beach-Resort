@@ -38,6 +38,18 @@ function toISODate(value, fallbackNow = true) {
   return fallbackNow ? new Date().toISOString() : null;
 }
 
+// Update a room's status in the database.
+async function setRoomStatus(roomId, status) {
+  if (!roomId) return;
+
+  await supabaseAdmin
+    .from('rooms')
+    .update({ status })
+    .eq('id', roomId);
+
+  console.log(`🛏️ Room ${roomId.slice(0, 8)}… → ${status}`);
+}
+
 // Save a payment record. Upserts by booking_id.
 async function savePayment({ bookingId, amount, method, paymentId, paidAt, payerInfo }) {
   const paidAtISO = toISODate(paidAt);
@@ -79,14 +91,28 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
   console.log('✅ Payment saved');
 }
 
-// Mark a booking as paid + confirmed.
+// Mark a booking as paid + confirmed, and mark the room as occupied.
 async function confirmBooking(bookingId) {
+  // Get the room ID first.
+  const bookingResult = await supabaseAdmin
+    .from('bookings')
+    .select('room_id')
+    .eq('id', bookingId)
+    .single();
+
+  const roomId = bookingResult.data?.room_id;
+
+  // Update the booking.
   const result = await supabaseAdmin
     .from('bookings')
     .update({ payment_status: 'paid', status: 'confirmed' })
     .eq('id', bookingId);
 
   if (result.error) throw new Error('Booking confirm failed: ' + result.error.message);
+
+  // Mark the room as occupied.
+  await setRoomStatus(roomId, 'occupied');
+
   console.log('🟢 Booking confirmed:', bookingId);
 }
 
@@ -245,6 +271,7 @@ app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, 
 });
 
 // Create a PayMongo checkout session for a booking.
+// Rejects if the room is already occupied.
 app.post('/api/payments/checkout', authUser, async (req, res) => {
   try {
     const { bookingId, description } = req.body;
@@ -252,7 +279,7 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
 
     const bookingResult = await supabaseAdmin
       .from('bookings')
-      .select('*, rooms(room_number)')
+      .select('*, rooms(room_number, status)')
       .eq('id', bookingId)
       .eq('user_id', req.user.id)
       .single();
@@ -264,6 +291,11 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
 
     if (booking.payment_status === 'paid') {
       return res.json({ ok: true, alreadyPaid: true });
+    }
+
+    // Reject if the room is already occupied by someone else.
+    if (booking.rooms?.status === 'occupied') {
+      return res.status(400).json({ error: 'Room is already occupied' });
     }
 
     const { checkoutUrl, sessionId } = await createCheckoutSession({
@@ -328,7 +360,7 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       });
     }
 
-    // 1. Confirm booking.
+    // 1. Confirm booking (this also marks the room as occupied).
     await confirmBooking(bookingId);
 
     // 2. Save payment.
@@ -353,7 +385,6 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
     let rawToken = null;
 
     if (!existingResult.data) {
-      // Invalidate any old active tokens first.
       await supabaseAdmin
         .from('nfc_tokens')
         .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
@@ -430,10 +461,21 @@ app.post('/api/nfc/verify', authUser, async (req, res) => {
 });
 
 // Check out a booking and issue a check-out token.
+// Also frees up the room so others can book it again.
 app.post('/api/checkout', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
+
+    // Get the booking first (to know the room).
+    const bookingResult = await supabaseAdmin
+      .from('bookings')
+      .select('room_id')
+      .eq('id', bookingId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    const roomId = bookingResult.data?.room_id;
 
     // Invalidate any active tokens for this booking.
     await supabaseAdmin
@@ -448,6 +490,9 @@ app.post('/api/checkout', authUser, async (req, res) => {
       .update({ status: 'checked_out' })
       .eq('id', bookingId)
       .eq('user_id', req.user.id);
+
+    // Free up the room — back to available.
+    await setRoomStatus(roomId, 'available');
 
     // Issue a check-out token.
     const token = makeCheckOutToken();
@@ -466,6 +511,7 @@ app.post('/api/checkout', authUser, async (req, res) => {
 });
 
 // Cancel a paid booking (soft cancel).
+// Also frees up the room.
 app.post('/api/bookings/cancel', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
@@ -487,7 +533,6 @@ app.post('/api/bookings/cancel', authUser, async (req, res) => {
       return res.status(400).json({ error: 'Cannot cancel a checked-out booking' });
     }
 
-    // Only paid bookings can be cancelled (soft). Unpaid must be deleted.
     if (booking.payment_status !== 'paid') {
       return res.status(400).json({ error: 'Unpaid bookings must be deleted, not cancelled.' });
     }
@@ -505,6 +550,9 @@ app.post('/api/bookings/cancel', authUser, async (req, res) => {
       .update({ status: 'cancelled', payment_status: 'cancelled' })
       .eq('id', bookingId);
 
+    // Free up the room — back to available.
+    await setRoomStatus(booking.room_id, 'available');
+
     res.json({ ok: true, message: 'Booking cancelled' });
   } catch (err) {
     console.error('cancel booking error:', err);
@@ -520,6 +568,80 @@ app.get('/api/staff/reservations', authUser, requireRole('staff', 'admin'), asyn
       .select('*, profiles(full_name,email), rooms(room_number,room_type)')
       .order('created_at', { ascending: false });
     res.json(result.data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+app.get('/api/notifications', authUser, async (req, res) => {
+  try {
+    const role = req.user.role;
+    const userId = req.user.id;
+
+    let query = supabaseAdmin
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (role === 'admin') {
+      query = query.or(`user_id.eq.${userId},role_target.eq.admin,role_target.eq.staff,role_target.eq.user`);
+    } else if (role === 'staff') {
+      query = query.or(`user_id.eq.${userId},role_target.eq.staff,role_target.eq.user`);
+    } else {
+      query = query.or(`user_id.eq.${userId},role_target.eq.user`);
+    }
+
+    const result = await query;
+    if (result.error) throw result.error;
+
+    res.json(result.data || []);
+  } catch (err) {
+    console.error('❌ notifications fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/read-all', authUser, async (req, res) => {
+  try {
+    const role = req.user.role;
+    const userId = req.user.id;
+
+    let query = supabaseAdmin
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('is_read', false);
+
+    if (role === 'admin') {
+      query = query.or(`user_id.eq.${userId},role_target.eq.admin,role_target.eq.staff,role_target.eq.user`);
+    } else if (role === 'staff') {
+      query = query.or(`user_id.eq.${userId},role_target.eq.staff,role_target.eq.user`);
+    } else {
+      query = query.or(`user_id.eq.${userId},role_target.eq.user`);
+    }
+
+    const result = await query;
+    if (result.error) throw result.error;
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/:id/read', authUser, async (req, res) => {
+  try {
+    const result = await supabaseAdmin
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', req.params.id);
+
+    if (result.error) throw result.error;
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
