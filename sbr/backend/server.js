@@ -1,3 +1,7 @@
+// backend/server.js
+// Express server for Smart Beach Resort.
+// Handles PayMongo payments, NFC tokens, staff/admin actions, and bookings.
+
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
@@ -7,6 +11,7 @@ import { makeCheckInToken, makeCheckOutToken, hashToken } from './nfc.js';
 
 const app = express();
 
+// Allow requests from the frontend.
 app.use(cors({
   origin: [
     'http://localhost:5173',
@@ -15,28 +20,31 @@ app.use(cors({
   credentials: true
 }));
 
-// Date helper
+// Convert a value (Unix seconds, Unix ms, or string) into an ISO date string.
 function toISODate(value, fallbackNow = true) {
   if (!value && value !== 0) {
     return fallbackNow ? new Date().toISOString() : null;
   }
+
   const num = Number(value);
   if (!isNaN(num) && num > 0) {
     if (num < 1e12) return new Date(num * 1000).toISOString();
     return new Date(num).toISOString();
   }
+
   const parsed = new Date(value);
   if (!isNaN(parsed.getTime())) return parsed.toISOString();
+
   return fallbackNow ? new Date().toISOString() : null;
 }
 
-// ⭐ BULLETPROOF PAYMENT SAVE
+// Save a payment record. Upserts by booking_id.
 async function savePayment({ bookingId, amount, method, paymentId, paidAt, payerInfo }) {
   const paidAtISO = toISODate(paidAt);
 
   console.log('💾 Upserting payment for booking:', bookingId);
 
-  const { error } = await supabaseAdmin
+  const result = await supabaseAdmin
     .from('payments')
     .upsert(
       {
@@ -53,31 +61,38 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
       { onConflict: 'booking_id' }
     );
 
-  // ⭐ SWALLOW duplicate error — payment already exists
-  if (error) {
-    if (error.code === '23505' || String(error.message).includes('duplicate')) {
-      console.log('ℹ️ Payment already exists — OK (no-op)');
+  // Duplicate is fine — payment already exists.
+  if (result.error) {
+    const isDuplicate =
+      result.error.code === '23505' ||
+      String(result.error.message).includes('duplicate');
+
+    if (isDuplicate) {
+      console.log('ℹ️ Payment already exists — OK');
       return;
     }
-    console.error('❌ savePayment error:', error);
-    throw new Error('Failed to save payment: ' + error.message);
+
+    console.error('❌ savePayment error:', result.error);
+    throw new Error('Failed to save payment: ' + result.error.message);
   }
 
-  console.log('✅ Payment saved (upsert)');
+  console.log('✅ Payment saved');
 }
 
-// Confirm booking (paid + confirmed)
+// Mark a booking as paid + confirmed.
 async function confirmBooking(bookingId) {
-  const { error } = await supabaseAdmin
+  const result = await supabaseAdmin
     .from('bookings')
     .update({ payment_status: 'paid', status: 'confirmed' })
     .eq('id', bookingId);
 
-  if (error) throw new Error('Booking confirm failed: ' + error.message);
+  if (result.error) throw new Error('Booking confirm failed: ' + result.error.message);
   console.log('🟢 Booking confirmed:', bookingId);
 }
 
+// ============================================================
 // PayMongo Webhook
+// ============================================================
 app.post(
   '/webhooks/paymongo',
   express.raw({ type: 'application/json' }),
@@ -87,9 +102,15 @@ app.post(
       const eventType = event?.data?.attributes?.type;
       console.log('📩 [Webhook]', eventType);
 
-      if (eventType === 'checkout_session.payment.paid' || eventType === 'payment.paid') {
+      const isPaidEvent =
+        eventType === 'checkout_session.payment.paid' ||
+        eventType === 'payment.paid';
+
+      if (isPaidEvent) {
         const attrs = event.data.attributes;
-        const bookingId = attrs?.data?.attributes?.reference_number || attrs?.reference_number;
+        const bookingId =
+          attrs?.data?.attributes?.reference_number ||
+          attrs?.reference_number;
 
         if (bookingId) {
           await confirmBooking(bookingId);
@@ -100,14 +121,19 @@ app.post(
 
           await savePayment({ bookingId, amount, method: 'paymongo', paymentId, paidAt });
 
-          const { data: booking } = await supabaseAdmin
-            .from('bookings').select('room_id').eq('id', bookingId).single();
+          // Issue a check-in NFC token if the booking has a room.
+          const bookingResult = await supabaseAdmin
+            .from('bookings')
+            .select('room_id')
+            .eq('id', bookingId)
+            .single();
 
-          if (booking?.room_id) {
+          const roomId = bookingResult.data?.room_id;
+          if (roomId) {
             const token = makeCheckInToken();
             await supabaseAdmin.from('nfc_tokens').insert({
               booking_id: bookingId,
-              room_id: booking.room_id,
+              room_id: roomId,
               token_hash: token.hash,
               purpose: token.purpose,
               status: 'active',
@@ -125,27 +151,42 @@ app.post(
   }
 );
 
+// Parse JSON for all other routes.
 app.use(express.json());
 
+// ============================================================
 // Auth middleware
+// ============================================================
+
+// Check the user's token and attach role to req.user.
 async function authUser(req, res, next) {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.status(401).json({ error: 'Missing token' });
 
-    const { data, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !data.user) return res.status(401).json({ error: 'Invalid token' });
+    const userResult = await supabaseAdmin.auth.getUser(token);
+    if (userResult.error || !userResult.data.user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles').select('role').eq('id', data.user.id).single();
+    const profileResult = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', userResult.data.user.id)
+      .single();
 
-    req.user = { ...data.user, role: profile?.role || 'user' };
+    req.user = {
+      ...userResult.data.user,
+      role: profileResult.data?.role || 'user'
+    };
+
     next();
   } catch (err) {
     res.status(500).json({ error: 'Auth failed' });
   }
 }
 
+// Only allow certain roles.
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -155,7 +196,11 @@ function requireRole(...roles) {
   };
 }
 
-// Health
+// ============================================================
+// Routes
+// ============================================================
+
+// Health check.
 app.get('/', (_req, res) => {
   res.json({
     status: 'ok',
@@ -168,44 +213,55 @@ app.get('/', (_req, res) => {
   });
 });
 
-// ADMIN — create staff
+// ADMIN — create a staff account.
 app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, res) => {
   try {
     const { email, password, full_name, phone } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
 
-    const { data: authUser2, error: authErr } =
-      await supabaseAdmin.auth.admin.createUser({
-        email, password, email_confirm: true, user_metadata: { full_name }
-      });
-    if (authErr) return res.status(400).json({ error: authErr.message });
+    const created = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name }
+    });
 
-    const { error: profErr } = await supabaseAdmin
+    if (created.error) return res.status(400).json({ error: created.error.message });
+
+    const profileResult = await supabaseAdmin
       .from('profiles')
-      .upsert({ id: authUser2.user.id, email, full_name, phone, role: 'staff' }, { onConflict: 'id' });
-    if (profErr) return res.status(400).json({ error: profErr.message });
+      .upsert(
+        { id: created.data.user.id, email, full_name, phone, role: 'staff' },
+        { onConflict: 'id' }
+      );
+
+    if (profileResult.error) return res.status(400).json({ error: profileResult.error.message });
 
     console.log('✅ Staff created:', email);
-    res.json({ ok: true, user: authUser2.user });
+    res.json({ ok: true, user: created.data.user });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// CREATE PayMongo checkout
+// Create a PayMongo checkout session for a booking.
 app.post('/api/payments/checkout', authUser, async (req, res) => {
   try {
     const { bookingId, description } = req.body;
     if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
 
-    const { data: booking, error: bErr } = await supabaseAdmin
+    const bookingResult = await supabaseAdmin
       .from('bookings')
       .select('*, rooms(room_number)')
       .eq('id', bookingId)
       .eq('user_id', req.user.id)
       .single();
 
-    if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
+    const booking = bookingResult.data;
+    if (bookingResult.error || !booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
+
     if (booking.payment_status === 'paid') {
       return res.json({ ok: true, alreadyPaid: true });
     }
@@ -228,7 +284,7 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
   }
 });
 
-// VERIFY payment — AUTO-CONFIRM + SAVE (bulletproof)
+// Verify a payment. Confirms the booking and issues an NFC token.
 app.post('/api/payments/verify', authUser, async (req, res) => {
   try {
     const { bookingId, sessionId } = req.body;
@@ -236,16 +292,19 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
 
     if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
 
-    const { data: booking, error: bErr } = await supabaseAdmin
+    const bookingResult = await supabaseAdmin
       .from('bookings')
       .select('*, rooms(room_number)')
       .eq('id', bookingId)
       .eq('user_id', req.user.id)
       .single();
 
-    if (bErr || !booking) return res.status(404).json({ error: 'Booking not found' });
+    const booking = bookingResult.data;
+    if (bookingResult.error || !booking) {
+      return res.status(404).json({ error: 'Booking not found' });
+    }
 
-    // ⭐ Idempotent: if paid + confirmed, back again
+    // Already paid + confirmed → return early.
     if (booking.payment_status === 'paid' && booking.status === 'confirmed') {
       console.log(' ✅ Already paid & confirmed — skipping');
       return res.json({
@@ -269,10 +328,10 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       });
     }
 
-    // 1. Confirm booking
+    // 1. Confirm booking.
     await confirmBooking(bookingId);
 
-    // 2. Save payment (bulletproof — never throws on duplicate)
+    // 2. Save payment.
     await savePayment({
       bookingId,
       amount: verify.amount || booking.total_amount,
@@ -282,8 +341,8 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       payerInfo: verify.payerInfo
     });
 
-    // 3. Check if they had active NFC token
-    const { data: existingToken } = await supabaseAdmin
+    // 3. Issue an NFC check-in token if none exists yet.
+    const existingResult = await supabaseAdmin
       .from('nfc_tokens')
       .select('id')
       .eq('booking_id', bookingId)
@@ -293,11 +352,13 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
 
     let rawToken = null;
 
-    if (!existingToken) {
+    if (!existingResult.data) {
+      // Invalidate any old active tokens first.
       await supabaseAdmin
         .from('nfc_tokens')
         .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
-        .eq('booking_id', bookingId).eq('status', 'active');
+        .eq('booking_id', bookingId)
+        .eq('status', 'active');
 
       const token = makeCheckInToken();
       rawToken = token.raw;
@@ -328,28 +389,37 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
   }
 });
 
-// NFC verify
+// Verify an NFC token (check-in or check-out).
 app.post('/api/nfc/verify', authUser, async (req, res) => {
   try {
     const { rawToken, purpose } = req.body;
     if (!rawToken) return res.status(400).json({ error: 'Missing rawToken' });
 
     const hash = hashToken(rawToken);
-    const { data: token } = await supabaseAdmin
-      .from('nfc_tokens').select('*')
+
+    const tokenResult = await supabaseAdmin
+      .from('nfc_tokens')
+      .select('*')
       .eq('token_hash', hash)
       .eq('purpose', purpose || 'check_in')
       .eq('status', 'active')
       .single();
 
+    const token = tokenResult.data;
     if (!token) return res.status(400).json({ error: 'Invalid or expired NFC token' });
 
+    // Expired?
     if (new Date(token.expires_at) < new Date()) {
-      await supabaseAdmin.from('nfc_tokens').update({ status: 'expired' }).eq('id', token.id);
+      await supabaseAdmin
+        .from('nfc_tokens')
+        .update({ status: 'expired' })
+        .eq('id', token.id);
       return res.status(400).json({ error: 'NFC token expired' });
     }
 
-    await supabaseAdmin.from('nfc_tokens')
+    // Mark as used.
+    await supabaseAdmin
+      .from('nfc_tokens')
       .update({ status: 'used', used_at: new Date().toISOString() })
       .eq('id', token.id);
 
@@ -359,20 +429,27 @@ app.post('/api/nfc/verify', authUser, async (req, res) => {
   }
 });
 
-// Checkout
+// Check out a booking and issue a check-out token.
 app.post('/api/checkout', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
 
-    await supabaseAdmin.from('nfc_tokens')
+    // Invalidate any active tokens for this booking.
+    await supabaseAdmin
+      .from('nfc_tokens')
       .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
-      .eq('booking_id', bookingId).eq('status', 'active');
+      .eq('booking_id', bookingId)
+      .eq('status', 'active');
 
-    await supabaseAdmin.from('bookings')
+    // Mark booking as checked out.
+    await supabaseAdmin
+      .from('bookings')
       .update({ status: 'checked_out' })
-      .eq('id', bookingId).eq('user_id', req.user.id);
+      .eq('id', bookingId)
+      .eq('user_id', req.user.id);
 
+    // Issue a check-out token.
     const token = makeCheckOutToken();
     await supabaseAdmin.from('nfc_tokens').insert({
       booking_id: bookingId,
@@ -388,20 +465,21 @@ app.post('/api/checkout', authUser, async (req, res) => {
   }
 });
 
-// CANCEL BOOKING — soft cancel for PAID bookings only
+// Cancel a paid booking (soft cancel).
 app.post('/api/bookings/cancel', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
 
-    const { data: booking, error: bErr } = await supabaseAdmin
+    const bookingResult = await supabaseAdmin
       .from('bookings')
       .select('*')
       .eq('id', bookingId)
       .eq('user_id', req.user.id)
       .single();
 
-    if (bErr || !booking) {
+    const booking = bookingResult.data;
+    if (bookingResult.error || !booking) {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
@@ -409,28 +487,22 @@ app.post('/api/bookings/cancel', authUser, async (req, res) => {
       return res.status(400).json({ error: 'Cannot cancel a checked-out booking' });
     }
 
-    // Only allow soft cancel for paid bookings. Unpaid must be deleted via Supabase.
+    // Only paid bookings can be cancelled (soft). Unpaid must be deleted.
     if (booking.payment_status !== 'paid') {
       return res.status(400).json({ error: 'Unpaid bookings must be deleted, not cancelled.' });
     }
 
-    // Invalidate active NFC tokens
+    // Invalidate active NFC tokens.
     await supabaseAdmin
       .from('nfc_tokens')
-      .update({
-        status: 'invalidated',
-        invalidated_at: new Date().toISOString()
-      })
+      .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
       .eq('booking_id', bookingId)
       .eq('status', 'active');
 
-    // Soft cancel: keep the record but mark as cancelled
+    // Soft cancel.
     await supabaseAdmin
       .from('bookings')
-      .update({
-        status: 'cancelled',
-        payment_status: 'cancelled'
-      })
+      .update({ status: 'cancelled', payment_status: 'cancelled' })
       .eq('id', bookingId);
 
     res.json({ ok: true, message: 'Booking cancelled' });
@@ -440,24 +512,27 @@ app.post('/api/bookings/cancel', authUser, async (req, res) => {
   }
 });
 
-// STAFF — reservations
+// STAFF — list all reservations.
 app.get('/api/staff/reservations', authUser, requireRole('staff', 'admin'), async (_req, res) => {
   try {
-    const { data } = await supabaseAdmin
+    const result = await supabaseAdmin
       .from('bookings')
       .select('*, profiles(full_name,email), rooms(room_number,room_type)')
       .order('created_at', { ascending: false });
-    res.json(data || []);
+    res.json(result.data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// 404 fallback.
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found', path: req.url });
 });
 
-// Start
+// ============================================================
+// Start server
+// ============================================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('\n════════════════════════════════════════════════════════');
@@ -465,6 +540,6 @@ app.listen(PORT, () => {
   console.log('────────────────────────────────────────────────────────');
   console.log(` Supabase : ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
   console.log(` PayMongo : ${process.env.PAYMONGO_SECRET_KEY ? '✅' : '❌'}`);
-  console.log(` NFC : ${process.env.NFC_SECRET ? '✅' : '⚠️'}`);
+  console.log(` NFC      : ${process.env.NFC_SECRET ? '✅' : '⚠️'}`);
   console.log('════════════════════════════════════════════════════════\n');
 });

@@ -44,27 +44,27 @@ export default function ForgotPassword() {
   // Render — auth card with email form, feedback, and back-to-login link
   return (
     <AppLayout nav={false}>
-      <div className="forgot-wrap">
-        <div className="forgot-card">
+      <div className="auth-wrap">
+        <div className="auth-card">
 
           {/* Header — icon, title, and subtitle */}
-          <div className="forgot-icon">
-            <i className="key"></i>
+          <div className="auth-icon">
+            <i className="fa-solid fa-key"></i>
           </div>
           <h2>Forgot Password</h2>
-          <p className="forgot-subtitle">We'll send a reset link to your email</p>
+          <p className="subtitle">We'll send a reset link to your email</p>
 
           {/* Form — email input, error/success messages, and submit button */}
           <form onSubmit={handleReset}>
-            <div className="forgot-field">
+            <div className="admin-field">
               <label htmlFor="forgot-email">
-                <i className="envelope"></i> Email
+                <i className="fa-solid fa-envelope"></i> Email
               </label>
-              <div className="forgot-input-wrap">
-                <i className="envelope"></i>
+              <div className="admin-input-wrap">
+                <i className="fa-solid fa-envelope"></i>
                 <input
                   id="forgot-email"
-                  className="forgot-input"
+                  className="admin-input"
                   type="email"
                   placeholder="enter your email"
                   value={email}
@@ -75,28 +75,28 @@ export default function ForgotPassword() {
               </div>
             </div>
 
-            {error && <p className="forgot-error">{error}</p>}
-            {message && <p className="forgot-success">{message}</p>}
+            {error && <p className="admin-error">{error}</p>}
+            {message && <p className="admin-success">{message}</p>}
 
             <button
               type="submit"
-              className="forgot-btn forgot-btn-primary"
+              className="app-btn app-btn-primary"
               disabled={loading}
               style={{ width: '100%', padding: '12px 20px', fontSize: 14, marginTop: 8 }}
             >
-              <i className={loading ? 'spinner' : 'paper-plane'}></i>
+              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
               {loading ? 'Sending…' : 'Send Reset Link'}
             </button>
           </form>
 
           {/* Footer — divider and back-to-login link */}
-          <div className="forgot-divider">
+          <div className="auth-divider">
             <span>or</span>
           </div>
 
-          <p className="forgot-alt">
-            <Link to="/login" className="forgot-link">
-              <i className="arrow-left forgot-gap"></i>
+          <p className="auth-alt">
+            <Link to="/login" className="auth-link">
+              <i className="fa-solid fa-arrow-left mr-1"></i>
               Back to Sign In
             </Link>
           </p>

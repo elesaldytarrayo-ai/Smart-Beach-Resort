@@ -2,11 +2,10 @@
 import { Link } from 'react-router-dom';
 import AppLayout from './AppLayout.jsx';
 
-// HomePage — landing page with hero section and navigation buttons
+// HomePage — landing page with hero section and buttons
 export default function HomePage() {
   return (
     <AppLayout>
-      {/* Hero — centered brand icon, title, subtitle, and action buttons */}
       <div className="homepage">
         <div className="page-inner">
 
@@ -21,7 +20,7 @@ export default function HomePage() {
             Book rooms, manage reservations, and enjoy a seamless beachside stay.
           </p>
 
-          {/* Action buttons — Sign In and Create Account */}
+          {/* Buttons */}
           <div className="page-actions">
             <Link to="/login" className="home-btn page-btn-primary">
               <i className="sign-in"></i>

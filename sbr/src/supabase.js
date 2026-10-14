@@ -3,39 +3,36 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+// Read config from environment variables.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Stop early if the config is missing.
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
     'Missing Supabase configuration. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
   );
 }
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+// Create and export the Supabase client.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Return the current user's role, or null if logged out.
+// Get the current user's role. Returns null if not logged in.
 export async function getMyRole() {
-  const { data: userData, error: userError } =
-    await supabase.auth.getUser();
+  // Get the logged-in user.
+  const userResult = await supabase.auth.getUser();
+  const user = userResult.data.user;
 
-  if (userError || !userData.user) {
-    return null;
-  }
+  // Not logged in → return null.
+  if (!user) return null;
 
-  const { data: profile, error: profileError } = await supabase
+  // Get the role from the profiles table.
+  const profileResult = await supabase
     .from('profiles')
     .select('role')
-    .eq('id', userData.user.id)
+    .eq('id', user.id)
     .single();
 
-  if (profileError) {
-    console.error('Failed to load user role:', profileError.message);
-    return null;
-  }
-
-  return profile?.role || 'user';
+  // If no role found, default to 'user'.
+  return profileResult.data?.role || 'user';
 }
