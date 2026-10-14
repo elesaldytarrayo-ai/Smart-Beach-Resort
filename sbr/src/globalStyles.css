@@ -6,12 +6,13 @@
    2.  Reset + Typography
    3.  Utility Classes
    4.  Layout Helpers
-   5.  Beach Visual (neu-*, pills, tables, auth)
+   5.  Beach Visual (table, brand, auth)
    6.  Font Awesome Icons
    7.  Admin Layout
-   8.  Room Cards
-   9.  Animations
-   10. Responsive
+   8.  Home Page Hero
+   9.  Room Cards
+   10. Animations
+   11. Responsive
    ============================================================ */
 
 /* ============================================================
@@ -55,10 +56,6 @@
 
   --radius:    14px;
   --radius-sm: 10px;
-
-  --shadow-out: 9px 9px 18px var(--shadow-dark), -9px -9px 18px var(--shadow-light);
-  --shadow-in:  inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
-  --shadow-btn: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
 }
 
 /* ============================================================
@@ -133,7 +130,6 @@ html { scroll-behavior: smooth; }
 .text-sm { font-size: 12px; }
 .text-md { font-size: 14px; }
 .text-lg { font-size: 18px; }
-.text-mono { font-family: 'Courier New', monospace; font-size: 12px; }
 .fw-bold { font-weight: 700; }
 .fw-normal { font-weight: 400; }
 
@@ -151,7 +147,7 @@ html { scroll-behavior: smooth; }
 .btn-full-width { width: 100%; }
 .invisible { visibility: hidden; }
 
-/* 3.4 Text Element Shortcuts */
+/* 3.4 Text Shortcuts */
 .muted { color: var(--muted); font-size: 13px; }
 .center { text-align: center; }
 
@@ -170,77 +166,6 @@ html { scroll-behavior: smooth; }
 }
 .row-actions-end { justify-content: flex-end; }
 .row-center { align-items: center; }
-
-/* 3.6 Fixed-Width Columns */
-.col-fixed-140 { flex: 0 0 140px; }
-.col-fixed-180 { flex: 0 0 180px; }
-.col-fixed-200 { flex: 0 0 200px; }
-.col-fixed-220 { flex: 0 0 220px; }
-
-/* 3.7 Table Helpers */
-.table-scroll-wrapper { overflow-x: auto; }
-.table-wide { min-width: 1100px; }
-
-/* 3.8 Compact Select */
-.panel-select {
-  max-width: 180px;
-  margin-bottom: 0;
-}
-.role-select {
-  margin-bottom: 0;
-  max-width: 120px;
-  font-size: 13px;
-  padding: 6px 10px;
-}
-
-/* 3.9 Settings Page Helpers */
-.settings-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.status-value {
-  font-size: 20px;
-  text-transform: capitalize;
-}
-
-/* 3.10 Staff Room Panel Helpers */
-.staff-room-list {
-  max-height: 500px;
-  overflow-y: auto;
-}
-.staff-room-row {
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f4f8;
-}
-.staff-room-row:last-child { border-bottom: none; }
-.staff-room-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-/* 3.11 Donut Chart Color Helpers */
-.donut-stroke-occupied { stroke: #1e5fa8; }
-.donut-stroke-available { stroke: #22c55e; }
-.donut-legend-occupied { background: #1e5fa8; }
-.donut-legend-available { background: #22c55e; }
-.donut-legend-maintenance { background: #9ca3af; }
-
-/* 3.12 Badges */
-.badge-success { background: #d1fae5; color: #065f46; }
-.badge-danger { background: #fee2e2; color: #991b1b; }
-
-/* 3.13 Avatar Size */
-.avatar-lg {
-  width: 44px;
-  height: 44px;
-  font-size: 18px;
-}
-
-/* 3.14 Icon Helpers */
-.loading-spinner { font-size: 28px; color: #2d8ecf; }
-.empty-icon { font-size: 40px; color: #d0dbe5; }
 
 /* ============================================================
    4. LAYOUT HELPERS
@@ -267,180 +192,7 @@ html { scroll-behavior: smooth; }
    5. BEACH VISUAL
    ============================================================ */
 
-/* 5.1 NEOMORPHIC CARD */
-.neu-card {
-  background: linear-gradient(145deg, #f0f7fb 0%, #e6f0f7 100%);
-  border-radius: var(--radius);
-  padding: 24px;
-  box-shadow:
-    9px 9px 18px var(--shadow-dark),
-    -9px -9px 18px var(--shadow-light),
-    inset 0 1px 0 rgba(255,255,255,0.6);
-  transition: box-shadow 0.25s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.neu-card::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--lagoon), var(--sky), var(--foam), var(--sky), var(--lagoon));
-  opacity: 0.7;
-}
-
-.neu-card:hover {
-  box-shadow:
-    11px 11px 22px var(--shadow-dark),
-    -11px -11px 22px var(--shadow-light),
-    inset 0 1px 0 rgba(255,255,255,0.6);
-}
-
-/* 5.2 NEOMORPHIC BUTTON */
-.neu-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: linear-gradient(145deg, #f0f7fb 0%, #e0eaf2 100%);
-  color: var(--ocean);
-  font-weight: 700;
-  font-size: 14px;
-  padding: 12px 22px;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  box-shadow: var(--shadow-btn);
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  letter-spacing: 0.2px;
-  font-family: inherit;
-}
-
-.neu-button:hover {
-  color: var(--lagoon);
-  box-shadow:
-    8px 8px 16px var(--shadow-dark),
-    -8px -8px 16px var(--shadow-light),
-    inset 0 1px 0 rgba(255,255,255,0.7);
-  transform: translateY(-1px);
-}
-
-.neu-button:active {
-  box-shadow: var(--shadow-in);
-  transform: translateY(1px);
-}
-
-.neu-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.neu-button.primary {
-  background: linear-gradient(135deg, var(--wave) 0%, var(--lagoon) 100%);
-  color: #ffffff;
-  box-shadow:
-    6px 6px 14px rgba(19,49,92,0.35),
-    -6px -6px 14px rgba(255,255,255,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.25);
-}
-.neu-button.primary:hover {
-  color: #ffffff;
-  background: linear-gradient(135deg, var(--lagoon) 0%, var(--sky) 100%);
-}
-
-.neu-button.danger {
-  color: var(--danger);
-  background: linear-gradient(145deg, #fff0f2 0%, #fce4e7 100%);
-}
-.neu-button.danger:hover {
-  color: #b8172a;
-  background: linear-gradient(145deg, #ffe0e4 0%, #ffcdd3 100%);
-}
-
-/* 5.3 NEOMORPHIC INPUTS */
-.neu-input,
-.neu-select {
-  width: 100%;
-  padding: 12px 16px;
-  background: linear-gradient(145deg, #eaf3f9 0%, #e0eaf2 100%);
-  color: var(--text);
-  font-size: 14px;
-  font-family: inherit;
-  border: none;
-  outline: none;
-  border-radius: 12px;
-  box-shadow: var(--shadow-in);
-  margin-bottom: 12px;
-  transition: box-shadow 0.15s ease;
-}
-
-.neu-input:focus,
-.neu-select:focus {
-  box-shadow:
-    inset 3px 3px 8px var(--shadow-dark),
-    inset -3px -3px 8px var(--shadow-light),
-    0 0 0 2px rgba(45, 142, 207, 0.35);
-}
-
-.neu-input::placeholder { color: var(--muted); font-style: italic; }
-.neu-input:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
-  background: linear-gradient(145deg, #dde7ee 0%, #d4dfe8 100%);
-}
-
-/* 5.4 STATUS PILLS */
-.pill {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: lowercase;
-  letter-spacing: 0.3px;
-}
-.pill.available, .pill.paid, .pill.confirmed {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #065f46;
-  box-shadow: 0 2px 6px rgba(31,168,122,0.2);
-}
-.pill.pending, .pill.unpaid {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #92400e;
-  box-shadow: 0 2px 6px rgba(230,184,0,0.25);
-}
-.pill.occupied, .pill.invalidated, .pill.maintenance {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #991b1b;
-  box-shadow: 0 2px 6px rgba(214,69,80,0.2);
-}
-.pill.checked_out {
-  background: linear-gradient(135deg, #cfe8f7 0%, #b8e0f0 100%);
-  color: #0b2545;
-  box-shadow: 0 2px 6px rgba(45,142,207,0.25);
-}
-.pill.user { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; }
-.pill.staff { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; }
-.pill.admin { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #9d174d; }
-
-/* 5.5 NFC BANNER */
-.nfc-banner {
-  padding: 16px 20px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #1e5fa8 0%, #2d8ecf 50%, #6fc3e8 100%);
-  background-size: 200% 200%;
-  color: #ffffff;
-  font-weight: 600;
-  text-align: center;
-  box-shadow: 0 6px 20px rgba(45,142,207,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
-  animation: shimmer 3s ease-in-out infinite, float-soft 3s ease-in-out infinite;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-/* 5.6 TABLE */
+/* 5.1 TABLE */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -465,21 +217,7 @@ tbody tr { transition: background 0.15s ease; }
 tbody tr:hover { background: rgba(111,195,232,0.08); }
 tr:last-child td { border-bottom: none; }
 
-/* 5.7 FORM ERROR / SUCCESS */
-.error-text {
-  color: var(--danger);
-  font-size: 13px;
-  margin: 8px 0;
-  font-weight: 600;
-}
-.success-text {
-  color: var(--success);
-  font-size: 13px;
-  margin: 8px 0;
-  font-weight: 600;
-}
-
-/* 5.8 BRAND */
+/* 5.2 BRAND */
 .brand {
   display: flex;
   align-items: center;
@@ -498,7 +236,7 @@ tr:last-child td { border-bottom: none; }
 .brand-logo + span { font-weight: 800; }
 
 /* ============================================================
-   5.9 AUTH PAGES
+   5.3 AUTH PAGES (Login / Register / Forgot)
    ============================================================ */
 .auth-wrap {
   min-height: 100vh;
@@ -561,7 +299,6 @@ tr:last-child td { border-bottom: none; }
   font-size: 32px;
 }
 
-/* Forgot link */
 .auth-forgot-link {
   font-size: 12.5px;
   font-weight: 600;
@@ -574,7 +311,6 @@ tr:last-child td { border-bottom: none; }
   text-decoration: underline;
 }
 
-/* Divider */
 .auth-divider {
   display: flex;
   align-items: center;
@@ -592,7 +328,6 @@ tr:last-child td { border-bottom: none; }
   background: #e5ebf0;
 }
 
-/* Bottom text + link */
 .auth-alt {
   text-align: center;
   font-size: 13px;
@@ -621,42 +356,6 @@ i.fa-regular,
 i.fa-brands {
   color: var(--icon-blue);
 }
-
-.icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--icon-blue);
-  font-size: 16px;
-  line-height: 1;
-}
-.icon-sm { font-size: 14px; }
-.icon-md { font-size: 20px; }
-.icon-lg { font-size: 28px; }
-.icon-xl { font-size: 40px; }
-.icon-2xl { font-size: 56px; }
-
-.icon-blue { color: var(--icon-blue); }
-.icon-blue-dark { color: var(--icon-blue-dark); }
-.icon-blue-light { color: var(--icon-blue-light); }
-.icon-white { color: #ffffff; }
-.icon-gold { color: #e6b800; }
-
-.icon-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: rgba(45,142,207,0.1);
-  color: var(--icon-blue);
-  font-size: 18px;
-}
-.icon-circle.sm { width: 32px; height: 32px; font-size: 14px; }
-.icon-circle.lg { width: 52px; height: 52px; font-size: 24px; }
-
-.text-icon { display: inline-flex; align-items: center; gap: 6px; }
-.text-icon i { color: var(--icon-blue); font-size: 14px; }
 
 /* ============================================================
    7. ADMIN LAYOUT
@@ -1698,6 +1397,7 @@ i.fa-brands {
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  text-decoration: none;
 }
 .app-btn-primary {
   background: linear-gradient(135deg, var(--wave), var(--lagoon));
@@ -1731,7 +1431,74 @@ i.fa-brands {
 .app-btn-icon { padding: 8px; width: 34px; height: 34px; }
 
 /* ============================================================
-   8. ROOM CARDS
+   8. HOME PAGE HERO
+   ============================================================ */
+.home-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at top, rgba(45,142,207,0.18) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(111,195,232,0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #eaf4fa 0%, #d5e8f3 100%);
+}
+
+.home-hero-inner {
+  max-width: 560px;
+  width: 100%;
+}
+
+.home-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto 20px;
+  background: rgba(45,142,207,0.12);
+  border-radius: 50%;
+  box-shadow:
+    0 8px 24px rgba(45,142,207,0.15),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.home-icon i {
+  color: var(--icon-blue) !important;
+  font-size: 40px;
+}
+
+.home-hero h1 {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--deep-sea);
+  letter-spacing: -0.6px;
+  margin-bottom: 12px;
+}
+
+.home-subtitle {
+  font-size: 15px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.home-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.home-actions .app-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+/* ============================================================
+   9. ROOM CARDS
    ============================================================ */
 .room-grid {
   display: grid;
@@ -1797,23 +1564,15 @@ i.fa-brands {
 }
 
 /* ============================================================
-   9. ANIMATIONS
+   10. ANIMATIONS
    ============================================================ */
-@keyframes shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
-}
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0);    }
-  50%      { transform: translateY(-2px); }
-}
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
 /* ============================================================
-   10. RESPONSIVE
+   11. RESPONSIVE
    ============================================================ */
 
 /* Tablet / Narrow Desktop */
@@ -1859,4 +1618,10 @@ i.fa-brands {
     width: auto;
   }
   .admin-notif-dropdown { max-height: 70vh; }
+
+  /* Home page responsive */
+  .home-hero h1 { font-size: 28px; }
+  .home-subtitle { font-size: 14px; }
+  .home-actions { flex-direction: column; align-items: stretch; }
+  .home-actions .app-btn { width: 100%; }
 }

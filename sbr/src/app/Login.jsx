@@ -25,7 +25,7 @@ export default function Login() {
 
       if (authError) throw authError;
 
-      // 2. Get role
+      // 2. Get role from profiles table
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -63,17 +63,19 @@ export default function Login() {
 
           {/* Login Form */}
           <form onSubmit={handleLogin}>
-            {/* Email field */}
+            {/* Email */}
             <div className="admin-field">
-              <label>
+              <label htmlFor="login-email">
                 <i className="fa-solid fa-envelope"></i> Email
               </label>
               <div className="admin-input-wrap">
                 <i className="fa-solid fa-envelope"></i>
                 <input
+                  id="login-email"
+                  name="email"
                   className="admin-input"
                   type="email"
-                  placeholder=" Enter your email"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -82,14 +84,16 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password field */}
+            {/* Password */}
             <div className="admin-field">
-              <label>
+              <label htmlFor="login-password">
                 <i className="fa-solid fa-lock"></i> Password
               </label>
               <div className="admin-input-wrap">
                 <i className="fa-solid fa-key"></i>
                 <input
+                  id="login-password"
+                  name="password"
                   className="admin-input"
                   type="password"
                   placeholder="Enter your password"
