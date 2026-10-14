@@ -21,13 +21,13 @@ const MAX_BOOKINGS_DISPLAYED = 8;            // Max bookings to show in the tabl
 // Used for the small number cards at the top (total rooms, available, etc.)
 function StatCard({ icon, color, label, value }) {
   return (
-    <div className="admin-mini-stat">
-      <div className={`admin-mini-stat-icon ${color}`}>
-        <i className={`fa-solid ${icon}`}></i>
+    <div className="staff-mini-stat">
+      <div className={`staff-mini-stat-icon ${color}`}>
+        <i className={icon}></i>
       </div>
-      <div className="admin-mini-stat-body">
-        <div className="admin-mini-stat-label">{label}</div>
-        <div className="admin-mini-stat-value">{value}</div>
+      <div className="staff-mini-stat-body">
+        <div className="staff-mini-stat-label">{label}</div>
+        <div className="staff-mini-stat-value">{value}</div>
       </div>
     </div>
   );
@@ -37,33 +37,33 @@ function StatCard({ icon, color, label, value }) {
 // Shows guest info, room, dates, and status pill
 function BookingRow({ booking }) {
   // Pick the right icon based on booking status
-  let statusIcon = 'fa-clock';
-  if (booking.status === 'confirmed') statusIcon = 'fa-ticket';
-  else if (booking.status === 'checked_out') statusIcon = 'fa-door-open';
+  let statusIcon = 'clock';
+  if (booking.status === 'confirmed') statusIcon = 'ticket';
+  else if (booking.status === 'checked_out') statusIcon = 'door-open';
 
   return (
     <tr>
       <td>
-        <div className="cell-main">{booking.profiles?.full_name || 'Guest'}</div>
-        <div className="cell-sub">{booking.profiles?.email || ''}</div>
+        <div className="staff-cell-main">{booking.profiles?.full_name || 'Guest'}</div>
+        <div className="staff-cell-sub">{booking.profiles?.email || ''}</div>
       </td>
       <td>
-        <div className="cell-main">Room {booking.rooms?.room_number}</div>
-        <div className="cell-sub">{booking.rooms?.room_type}</div>
+        <div className="staff-cell-main">Room {booking.rooms?.room_number}</div>
+        <div className="staff-cell-sub">{booking.rooms?.room_type}</div>
       </td>
       <td>
-        <div className="cell-main text-sm">
-          <i className="fa-solid fa-calendar mr-1"></i>
+        <div className="staff-cell-main staff-sm">
+          <i className="calendar staff-gap"></i>
           {booking.check_in}
         </div>
-        <div className="cell-sub">
-          <i className="fa-solid fa-arrow-right mr-1"></i>
+        <div className="staff-cell-sub">
+          <i className="arrow-right staff-gap"></i>
           {booking.check_out}
         </div>
       </td>
       <td>
-        <span className={`admin-pill ${booking.status}`}>
-          <i className={`fa-solid ${statusIcon}`}></i>
+        <span className={`staff-pill ${booking.status}`}>
+          <i className={statusIcon}></i>
           {booking.status}
         </span>
       </td>
@@ -78,17 +78,17 @@ function RoomRow({ room, onToggleStatus }) {
   const buttonLabel = room.status === 'available' ? '→ Maint' : '→ Available';
 
   return (
-    <div className="staff-room-row space-between">
+    <div className="staff-room-row staff-between">
       <div>
-        <div className="cell-main">Room {room.room_number}</div>
-        <div className="cell-sub">
+        <div className="staff-cell-main">Room {room.room_number}</div>
+        <div className="staff-cell-sub">
           {room.room_type} · ₱{Number(room.price).toLocaleString()}
         </div>
       </div>
       <div className="staff-room-actions">
-        <span className={`admin-pill ${room.status}`}>{room.status}</span>
+        <span className={`staff-pill ${room.status}`}>{room.status}</span>
         <button
-          className="app-btn app-btn-secondary app-btn-sm"
+          className="staff-btn staff-btn-secondary staff-btn-sm"
           onClick={() => onToggleStatus(room.id, nextStatus)}
         >
           {buttonLabel}
@@ -230,34 +230,34 @@ export default function Staff() {
     <StaffLayout>
 
       {/* Welcome header */}
-      <div className="admin-welcome">
+      <div className="staff-welcome">
         <h1>Staff Dashboard</h1>
         <p>Front desk operations · Room management · NFC check-in</p>
       </div>
 
       {/* Mini stats — total rooms, available, occupied, today's check-ins */}
-      <div className="admin-mini-stats">
-        <StatCard icon="fa-bed" color="blue" label="Total Rooms" value={roomCounts.all} />
-        <StatCard icon="fa-circle-check" color="green" label="Available" value={roomCounts.available} />
-        <StatCard icon="fa-user-lock" color="orange" label="Occupied" value={roomCounts.occupied} />
-        <StatCard icon="fa-calendar-check" color="purple" label="Today's Check-ins" value={todayCheckins} />
+      <div className="staff-mini-stats">
+        <StatCard icon="bed" color="blue" label="Total Rooms" value={roomCounts.all} />
+        <StatCard icon="circle-check" color="green" label="Available" value={roomCounts.available} />
+        <StatCard icon="user-lock" color="orange" label="Occupied" value={roomCounts.occupied} />
+        <StatCard icon="calendar-check" color="purple" label="Today's Check-ins" value={todayCheckins} />
       </div>
 
-      {error && <p className="admin-error">{error}</p>}
-      {message && <p className="admin-success">{message}</p>}
+      {error && <p className="staff-error">{error}</p>}
+      {message && <p className="staff-success">{message}</p>}
 
       {/* Front desk NFC panel */}
-      <div className="admin-panel mb-4">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-bell-concierge"></i> Front Desk
+      <div className="staff-panel staff-gap-bottom">
+        <div className="staff-panel-header">
+          <h3 className="staff-panel-title">
+            <i className="bell-concierge"></i> Front Desk
           </h3>
-          <button className="app-btn app-btn-primary" onClick={handleNfcCheckIn}>
-            <i className="fa-solid fa-wifi mr-1"></i> Tap NFC to Check-In
+          <button className="staff-btn staff-btn-primary" onClick={handleNfcCheckIn}>
+            <i className="wifi staff-gap"></i> Tap NFC to Check-In
           </button>
         </div>
-        <div className="admin-info-banner">
-          <i className="fa-solid fa-circle-info"></i>
+        <div className="staff-info-banner">
+          <i className="circle-info"></i>
           <div>
             Tap the guest's NFC tag to verify check-in. Make sure the tag matches the room's NFC reader.
           </div>
@@ -265,32 +265,32 @@ export default function Staff() {
       </div>
 
       {/* Two-column grid — recent bookings and room status */}
-      <div className="admin-dashboard-grid">
+      <div className="staff-grid">
 
         {/* Recent bookings panel */}
-        <div className="admin-panel">
-          <div className="admin-panel-header">
-            <h3 className="admin-panel-title">
-              <i className="fa-solid fa-calendar-check"></i> Recent Bookings
+        <div className="staff-panel">
+          <div className="staff-panel-header">
+            <h3 className="staff-panel-title">
+              <i className="calendar-check"></i> Recent Bookings
             </h3>
           </div>
 
           {loading && (
-            <div className="admin-loading">
-              <i className="fa-solid fa-spinner fa-spin mr-1"></i> Loading…
+            <div className="staff-loading">
+              <i className="spinner staff-gap"></i> Loading…
             </div>
           )}
 
           {!loading && bookings.length === 0 && (
-            <div className="admin-empty">
-              <i className="fa-solid fa-calendar-xmark"></i>
-              <div className="admin-empty-title">No bookings yet</div>
-              <div className="admin-empty-desc">Bookings from guests will appear here.</div>
+            <div className="staff-empty">
+              <i className="calendar-xmark"></i>
+              <div className="staff-empty-title">No bookings yet</div>
+              <div className="staff-empty-desc">Bookings from guests will appear here.</div>
             </div>
           )}
 
           {!loading && bookings.length > 0 && (
-            <table className="admin-table">
+            <table className="staff-table">
               <thead>
                 <tr>
                   <th>Guest</th>
@@ -309,24 +309,24 @@ export default function Staff() {
         </div>
 
         {/* Room status panel */}
-        <div className="admin-panel">
-          <div className="admin-panel-header">
-            <h3 className="admin-panel-title">
-              <i className="fa-solid fa-bed"></i> Room Status
+        <div className="staff-panel">
+          <div className="staff-panel-header">
+            <h3 className="staff-panel-title">
+              <i className="bed"></i> Room Status
             </h3>
           </div>
 
           {loading && (
-            <div className="admin-loading">
-              <i className="fa-solid fa-spinner fa-spin mr-1"></i> Loading…
+            <div className="staff-loading">
+              <i className="spinner staff-gap"></i> Loading…
             </div>
           )}
 
           {!loading && rooms.length === 0 && (
-            <div className="admin-empty">
-              <i className="fa-solid fa-bed"></i>
-              <div className="admin-empty-title">No rooms yet</div>
-              <div className="admin-empty-desc">Wait for admin to add rooms.</div>
+            <div className="staff-empty">
+              <i className="bed"></i>
+              <div className="staff-empty-title">No rooms yet</div>
+              <div className="staff-empty-desc">Wait for admin to add rooms.</div>
             </div>
           )}
 

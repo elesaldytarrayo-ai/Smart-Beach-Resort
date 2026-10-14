@@ -46,10 +46,10 @@ const CURRENCIES = [
 // Configuration for the system status KPI cards
 // Each entry maps a status key to its display metadata
 const SYSTEM_STATUS_ITEMS = [
-  { key: 'backend', color: 'blue', icon: 'fa-server', label: 'Backend API', sub: 'localhost:5000' },
-  { key: 'supabase', color: 'green',  icon: 'fa-database', label: 'Supabase', sub: 'Database connection' },
-  { key: 'paymongo', color: 'orange', icon: 'fa-credit-card', label: 'PayMongo', sub: 'Payment gateway' },
-  { key: 'nfc', color: 'purple', icon: 'fa-satellite-dish', label: 'NFC Service', sub: 'Token service' }
+  { key: 'backend', color: 'blue', icon: 'server', label: 'Backend API', sub: 'localhost:5000' },
+  { key: 'supabase', color: 'green',  icon: 'database', label: 'Supabase', sub: 'Database connection' },
+  { key: 'paymongo', color: 'orange', icon: 'credit-card', label: 'PayMongo', sub: 'Payment gateway' },
+  { key: 'nfc', color: 'purple', icon: 'satellite-dish', label: 'NFC Service', sub: 'Token service' }
 ];
 
 // Configuration for the system summary list
@@ -71,11 +71,11 @@ function SystemStatusCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
-        <div className="admin-stat-value status-value">{value}</div>
+        <div className="admin-stat-value admin-status-value">{value}</div>
         <div className="admin-stat-sub">{sub}</div>
       </div>
     </div>
@@ -89,7 +89,7 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-user-shield"></i> Admin Profile
+          <i className="user-shield"></i> Admin Profile
         </h3>
       </div>
 
@@ -124,12 +124,12 @@ function AdminProfileForm({ profile, onChange, onSubmit, error, message }) {
         />
 
         {/* Feedback messages */}
-        {error && <p className="admin-error mt-1">{error}</p>}
-        {message && <p className="admin-success mt-1">{message}</p>}
+        {error && <p className="admin-error admin-gap">{error}</p>}
+        {message && <p className="admin-success admin-gap">{message}</p>}
 
         {/* Save button */}
-        <button type="submit" className="app-btn app-btn-primary w-full mt-2">
-          <i className="fa-solid fa-floppy-disk mr-1"></i> Save Profile
+        <button type="submit" className="admin-btn admin-btn-primary admin-full admin-gap-top">
+          <i className="floppy-disk admin-gap"></i> Save Profile
         </button>
       </form>
     </div>
@@ -143,7 +143,7 @@ function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, me
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-key"></i> Change Password
+          <i className="key"></i> Change Password
         </h3>
       </div>
 
@@ -177,12 +177,12 @@ function PasswordForm({ password, confirmPassword, onChange, onSubmit, error, me
         />
 
         {/* Feedback messages */}
-        {error && <p className="admin-error mt-1">{error}</p>}
-        {message && <p className="admin-success mt-1">{message}</p>}
+        {error && <p className="admin-error admin-gap">{error}</p>}
+        {message && <p className="admin-success admin-gap">{message}</p>}
 
         {/* Update button */}
-        <button type="submit" className="app-btn app-btn-primary w-full mt-2">
-          <i className="fa-solid fa-lock mr-1"></i> Update Password
+        <button type="submit" className="admin-btn admin-btn-primary admin-full admin-gap-top">
+          <i className="lock admin-gap"></i> Update Password
         </button>
       </form>
     </div>
@@ -196,7 +196,7 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-umbrella-beach"></i> Resort Information
+          <i className="umbrella"></i> Resort Information
         </h3>
       </div>
 
@@ -251,12 +251,12 @@ function ResortInfoForm({ resort, onChange, onSubmit, error, message }) {
         </select>
 
         {/* Feedback messages */}
-        {error && <p className="admin-error mt-1">{error}</p>}
-        {message && <p className="admin-success mt-1">{message}</p>}
+        {error && <p className="admin-error admin-gap">{error}</p>}
+        {message && <p className="admin-success admin-gap">{message}</p>}
 
         {/* Save button */}
-        <button type="submit" className="app-btn app-btn-primary w-full mt-2">
-          <i className="fa-solid fa-floppy-disk mr-1"></i> Save Resort Info
+        <button type="submit" className="admin-btn admin-btn-primary admin-full admin-gap-top">
+          <i className="floppy-disk admin-gap"></i> Save Resort Info
         </button>
       </form>
     </div>
@@ -269,7 +269,7 @@ function SystemSummary({ summary }) {
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-chart-simple"></i> System Summary
+          <i className="chart-simple"></i> System Summary
         </h3>
       </div>
 
@@ -290,7 +290,7 @@ function SystemSummary({ summary }) {
       </div>
 
       {/* App version footer */}
-      <p className="muted mt-3 text-sm text-center">
+      <p className="admin-muted admin-gap-lg admin-sm admin-center">
         Smart Beach Resort · v1.0.0
         <br />
         Built with React + Supabase
@@ -478,7 +478,7 @@ export default function AdminSettings() {
       </div>
 
       {/* System status cards — backend, supabase, paymongo, nfc */}
-      <div className="admin-stat-grid mb-4">
+      <div className="admin-stat-grid admin-gap-bottom">
         {SYSTEM_STATUS_ITEMS.map((item) => (
           <SystemStatusCard
             key={item.key}
@@ -495,7 +495,7 @@ export default function AdminSettings() {
       <div className="admin-dashboard-grid">
 
         {/* Left column: Profile + Password */}
-        <div className="settings-column">
+        <div className="admin-settings-column">
           <AdminProfileForm
             profile={profile}
             onChange={(field, value) => setProfile({ ...profile, [field]: value })}
@@ -517,7 +517,7 @@ export default function AdminSettings() {
         </div>
 
         {/* Right column: Resort Info + Summary */}
-        <div className="settings-column">
+        <div className="admin-settings-column">
           <ResortInfoForm
             resort={resort}
             onChange={(field, value) => setResort({ ...resort, [field]: value })}

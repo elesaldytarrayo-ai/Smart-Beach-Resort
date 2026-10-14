@@ -137,33 +137,33 @@ export default function UserProfile() {
     <UserLayout>
 
       {/* Welcome header */}
-      <div className="admin-welcome">
+      <div className="profile-welcome">
         <h1>My Profile</h1>
         <p>Update your personal information and change your password.</p>
       </div>
 
-      <div className="admin-dashboard-grid">
+      <div className="profile-grid">
 
         {/* ============================================================
             PERSONAL INFO PANEL
             ============================================================ */}
-        <div className="admin-panel">
-          <div className="admin-panel-header">
-            <h3 className="admin-panel-title">
-              <i className="fa-solid fa-circle-user"></i> Personal Information
+        <div className="profile-panel">
+          <div className="profile-panel-header">
+            <h3 className="profile-panel-title">
+              <i className="circle-user"></i> Personal Information
             </h3>
           </div>
 
           <form onSubmit={handleSaveProfile}>
 
             {/* Full name field */}
-            <div className="admin-field">
+            <div className="profile-field">
               <label htmlFor="full-name">
-                <i className="fa-solid fa-user"></i> Full Name
+                <i className="user"></i> Full Name
               </label>
               <input
                 id="full-name"
-                className="admin-input"
+                className="profile-input"
                 placeholder="Juan Dela Cruz"
                 value={profile.full_name || ''}
                 onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
@@ -173,27 +173,27 @@ export default function UserProfile() {
             </div>
 
             {/* Email field (read-only) */}
-            <div className="admin-field">
+            <div className="profile-field">
               <label htmlFor="email">
-                <i className="fa-solid fa-envelope"></i> Email
+                <i className="envelope"></i> Email
               </label>
               <input
                 id="email"
-                className="admin-input"
+                className="profile-input"
                 value={profile.email || ''}
                 disabled
               />
-              <p className="admin-field-hint">Email cannot be changed.</p>
+              <p className="profile-hint">Email cannot be changed.</p>
             </div>
 
             {/* Phone field */}
-            <div className="admin-field">
+            <div className="profile-field">
               <label htmlFor="phone">
-                <i className="fa-solid fa-phone"></i> Phone
+                <i className="phone"></i> Phone
               </label>
               <input
                 id="phone"
-                className="admin-input"
+                className="profile-input"
                 placeholder="0912 345 6789"
                 value={profile.phone || ''}
                 onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
@@ -202,13 +202,13 @@ export default function UserProfile() {
             </div>
 
             {/* Feedback messages */}
-            {profileError && <p className="admin-error">{profileError}</p>}
-            {profileMessage && <p className="admin-success">{profileMessage}</p>}
+            {profileError && <p className="profile-error">{profileError}</p>}
+            {profileMessage && <p className="profile-success">{profileMessage}</p>}
 
             {/* Save button */}
-            <div className="admin-form-actions">
-              <button type="submit" className="app-btn app-btn-primary" disabled={savingProfile || loading}>
-                <i className={`fa-solid ${savingProfile ? 'fa-spinner fa-spin' : 'fa-floppy-disk'}`}></i>
+            <div className="profile-actions">
+              <button type="submit" className="profile-btn profile-btn-primary" disabled={savingProfile || loading}>
+                <i className={savingProfile ? 'spinner' : 'floppy-disk'}></i>
                 {savingProfile ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
@@ -218,23 +218,23 @@ export default function UserProfile() {
         {/* ============================================================
             CHANGE PASSWORD PANEL
             ============================================================ */}
-        <div className="admin-panel">
-          <div className="admin-panel-header">
-            <h3 className="admin-panel-title">
-              <i className="fa-solid fa-key"></i> Change Password
+        <div className="profile-panel">
+          <div className="profile-panel-header">
+            <h3 className="profile-panel-title">
+              <i className="key"></i> Change Password
             </h3>
           </div>
 
           <form onSubmit={handleChangePassword}>
 
             {/* New password field */}
-            <div className="admin-field">
+            <div className="profile-field">
               <label htmlFor="new-password">
-                <i className="fa-solid fa-lock"></i> New Password
+                <i className="lock"></i> New Password
               </label>
               <input
                 id="new-password"
-                className="admin-input"
+                className="profile-input"
                 type="password"
                 placeholder="Min 6 characters"
                 value={newPassword}
@@ -246,13 +246,13 @@ export default function UserProfile() {
             </div>
 
             {/* Confirm password field */}
-            <div className="admin-field">
+            <div className="profile-field">
               <label htmlFor="confirm-password">
-                <i className="fa-solid fa-lock"></i> Confirm Password
+                <i className="lock"></i> Confirm Password
               </label>
               <input
                 id="confirm-password"
-                className="admin-input"
+                className="profile-input"
                 type="password"
                 placeholder="Re-enter password"
                 value={confirmPassword}
@@ -264,13 +264,13 @@ export default function UserProfile() {
             </div>
 
             {/* Feedback messages */}
-            {passwordError && <p className="admin-error">{passwordError}</p>}
-            {passwordMessage && <p className="admin-success">{passwordMessage}</p>}
+            {passwordError && <p className="profile-error">{passwordError}</p>}
+            {passwordMessage && <p className="profile-success">{passwordMessage}</p>}
 
             {/* Update button */}
-            <div className="admin-form-actions">
-              <button type="submit" className="app-btn app-btn-primary" disabled={changingPassword}>
-                <i className={`fa-solid ${changingPassword ? 'fa-spinner fa-spin' : 'fa-shield-halved'}`}></i>
+            <div className="profile-actions">
+              <button type="submit" className="profile-btn profile-btn-primary" disabled={changingPassword}>
+                <i className={changingPassword ? 'spinner' : 'shield-halved'}></i>
                 {changingPassword ? 'Updating…' : 'Update Password'}
               </button>
             </div>

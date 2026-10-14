@@ -26,18 +26,18 @@ const POLL_INTERVAL_MS = 2000;
 const MS_PER_DAY = 86400000;
 
 // --- Lookup Maps ---
-// Maps payment status to Font Awesome icons
+// Maps payment status to icons
 const PAYMENT_ICONS = {
-  paid: 'fa-circle-check',
-  unpaid: 'fa-hourglass-half'
+  paid: 'circle-check',
+  unpaid: 'hourglass-half'
 };
 
-// Maps booking status to Font Awesome icons
+// Maps booking status to icons
 const BOOKING_ICONS = {
-  confirmed: 'fa-ticket',
-  checked_out: 'fa-door-open',
-  cancelled: 'fa-ban',
-  pending: 'fa-clock'
+  confirmed: 'ticket',
+  checked_out: 'door-open',
+  cancelled: 'ban',
+  pending: 'clock'
 };
 
 // ============================================================
@@ -48,12 +48,12 @@ const BOOKING_ICONS = {
 // Picks the right icon based on type (payment or booking)
 function StatusPill({ type, value }) {
   const icon = type === 'payment'
-    ? PAYMENT_ICONS[value] || 'fa-circle'
-    : BOOKING_ICONS[value] || 'fa-clock';
+    ? PAYMENT_ICONS[value] || 'circle'
+    : BOOKING_ICONS[value] || 'clock';
 
   return (
-    <span className={`admin-pill ${value}`}>
-      <i className={`fa-solid ${icon}`}></i> {value}
+    <span className={`booking-pill ${value}`}>
+      <i className={icon}></i> {value}
     </span>
   );
 }
@@ -69,53 +69,53 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
   const isBusy = updatingId === booking.id;
 
   return (
-    <div className="admin-panel mb-4 booking-card">
-      <div className="space-between">
+    <div className="booking-panel booking-gap-bottom booking-card">
+      <div className="booking-between">
         {/* Details — room, dates, total */}
         <div>
-          <div className="cell-main">
-            <i className="fa-solid fa-bed mr-2"></i>
+          <div className="booking-cell-main">
+            <i className="bed booking-gap-right"></i>
             Room {room?.room_number}
-            <span className="muted ml-2 text-sm">({room?.room_type})</span>
+            <span className="booking-muted booking-gap-left booking-sm">({room?.room_type})</span>
           </div>
-          <div className="cell-sub mt-2">
-            <i className="fa-solid fa-calendar mr-2"></i>
+          <div className="booking-cell-sub booking-gap-top">
+            <i className="calendar booking-gap-right"></i>
             {booking.check_in} → {booking.check_out}
           </div>
-          <div className="cell-sub">
-            <i className="fa-solid fa-peso-sign mr-2"></i>
+          <div className="booking-cell-sub">
+            <i className="peso-sign booking-gap-right"></i>
             Total: ₱{Number(booking.total_amount).toLocaleString()}
           </div>
         </div>
 
         {/* Status — payment and booking pills */}
-        <div className="text-right">
+        <div className="booking-right">
           <StatusPill type="payment" value={booking.payment_status} />
-          <div className="mt-2">
+          <div className="booking-gap-top">
             <StatusPill type="booking" value={booking.status} />
           </div>
         </div>
       </div>
 
       {/* Actions — buttons depend on booking state */}
-      <div className="row-actions mt-3">
+      <div className="booking-actions booking-gap-top-md">
         {/* Unpaid: Pay + Cancel */}
         {isUnpaid && !isCancelled && (
           <>
             <button
-              className="app-btn app-btn-primary app-btn-sm"
+              className="booking-btn booking-btn-primary booking-btn-sm"
               onClick={() => onPay(booking)}
               disabled={paying}
             >
-              <i className="fa-solid fa-credit-card mr-2"></i>
+              <i className="credit-card booking-gap-right"></i>
               {paying ? 'Redirecting…' : 'Pay via PayMongo'}
             </button>
             <button
-              className="app-btn app-btn-danger app-btn-sm"
+              className="booking-btn booking-btn-danger booking-btn-sm"
               onClick={() => onCancel(booking)}
               disabled={isBusy}
             >
-              <i className={`fa-solid ${isBusy ? 'fa-spinner fa-spin' : 'fa-xmark'} mr-2`}></i>
+              <i className={`${isBusy ? 'spinner' : 'xmark'} booking-gap-right`}></i>
               Cancel Booking
             </button>
           </>
@@ -124,23 +124,23 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
         {/* Paid: NFC Check-in + Check-out + Cancel */}
         {isPaid && !isCheckedOut && !isCancelled && (
           <>
-            <button className="app-btn app-btn-secondary app-btn-sm mr-2" onClick={onCheckIn}>
-              <i className="fa-solid fa-wifi mr-2"></i> NFC Check-in
+            <button className="booking-btn booking-btn-secondary booking-btn-sm booking-gap-right" onClick={onCheckIn}>
+              <i className="wifi booking-gap-right"></i> NFC Check-in
             </button>
             <button
-              className="app-btn app-btn-primary app-btn-sm mr-2"
+              className="booking-btn booking-btn-primary booking-btn-sm booking-gap-right"
               onClick={() => onCheckOut(booking)}
               disabled={isBusy}
             >
-              <i className={`fa-solid ${isBusy ? 'fa-spinner fa-spin' : 'fa-door-open'} mr-2`}></i>
+              <i className={`${isBusy ? 'spinner' : 'door-open'} booking-gap-right`}></i>
               Check-out
             </button>
             <button
-              className="app-btn app-btn-danger app-btn-sm"
+              className="booking-btn booking-btn-danger booking-btn-sm"
               onClick={() => onCancelPaid(booking)}
               disabled={isBusy}
             >
-              <i className={`fa-solid ${isBusy ? 'fa-spinner fa-spin' : 'fa-xmark'} mr-2`}></i>
+              <i className={`${isBusy ? 'spinner' : 'xmark'} booking-gap-right`}></i>
               Cancel Booking
             </button>
           </>
@@ -148,15 +148,15 @@ function BookingCard({ booking, paying, updatingId, onPay, onCheckIn, onCheckOut
 
         {/* Checked out: show status only */}
         {isCheckedOut && (
-          <span className="muted text-sm">
-            <i className="fa-solid fa-circle-check text-success mr-2"></i> Checked out
+          <span className="booking-muted booking-sm">
+            <i className="circle-check booking-ok booking-gap-right"></i> Checked out
           </span>
         )}
 
         {/* Cancelled: show status only */}
         {isCancelled && (
-          <span className="muted text-sm">
-            <i className="fa-solid fa-ban text-danger mr-2"></i> Cancelled
+          <span className="booking-muted booking-sm">
+            <i className="ban booking-bad booking-gap-right"></i> Cancelled
           </span>
         )}
       </div>
@@ -520,43 +520,43 @@ export default function UserBooking() {
   return (
     <UserLayout>
       {/* Welcome header */}
-      <div className="admin-welcome">
+      <div className="booking-welcome">
         <h1>My Bookings</h1>
         <p>Book a room, pay online, and check in using NFC.</p>
       </div>
 
       {/* NFC banner — shows payment/NFC status messages */}
       {nfcBanner && (
-        <div className="nfc-banner mb-4" aria-live="polite">
-          <i className="fa-solid fa-wifi mr-2"></i>
+        <div className="booking-banner booking-gap-bottom" aria-live="polite">
+          <i className="wifi booking-gap-right"></i>
           {nfcBanner}
         </div>
       )}
 
       {/* Booking Form — select room, check-in, check-out */}
-      <div className="admin-panel mb-4">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-plus"></i> Make a New Booking
+      <div className="booking-panel booking-gap-bottom">
+        <div className="booking-panel-header">
+          <h3 className="booking-panel-title">
+            <i className="plus"></i> Make a New Booking
           </h3>
         </div>
 
         {rooms.length === 0 && !loading && (
-          <div className="admin-empty">
-            <i className="fa-solid fa-bed"></i>
-            <div className="admin-empty-title">No rooms available</div>
-            <div className="admin-empty-desc">Wait for admin to add rooms.</div>
+          <div className="booking-empty">
+            <i className="bed"></i>
+            <div className="booking-empty-title">No rooms available</div>
+            <div className="booking-empty-desc">Wait for admin to add rooms.</div>
           </div>
         )}
 
         {rooms.length > 0 && (
           <form onSubmit={handleCreateBooking}>
-            <div className="admin-form-grid">
-              <div className="admin-field">
-                <label htmlFor="bk-room"><i className="fa-solid fa-bed"></i> Room</label>
+            <div className="booking-form-grid">
+              <div className="booking-field">
+                <label htmlFor="bk-room"><i className="bed"></i> Room</label>
                 <select
                   id="bk-room"
-                  className="admin-select"
+                  className="booking-select"
                   value={form.room_id}
                   onChange={(e) => setForm({ ...form, room_id: e.target.value })}
                   required
@@ -570,22 +570,22 @@ export default function UserBooking() {
                 </select>
               </div>
 
-              <div className="admin-field">
-                <label htmlFor="bk-in"><i className="fa-solid fa-calendar-plus"></i> Check-in</label>
+              <div className="booking-field">
+                <label htmlFor="bk-in"><i className="calendar-plus"></i> Check-in</label>
                 <input
                   id="bk-in"
-                  className="admin-input" type="date"
+                  className="booking-input" type="date"
                   value={form.check_in}
                   onChange={(e) => setForm({ ...form, check_in: e.target.value })}
                   required
                 />
               </div>
 
-              <div className="admin-field">
-                <label htmlFor="bk-out"><i className="fa-solid fa-calendar-minus"></i> Check-out</label>
+              <div className="booking-field">
+                <label htmlFor="bk-out"><i className="calendar-minus"></i> Check-out</label>
                 <input
                   id="bk-out"
-                  className="admin-input" type="date"
+                  className="booking-input" type="date"
                   value={form.check_out}
                   onChange={(e) => setForm({ ...form, check_out: e.target.value })}
                   required
@@ -593,12 +593,12 @@ export default function UserBooking() {
               </div>
             </div>
 
-            {error && <p className="admin-error" aria-live="polite">{error}</p>}
-            {message && <p className="admin-success" aria-live="polite">{message}</p>}
+            {error && <p className="booking-error" aria-live="polite">{error}</p>}
+            {message && <p className="booking-success" aria-live="polite">{message}</p>}
 
-            <div className="admin-form-actions">
-              <button type="submit" className="app-btn app-btn-primary">
-                <i className="fa-solid fa-calendar-check mr-2"></i> Create Booking
+            <div className="booking-form-actions">
+              <button type="submit" className="booking-btn booking-btn-primary">
+                <i className="calendar-check booking-gap-right"></i> Create Booking
               </button>
             </div>
           </form>
@@ -606,24 +606,24 @@ export default function UserBooking() {
       </div>
 
       {/* Reservations — list of booking cards */}
-      <div className="admin-panel">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-ticket"></i> My Reservations ({bookings.length})
+      <div className="booking-panel">
+        <div className="booking-panel-header">
+          <h3 className="booking-panel-title">
+            <i className="ticket"></i> My Reservations ({bookings.length})
           </h3>
         </div>
 
         {loading && (
-          <div className="admin-loading">
-            <i className="fa-solid fa-spinner fa-spin mr-2"></i> Loading…
+          <div className="booking-loading">
+            <i className="spinner booking-gap-right"></i> Loading…
           </div>
         )}
 
         {!loading && bookings.length === 0 && (
-          <div className="admin-empty">
-            <i className="fa-solid fa-calendar-xmark"></i>
-            <div className="admin-empty-title">No bookings yet</div>
-            <div className="admin-empty-desc">Use the form above to create your first booking.</div>
+          <div className="booking-empty">
+            <i className="calendar-xmark"></i>
+            <div className="booking-empty-title">No bookings yet</div>
+            <div className="booking-empty-desc">Use the form above to create your first booking.</div>
           </div>
         )}
 

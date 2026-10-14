@@ -29,7 +29,7 @@ function StaffStatCard({ icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -47,11 +47,11 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-user-plus"></i> Create Staff Account
+          <i className="user-plus"></i> Create Staff Account
         </h3>
       </div>
 
-      <p className="muted mb-3">
+      <p className="admin-muted admin-gap-bottom">
         The new staff account will be created in Supabase with the role "staff".
       </p>
 
@@ -111,10 +111,10 @@ function CreateStaffForm({ form, onChange, onSubmit, loading, error, message }) 
         {/* Submit button */}
         <button
           type="submit"
-          className="app-btn app-btn-primary w-full mt-2"
+          className="admin-btn admin-btn-primary admin-full admin-gap-top"
           disabled={loading}
         >
-          <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-user-plus'} mr-1`}></i>
+          <i className={`${loading ? 'spinner' : 'user-plus'} admin-gap`}></i>
           {loading ? 'Creating…' : 'Create Staff Account'}
         </button>
       </form>
@@ -129,13 +129,13 @@ function StaffTable({ staffList }) {
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-list"></i> Existing Staff ({staffList.length})
+          <i className="list"></i> Existing Staff ({staffList.length})
         </h3>
       </div>
 
       {/* Empty state */}
       {staffList.length === 0 && (
-        <p className="muted center">No staff accounts yet.</p>
+        <p className="admin-muted admin-center">No staff accounts yet.</p>
       )}
 
       {/* Staff table */}
@@ -151,7 +151,7 @@ function StaffTable({ staffList }) {
             {staffList.map((staff) => (
               <tr key={staff.id}>
                 <td><strong>{staff.full_name || '—'}</strong></td>
-                <td className="muted">{staff.email}</td>
+                <td className="admin-muted">{staff.email}</td>
               </tr>
             ))}
           </tbody>
@@ -266,7 +266,7 @@ export default function AdminStaff() {
       {/* KPI stat card — total staff */}
       <div className="admin-stat-grid">
         <StaffStatCard
-          icon="fa-user-tie"
+          icon="user-tie"
           label="Total Staff"
           value={staffList.length}
           sub="Active employees"

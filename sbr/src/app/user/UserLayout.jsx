@@ -52,46 +52,46 @@ function UserSidebar({ profile, menu, isActive, onLogout }) {
   const firstName = profile?.full_name?.split(' ')[0] || 'Guest';
 
   return (
-    <aside className="admin-sidebar">
+    <aside className="user-sidebar">
       {/* Logo — brand icon and text */}
-      <div className="admin-logo">
-        <div className="admin-logo-icon">
-          <i className="fa-solid fa-umbrella-beach"></i>
+      <div className="user-logo">
+        <div className="user-logo-icon">
+          <i className="umbrella"></i>
         </div>
-        <div className="admin-logo-text">
-          <div className="admin-logo-title">SBR</div>
-          <div className="admin-logo-subtitle">Guest Portal</div>
+        <div className="user-logo-text">
+          <div className="user-logo-title">SBR</div>
+          <div className="user-logo-subtitle">Guest Portal</div>
         </div>
       </div>
 
       {/* User card — avatar, name, and role */}
-      <div className="admin-user-card">
-        <div className="admin-user-avatar">{initial}</div>
-        <div className="admin-user-info">
-          <div className="admin-user-name">{firstName}</div>
-          <div className="admin-user-role">Guest</div>
+      <div className="user-card">
+        <div className="user-avatar">{initial}</div>
+        <div className="user-info">
+          <div className="user-name">{firstName}</div>
+          <div className="user-role">Guest</div>
         </div>
       </div>
 
       {/* Navigation — menu links and sign out button */}
-      <nav className="admin-nav">
+      <nav className="user-nav">
         {menu.map((item) => (
           <Link
             key={item.label}
             to={item.to}
-            className={`admin-nav-item ${isActive(item.to) ? 'active' : ''}`}
+            className={`user-nav-item ${isActive(item.to) ? 'active' : ''}`}
           >
-            <span className="admin-nav-icon"><i className={`fa-solid ${item.icon}`}></i></span>
-            <span className="admin-nav-label">{item.label}</span>
+            <span className="user-nav-icon"><i className={item.icon}></i></span>
+            <span className="user-nav-label">{item.label}</span>
           </Link>
         ))}
 
-        <div className="admin-nav-divider" />
+        <div className="user-nav-divider" />
 
         {/* Sign out button */}
-        <button className="admin-nav-item bg-transparent border-none w-full text-left cursor-pointer" onClick={onLogout}>
-          <span className="admin-nav-icon"><i className="fa-solid fa-right-from-bracket"></i></span>
-          <span className="admin-nav-label">Sign Out</span>
+        <button className="user-nav-item user-transparent user-border-none user-full user-left user-pointer" onClick={onLogout}>
+          <span className="user-nav-icon"><i className="sign-out"></i></span>
+          <span className="user-nav-label">Sign Out</span>
         </button>
       </nav>
     </aside>
@@ -103,21 +103,21 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
   if (!searchQuery.trim()) return null;
 
   return (
-    <div className="admin-search-dropdown">
+    <div className="user-search-dropdown">
       {/* Empty state — no results */}
       {!hasSearchResults && (
-        <div className="admin-search-empty">No results for "{searchQuery}"</div>
+        <div className="user-search-empty">No results for "{searchQuery}"</div>
       )}
 
       {/* Bookings group */}
       {searchResults.bookings.length > 0 && (
-        <div className="admin-search-group">
-          <div className="admin-search-group-title"><i className="fa-solid fa-ticket mr-1"></i> My Bookings</div>
+        <div className="user-search-group">
+          <div className="user-search-group-title"><i className="ticket user-gap"></i> My Bookings</div>
           {searchResults.bookings.map((booking) => (
-            <button key={booking.id} className="admin-search-item" onClick={() => onItemClick('/user/booking')}>
+            <button key={booking.id} className="user-search-item" onClick={() => onItemClick('/user/booking')}>
               <div>
                 <strong>Room {booking.rooms?.room_number}</strong>
-                <div className="admin-search-item-sub">{booking.check_in} · {booking.status}</div>
+                <div className="user-search-item-sub">{booking.check_in} · {booking.status}</div>
               </div>
             </button>
           ))}
@@ -126,13 +126,13 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
 
       {/* Rooms group */}
       {searchResults.rooms.length > 0 && (
-        <div className="admin-search-group">
-          <div className="admin-search-group-title"><i className="fa-solid fa-bed mr-1"></i> Available Rooms</div>
+        <div className="user-search-group">
+          <div className="user-search-group-title"><i className="bed user-gap"></i> Available Rooms</div>
           {searchResults.rooms.map((room) => (
-            <button key={room.id} className="admin-search-item" onClick={() => onItemClick('/user/booking')}>
+            <button key={room.id} className="user-search-item" onClick={() => onItemClick('/user/booking')}>
               <div>
                 <strong>Room {room.room_number}</strong>
-                <div className="admin-search-item-sub">
+                <div className="user-search-item-sub">
                   {room.room_type} · ₱{Number(room.price).toLocaleString()} · {room.status}
                 </div>
               </div>
@@ -147,38 +147,38 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
 // NotificationsDropdown — displays a list of user notifications
 function NotificationsDropdown({ notifications, unreadCount, onMarkAllRead, onItemClick }) {
   return (
-    <div className="admin-notif-dropdown">
+    <div className="user-notif-dropdown">
       {/* Header — title and mark all read button */}
-      <div className="admin-dropdown-header">
+      <div className="user-dropdown-header">
         <strong>My Notifications</strong>
         {notifications.length > 0 && (
-          <button className="admin-dropdown-link" onClick={onMarkAllRead}>Mark all read</button>
+          <button className="user-dropdown-link" onClick={onMarkAllRead}>Mark all read</button>
         )}
       </div>
 
       {/* Empty state */}
       {notifications.length === 0 && (
-        <div className="admin-dropdown-empty">No notifications yet.</div>
+        <div className="user-dropdown-empty">No notifications yet.</div>
       )}
 
       {/* Notification list */}
       {notifications.length > 0 && (
-        <div className="admin-notif-list">
+        <div className="user-notif-list">
           {notifications.map((notif) => {
             const isRead = getReadIds().includes(notif.id);
             return (
               <button
                 key={notif.id}
-                className={`admin-notif-item ${isRead ? 'read' : 'unread'}`}
+                className={`user-notif-item ${isRead ? 'read' : 'unread'}`}
                 onClick={() => onItemClick(notif.link)}
               >
-                <span className="admin-notif-icon"><i className={`fa-solid ${notif.icon}`}></i></span>
-                <div className="admin-notif-content">
-                  <div className="admin-notif-title">{notif.title}</div>
-                  <div className="admin-notif-message">{notif.message}</div>
-                  <div className="admin-notif-time">{relativeTime(notif.time)}</div>
+                <span className="user-notif-icon"><i className={notif.icon}></i></span>
+                <div className="user-notif-content">
+                  <div className="user-notif-title">{notif.title}</div>
+                  <div className="user-notif-message">{notif.message}</div>
+                  <div className="user-notif-time">{relativeTime(notif.time)}</div>
                 </div>
-                {!isRead && <span className="admin-notif-dot" />}
+                {!isRead && <span className="user-notif-dot" />}
               </button>
             );
           })}
@@ -186,8 +186,8 @@ function NotificationsDropdown({ notifications, unreadCount, onMarkAllRead, onIt
       )}
 
       {/* Footer — view bookings link */}
-      <div className="admin-dropdown-footer">
-        <button className="admin-dropdown-link" onClick={() => onItemClick('/user/booking')}>
+      <div className="user-dropdown-footer">
+        <button className="user-dropdown-link" onClick={() => onItemClick('/user/booking')}>
           View my bookings →
         </button>
       </div>
@@ -200,34 +200,34 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
   const initial = (profile?.full_name || 'U').charAt(0).toUpperCase();
 
   return (
-    <div className="admin-user-dropdown">
+    <div className="user-menu-dropdown">
       {/* Header — avatar, name, and email */}
-      <div className="admin-user-dropdown-header">
-        <div className="admin-topbar-avatar avatar-lg">{initial}</div>
+      <div className="user-menu-header">
+        <div className="user-topbar-avatar user-avatar-lg">{initial}</div>
         <div>
-          <div className="fw-bold text-sm">{profile?.full_name || 'Guest'}</div>
-          <div className="muted text-sm">{profile?.email}</div>
+          <div className="user-bold user-sm">{profile?.full_name || 'Guest'}</div>
+          <div className="user-muted user-sm">{profile?.email}</div>
         </div>
       </div>
 
-      <div className="admin-user-dropdown-divider" />
+      <div className="user-menu-divider" />
 
       {/* Menu items — dashboard, bookings, profile */}
-      <button className="admin-user-dropdown-item" onClick={() => onNavigate('/user')}>
-        <i className="fa-solid fa-house"></i><span>Dashboard</span>
+      <button className="user-menu-item" onClick={() => onNavigate('/user')}>
+        <i className="house"></i><span>Dashboard</span>
       </button>
-      <button className="admin-user-dropdown-item" onClick={() => onNavigate('/user/booking')}>
-        <i className="fa-solid fa-ticket"></i><span>My Bookings</span>
+      <button className="user-menu-item" onClick={() => onNavigate('/user/booking')}>
+        <i className="ticket"></i><span>My Bookings</span>
       </button>
-      <button className="admin-user-dropdown-item" onClick={() => onNavigate('/user/profile')}>
-        <i className="fa-solid fa-circle-user"></i><span>Profile</span>
+      <button className="user-menu-item" onClick={() => onNavigate('/user/profile')}>
+        <i className="circle-user"></i><span>Profile</span>
       </button>
 
-      <div className="admin-user-dropdown-divider" />
+      <div className="user-menu-divider" />
 
       {/* Sign out */}
-      <button className="admin-user-dropdown-item danger" onClick={onLogout}>
-        <i className="fa-solid fa-right-from-bracket"></i><span>Sign Out</span>
+      <button className="user-menu-item user-danger" onClick={onLogout}>
+        <i className="sign-out"></i><span>Sign Out</span>
       </button>
     </div>
   );
@@ -289,9 +289,9 @@ export default function UserLayout({ children }) {
       // Map each booking into a notification object
       const notifs = (data || []).map((booking) => ({
         id: `bk-${booking.id}`,
-        icon: booking.payment_status === 'paid' ? 'fa-circle-check' :
-              booking.status === 'confirmed' ? 'fa-calendar-check' :
-              booking.status === 'checked_out' ? 'fa-door-open' : 'fa-hourglass-half',
+        icon: booking.payment_status === 'paid' ? 'circle-check' :
+              booking.status === 'confirmed' ? 'calendar-check' :
+              booking.status === 'checked_out' ? 'door-open' : 'hourglass-half',
         title: `Room ${booking.rooms?.room_number || '—'} — ${booking.status}`,
         message: `₱${Number(booking.total_amount || 0).toLocaleString()} · ${booking.payment_status}`,
         time: booking.created_at,
@@ -410,9 +410,9 @@ export default function UserLayout({ children }) {
 
   // Sidebar menu items
   const menu = [
-    { icon: 'fa-house',       label: 'Dashboard',   to: '/user' },
-    { icon: 'fa-ticket',      label: 'My Bookings', to: '/user/booking' },
-    { icon: 'fa-circle-user', label: 'Profile',     to: '/user/profile' }
+    { icon: 'house',       label: 'Dashboard',   to: '/user' },
+    { icon: 'ticket',      label: 'My Bookings', to: '/user/booking' },
+    { icon: 'circle-user', label: 'Profile',     to: '/user/profile' }
   ];
 
   // isActive — checks if a menu path is currently active
@@ -428,19 +428,19 @@ export default function UserLayout({ children }) {
   // ============================================================
 
   return (
-    <div className="admin-layout">
+    <div className="user-layout">
 
       {/* Sidebar — navigation and user info */}
       <UserSidebar profile={profile} menu={menu} isActive={isActive} onLogout={handleLogout} />
 
-      <div className="admin-main">
+      <div className="user-main">
 
         {/* Topbar — search, notifications, and user menu */}
-        <div className="admin-topbar">
+        <div className="user-topbar">
 
           {/* Search bar and dropdown */}
-          <div className="admin-search position-relative" ref={searchRef}>
-            <i className="fa-solid fa-magnifying-glass"></i>
+          <div className="user-search user-relative" ref={searchRef}>
+            <i className="search"></i>
             <input
               type="text"
               placeholder="Search my bookings or rooms..."
@@ -458,21 +458,21 @@ export default function UserLayout({ children }) {
             )}
           </div>
 
-          <div className="admin-topbar-actions">
+          <div className="user-topbar-actions">
 
             {/* Notifications bell and dropdown */}
-            <div className="position-relative" ref={notifRef}>
+            <div className="user-relative" ref={notifRef}>
               <button
-                className="admin-bell"
+                className="user-bell"
                 onClick={() => {
                   setNotifOpen(!notifOpen);
                   if (!notifOpen) markAllRead();
                 }}
                 title="Notifications"
               >
-                <i className="fa-solid fa-bell"></i>
+                <i className="bell"></i>
                 {unreadCount > 0 && (
-                  <span className="admin-bell-badge">
+                  <span className="user-bell-badge">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -488,11 +488,11 @@ export default function UserLayout({ children }) {
             </div>
 
             {/* User menu — avatar and dropdown */}
-            <div className="position-relative" ref={userMenuRef}>
-              <div className="admin-topbar-user" onClick={() => setUserMenuOpen(!userMenuOpen)}>
-                <div className="admin-topbar-avatar">{initial}</div>
-                <span className="admin-topbar-name">{firstName}</span>
-                <i className="fa-solid fa-chevron-down text-sm text-muted"></i>
+            <div className="user-relative" ref={userMenuRef}>
+              <div className="user-topbar-menu" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+                <div className="user-topbar-avatar">{initial}</div>
+                <span className="user-topbar-name">{firstName}</span>
+                <i className="chevron-down user-sm user-muted"></i>
               </div>
               {userMenuOpen && (
                 <UserMenuDropdown
@@ -507,7 +507,7 @@ export default function UserLayout({ children }) {
         </div>
 
         {/* Page content — renders the child component */}
-        <div className="admin-content">
+        <div className="user-content">
           {children}
         </div>
 

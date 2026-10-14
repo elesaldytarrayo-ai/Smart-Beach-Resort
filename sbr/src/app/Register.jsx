@@ -70,28 +70,28 @@ export default function Register() {
   // Render — auth card with registration form and navigation links
   return (
     <AppLayout nav={false} footer={false}>
-      <div className="auth-wrap">
-        <div className="auth-card">
+      <div className="register-wrap">
+        <div className="register-card">
 
           {/* Header — icon, title, and subtitle */}
-          <div className="auth-icon">
-            <i className="fa-solid fa-user-plus"></i>
+          <div className="register-icon">
+            <i className="user-plus"></i>
           </div>
           <h2>Create Account</h2>
-          <p className="subtitle">Join Smart Beach Resort today</p>
+          <p className="register-subtitle">Join Smart Beach Resort today</p>
 
           {/* Form — full name, email, phone, password, feedback, submit */}
           <form onSubmit={handleRegister}>
 
             {/* Full name field */}
-            <div className="admin-field">
+            <div className="register-field">
               <label>
-                <i className="fa-solid fa-user"></i> Full Name
+                <i className="user"></i> Full Name
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-user"></i>
+              <div className="register-input-wrap">
+                <i className="user"></i>
                 <input
-                  className="admin-input"
+                  className="register-input"
                   name="full_name"
                   type="text"
                   placeholder="Enter your name"
@@ -104,14 +104,14 @@ export default function Register() {
             </div>
 
             {/* Email field */}
-            <div className="admin-field">
+            <div className="register-field">
               <label>
-                <i className="fa-solid fa-envelope"></i> Email
+                <i className="envelope"></i> Email
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-envelope"></i>
+              <div className="register-input-wrap">
+                <i className="envelope"></i>
                 <input
-                  className="admin-input"
+                  className="register-input"
                   name="email"
                   type="email"
                   placeholder="Enter your email"
@@ -124,14 +124,14 @@ export default function Register() {
             </div>
 
             {/* Phone field */}
-            <div className="admin-field">
+            <div className="register-field">
               <label>
-                <i className="fa-solid fa-phone"></i> Phone
+                <i className="phone"></i> Phone
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-phone"></i>
+              <div className="register-input-wrap">
+                <i className="phone"></i>
                 <input
-                  className="admin-input"
+                  className="register-input"
                   name="phone"
                   type="tel"
                   placeholder="0912 345 6789"
@@ -143,14 +143,14 @@ export default function Register() {
             </div>
 
             {/* Password field */}
-            <div className="admin-field">
+            <div className="register-field">
               <label>
-                <i className="fa-solid fa-lock"></i> Password
+                <i className="lock"></i> Password
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-key"></i>
+              <div className="register-input-wrap">
+                <i className="key"></i>
                 <input
-                  className="admin-input"
+                  className="register-input"
                   name="password"
                   type="password"
                   placeholder="Min 6 characters"
@@ -161,33 +161,33 @@ export default function Register() {
                   autoComplete="new-password"
                 />
               </div>
-              <p className="admin-field-hint">Minimum 6 characters</p>
+              <p className="register-field-hint">Minimum 6 characters</p>
             </div>
 
             {/* Error / success messages */}
-            {err && <p className="admin-error">{err}</p>}
-            {ok && <p className="admin-success">{ok}</p>}
+            {err && <p className="register-error">{err}</p>}
+            {ok && <p className="register-success">{ok}</p>}
 
             {/* Submit button */}
             <button
-              className="app-btn app-btn-primary"
+              className="register-btn register-btn-primary"
               disabled={loading}
               style={{ width: '100%', padding: '12px 20px', fontSize: 14 }}
               type="submit"
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-user-plus'}`}></i>
+              <i className={loading ? 'spinner' : 'user-plus'}></i>
               {loading ? 'Creating account…' : 'Create Account'}
             </button>
           </form>
 
           {/* Footer — divider and login link */}
-          <div className="auth-divider">
+          <div className="register-divider">
             <span>or</span>
           </div>
 
-          <p className="auth-alt">
+          <p className="register-alt">
             Already have an account?{' '}
-            <Link to="/login" className="auth-link">
+            <Link to="/login" className="register-link">
               Sign in
             </Link>
           </p>

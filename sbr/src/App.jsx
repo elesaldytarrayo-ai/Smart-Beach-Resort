@@ -34,25 +34,28 @@ function Protected({ role, children }) {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return setState({ loading: false, allowed: false });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return setState({ loading: false, allowed: false });
 
       const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', data.user.id).single();
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
 
       const userRole = profile?.role || 'user';
       setState({ loading: false, allowed: userRole === role });
     })();
   }, [role]);
 
+  // Loading screen habang nagche-check
   if (state.loading) {
     return (
-      <div className="page-pad">
-        <div className="neu-card center">
-          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 28, color: '#2d8ecf' }}></i>
-          <p className="muted" style={{ marginTop: 12 }}>Checking your access…</p>
-        </div>
-      </div>
+      <main className="loading-screen">
+        <i className="spinner"></i>
+        <h2>Checking your access…</h2>
+        <p>Just a moment while we verify your account.</p>
+      </main>
     );
   }
 

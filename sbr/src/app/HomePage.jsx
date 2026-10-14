@@ -7,28 +7,28 @@ export default function HomePage() {
   return (
     <AppLayout>
       {/* Hero — centered brand icon, title, subtitle, and action buttons */}
-      <div className="home-hero">
-        <div className="home-hero-inner">
+      <div className="homepage">
+        <div className="page-inner">
 
           {/* Brand icon */}
-          <div className="home-icon">
-            <i className="fa-solid fa-umbrella-beach"></i>
+          <div className="page-icon">
+            <i className="umbrella"></i>
           </div>
 
           {/* Title and subtitle */}
           <h1>Smart Beach Resort</h1>
-          <p className="home-subtitle">
+          <p className="page-subtitle">
             Book rooms, manage reservations, and enjoy a seamless beachside stay.
           </p>
 
           {/* Action buttons — Sign In and Create Account */}
-          <div className="home-actions">
-            <Link to="/login" className="app-btn app-btn-primary">
-              <i className="fa-solid fa-right-to-bracket"></i>
+          <div className="page-actions">
+            <Link to="/login" className="home-btn page-btn-primary">
+              <i className="sign-in"></i>
               Sign In
             </Link>
-            <Link to="/register" className="app-btn app-btn-secondary">
-              <i className="fa-solid fa-user-plus"></i>
+            <Link to="/register" className="home-btn page-btn-secondary">
+              <i className="register"></i>
               Create Account
             </Link>
           </div>

@@ -11,10 +11,10 @@ const REFRESH_INTERVAL_MS = 10000; // Refresh reservations every 10 seconds
 
 // Filter definitions for the filter chips
 const FILTERS = [
-  { key: 'all', label: 'All', icon: 'fa-list' },
-  { key: 'pending', label: 'Pending', icon: 'fa-clock' },
-  { key: 'confirmed', label: 'Confirmed', icon: 'fa-ticket' },
-  { key: 'checked_out', label: 'Checked out', icon: 'fa-door-open' }
+  { key: 'all', label: 'All', icon: 'list' },
+  { key: 'pending', label: 'Pending', icon: 'clock' },
+  { key: 'confirmed', label: 'Confirmed', icon: 'ticket' },
+  { key: 'checked_out', label: 'Checked out', icon: 'door-open' }
 ];
 
 // ============================================================
@@ -24,13 +24,13 @@ const FILTERS = [
 // StatCard — displays a single mini statistic on the reservations dashboard
 function StatCard({ icon, color, label, value }) {
   return (
-    <div className="admin-mini-stat">
-      <div className={`admin-mini-stat-icon ${color}`}>
-        <i className={`fa-solid ${icon}`}></i>
+    <div className="staff-mini-stat">
+      <div className={`staff-mini-stat-icon ${color}`}>
+        <i className={icon}></i>
       </div>
-      <div className="admin-mini-stat-body">
-        <div className="admin-mini-stat-label">{label}</div>
-        <div className="admin-mini-stat-value">{value}</div>
+      <div className="staff-mini-stat-body">
+        <div className="staff-mini-stat-label">{label}</div>
+        <div className="staff-mini-stat-value">{value}</div>
       </div>
     </div>
   );
@@ -40,34 +40,34 @@ function StatCard({ icon, color, label, value }) {
 function FilterChip({ filter, label, icon, count, isActive, onClick }) {
   return (
     <button
-      className={`admin-chip ${isActive ? 'active' : ''}`}
+      className={`staff-chip ${isActive ? 'active' : ''}`}
       onClick={() => onClick(filter)}
     >
-      <i className={`fa-solid ${icon}`}></i> {label}
-      <span className="admin-chip-count">{count}</span>
+      <i className={icon}></i> {label}
+      <span className="staff-chip-count">{count}</span>
     </button>
   );
 }
 
 // PaymentPill — renders a colored pill for the payment status
 function PaymentPill({ status }) {
-  const icon = status === 'paid' ? 'fa-circle-check' : 'fa-hourglass-half';
+  const icon = status === 'paid' ? 'circle-check' : 'hourglass-half';
   return (
-    <span className={`admin-pill ${status}`}>
-      <i className={`fa-solid ${icon}`}></i> {status}
+    <span className={`staff-pill ${status}`}>
+      <i className={icon}></i> {status}
     </span>
   );
 }
 
 // StatusPill — renders a colored pill for the booking status
 function StatusPill({ status }) {
-  let icon = 'fa-clock';
-  if (status === 'confirmed') icon = 'fa-ticket';
-  else if (status === 'checked_out') icon = 'fa-door-open';
+  let icon = 'clock';
+  if (status === 'confirmed') icon = 'ticket';
+  else if (status === 'checked_out') icon = 'door-open';
 
   return (
-    <span className={`admin-pill ${status}`}>
-      <i className={`fa-solid ${icon}`}></i> {status}
+    <span className={`staff-pill ${status}`}>
+      <i className={icon}></i> {status}
     </span>
   );
 }
@@ -79,28 +79,28 @@ function ReservationRow({ booking, updatingId, onSetStatus }) {
   return (
     <tr>
       <td>
-        <div className="cell-main">{booking.profiles?.full_name || '—'}</div>
-        <div className="cell-sub">{booking.profiles?.email}</div>
+        <div className="staff-cell-main">{booking.profiles?.full_name || '—'}</div>
+        <div className="staff-cell-sub">{booking.profiles?.email}</div>
       </td>
       <td>
-        <div className="cell-main">Room {booking.rooms?.room_number}</div>
-        <div className="cell-sub">{booking.rooms?.room_type}</div>
+        <div className="staff-cell-main">Room {booking.rooms?.room_number}</div>
+        <div className="staff-cell-sub">{booking.rooms?.room_type}</div>
       </td>
-      <td className="muted">{booking.check_in}</td>
-      <td className="muted">{booking.check_out}</td>
+      <td className="staff-muted">{booking.check_in}</td>
+      <td className="staff-muted">{booking.check_out}</td>
       <td><PaymentPill status={booking.payment_status} /></td>
       <td><StatusPill status={booking.status} /></td>
       <td>
-        <div className="row-actions row-actions-end">
+        <div className="staff-row-actions staff-row-end">
 
           {/* Pending → Confirm button */}
           {booking.status === 'pending' && (
             <button
-              className="app-btn app-btn-primary app-btn-sm"
+              className="staff-btn staff-btn-primary staff-btn-sm"
               onClick={() => onSetStatus(booking, 'confirmed')}
               disabled={isUpdating}
             >
-              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+              <i className={isUpdating ? 'spinner' : 'check'}></i>
               {isUpdating ? 'Confirming…' : 'Confirm'}
             </button>
           )}
@@ -108,19 +108,19 @@ function ReservationRow({ booking, updatingId, onSetStatus }) {
           {/* Confirmed → Check-out button */}
           {booking.status === 'confirmed' && (
             <button
-              className="app-btn app-btn-danger app-btn-sm"
+              className="staff-btn staff-btn-danger staff-btn-sm"
               onClick={() => onSetStatus(booking, 'checked_out')}
               disabled={isUpdating}
             >
-              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-door-open'}`}></i>
+              <i className={isUpdating ? 'spinner' : 'door-open'}></i>
               {isUpdating ? 'Checking out…' : 'Check-out'}
             </button>
           )}
 
           {/* Checked out → Done label */}
           {booking.status === 'checked_out' && (
-            <span className="muted text-sm">
-              <i className="fa-solid fa-circle-check mr-1"></i> Done
+            <span className="staff-muted staff-sm">
+              <i className="circle-check staff-gap"></i> Done
             </span>
           )}
         </div>
@@ -242,28 +242,28 @@ export default function StaffReservations() {
     <StaffLayout>
 
       {/* Welcome header */}
-      <div className="admin-welcome">
+      <div className="staff-welcome">
         <h1>Reservations</h1>
         <p>All bookings from guests. Auto-refreshes every 10 seconds.</p>
       </div>
 
       {/* Mini stats — total, pending, confirmed, checked out */}
-      <div className="admin-mini-stats">
-        <StatCard icon="fa-calendar-check" color="blue"   label="Total" value={counts.all} />
-        <StatCard icon="fa-clock" color="orange" label="Pending" value={counts.pending} />
-        <StatCard icon="fa-ticket" color="green"  label="Confirmed" value={counts.confirmed} />
-        <StatCard icon="fa-door-open" color="purple" label="Checked out" value={counts.checked_out} />
+      <div className="staff-mini-stats">
+        <StatCard icon="calendar-check" color="blue"   label="Total" value={counts.all} />
+        <StatCard icon="clock" color="orange" label="Pending" value={counts.pending} />
+        <StatCard icon="ticket" color="green"  label="Confirmed" value={counts.confirmed} />
+        <StatCard icon="door-open" color="purple" label="Checked out" value={counts.checked_out} />
       </div>
 
-      <div className="admin-panel">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-calendar-check"></i> All Reservations
+      <div className="staff-panel">
+        <div className="staff-panel-header">
+          <h3 className="staff-panel-title">
+            <i className="calendar-check"></i> All Reservations
           </h3>
         </div>
 
         {/* Filter chips — all, pending, confirmed, checked out */}
-        <div className="admin-chips">
+        <div className="staff-chips">
           {FILTERS.map((f) => (
             <FilterChip
               key={f.key}
@@ -278,43 +278,43 @@ export default function StaffReservations() {
         </div>
 
         {/* Toolbar — search bar and refresh button */}
-        <div className="admin-toolbar">
-          <div className="admin-toolbar-search">
-            <i className="fa-solid fa-magnifying-glass"></i>
+        <div className="staff-toolbar">
+          <div className="staff-toolbar-search">
+            <i className="search"></i>
             <input
               placeholder="Search by guest name, email, or room…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button className="app-btn app-btn-secondary" onClick={() => fetchReservations(true)}>
-            <i className="fa-solid fa-rotate"></i> Refresh
+          <button className="staff-btn staff-btn-secondary" onClick={() => fetchReservations(true)}>
+            <i className="rotate"></i> Refresh
           </button>
         </div>
 
         {/* Feedback messages */}
-        {error && <p className="admin-error">{error}</p>}
-        {message && <p className="admin-success">{message}</p>}
+        {error && <p className="staff-error">{error}</p>}
+        {message && <p className="staff-success">{message}</p>}
 
         {/* Loading state */}
         {loading && (
-          <div className="admin-loading">
-            <i className="fa-solid fa-spinner fa-spin"></i> Loading…
+          <div className="staff-loading">
+            <i className="spinner"></i> Loading…
           </div>
         )}
 
         {/* Empty state */}
         {!loading && filteredBookings.length === 0 && (
-          <div className="admin-empty">
-            <i className="fa-solid fa-calendar-xmark"></i>
-            <div className="admin-empty-title">No reservations match</div>
-            <div className="admin-empty-desc">Try adjusting your search or filter.</div>
+          <div className="staff-empty">
+            <i className="calendar-xmark"></i>
+            <div className="staff-empty-title">No reservations match</div>
+            <div className="staff-empty-desc">Try adjusting your search or filter.</div>
           </div>
         )}
 
         {/* Reservations table */}
         {!loading && filteredBookings.length > 0 && (
-          <table className="admin-table">
+          <table className="staff-table">
             <thead>
               <tr>
                 <th>Guest</th>
@@ -323,7 +323,7 @@ export default function StaffReservations() {
                 <th>Check-out</th>
                 <th>Payment</th>
                 <th>Status</th>
-                <th className="text-right">Actions</th>
+                <th className="staff-right">Actions</th>
               </tr>
             </thead>
             <tbody>

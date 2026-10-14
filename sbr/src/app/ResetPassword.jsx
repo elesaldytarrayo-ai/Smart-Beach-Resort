@@ -73,13 +73,13 @@ export default function ResetPassword() {
   if (checking) {
     return (
       <AppLayout nav={false} footer={false}>
-        <div className="auth-wrap">
-          <div className="auth-card center">
-            <div className="auth-icon">
-              <i className="fa-solid fa-spinner fa-spin"></i>
+        <div className="reset-wrap">
+          <div className="reset-card reset-center">
+            <div className="reset-icon">
+              <i className="spinner"></i>
             </div>
             <h2>Verifying…</h2>
-            <p className="subtitle">Checking your reset link…</p>
+            <p className="reset-subtitle">Checking your reset link…</p>
           </div>
         </div>
       </AppLayout>
@@ -90,20 +90,20 @@ export default function ResetPassword() {
   if (!hasSession) {
     return (
       <AppLayout nav={false} footer={false}>
-        <div className="auth-wrap">
-          <div className="auth-card">
-            <div className="auth-icon">
-              <i className="fa-solid fa-circle-exclamation"></i>
+        <div className="reset-wrap">
+          <div className="reset-card">
+            <div className="reset-icon">
+              <i className="circle-exclamation"></i>
             </div>
             <h2>Link Expired</h2>
-            <p className="subtitle">{err}</p>
+            <p className="reset-subtitle">{err}</p>
 
             <Link
               to="/forgot"
-              className="app-btn app-btn-primary"
+              className="reset-btn reset-btn-primary"
               style={{ width: '100%', padding: '12px 20px', marginTop: 16 }}
             >
-              <i className="fa-solid fa-rotate-right mr-1"></i>
+              <i className="rotate-right reset-gap"></i>
               Request New Link
             </Link>
           </div>
@@ -115,29 +115,29 @@ export default function ResetPassword() {
   // Valid session — show the reset form
   return (
     <AppLayout nav={false} footer={false}>
-      <div className="auth-wrap">
-        <div className="auth-card">
+      <div className="reset-wrap">
+        <div className="reset-card">
 
           {/* Header */}
-          <div className="auth-icon">
-            <i className="fa-solid fa-lock"></i>
+          <div className="reset-icon">
+            <i className="lock"></i>
           </div>
           <h2>Set New Password</h2>
-          <p className="subtitle">Enter your new password below</p>
+          <p className="reset-subtitle">Enter your new password below</p>
 
           {/* Form */}
           <form onSubmit={handleReset}>
 
             {/* New password */}
-            <div className="admin-field">
+            <div className="reset-field">
               <label htmlFor="reset-password">
-                <i className="fa-solid fa-lock"></i> New Password
+                <i className="lock"></i> New Password
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-key"></i>
+              <div className="reset-input-wrap">
+                <i className="key"></i>
                 <input
                   id="reset-password"
-                  className="admin-input"
+                  className="reset-input"
                   type="password"
                   placeholder="Min 6 characters"
                   value={password}
@@ -150,15 +150,15 @@ export default function ResetPassword() {
             </div>
 
             {/* Confirm password */}
-            <div className="admin-field">
+            <div className="reset-field">
               <label htmlFor="reset-confirm">
-                <i className="fa-solid fa-lock"></i> Confirm Password
+                <i className="lock"></i> Confirm Password
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-key"></i>
+              <div className="reset-input-wrap">
+                <i className="key"></i>
                 <input
                   id="reset-confirm"
-                  className="admin-input"
+                  className="reset-input"
                   type="password"
                   placeholder="Re-enter password"
                   value={confirmPassword}
@@ -171,29 +171,29 @@ export default function ResetPassword() {
             </div>
 
             {/* Feedback */}
-            {err && <p className="admin-error">{err}</p>}
-            {message && <p className="admin-success">{message}</p>}
+            {err && <p className="reset-error">{err}</p>}
+            {message && <p className="reset-success">{message}</p>}
 
             {/* Submit */}
             <button
               type="submit"
-              className="app-btn app-btn-primary"
+              className="reset-btn reset-btn-primary"
               disabled={loading}
               style={{ width: '100%', padding: '12px 20px', marginTop: 8 }}
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+              <i className={loading ? 'spinner' : 'check'}></i>
               {loading ? 'Updating…' : 'Update Password'}
             </button>
           </form>
 
           {/* Footer */}
-          <div className="auth-divider">
+          <div className="reset-divider">
             <span>or</span>
           </div>
 
-          <p className="auth-alt">
-            <Link to="/login" className="auth-link">
-              <i className="fa-solid fa-arrow-left mr-1"></i>
+          <p className="reset-alt">
+            <Link to="/login" className="reset-link">
+              <i className="arrow-left reset-gap"></i>
               Back to Sign In
             </Link>
           </p>

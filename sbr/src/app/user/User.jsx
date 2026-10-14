@@ -12,13 +12,13 @@ import UserLayout from './UserLayout.jsx';
 // Used for the small number cards at the top (available rooms, bookings, etc.)
 function StatCard({ icon, color, label, value }) {
   return (
-    <div className="admin-mini-stat">
-      <div className={`admin-mini-stat-icon ${color}`}>
-        <i className={`fa-solid ${icon}`}></i>
+    <div className="user-mini-stat">
+      <div className={`user-mini-stat-icon ${color}`}>
+        <i className={icon}></i>
       </div>
-      <div className="admin-mini-stat-body">
-        <div className="admin-mini-stat-label">{label}</div>
-        <div className="admin-mini-stat-value">{value}</div>
+      <div className="user-mini-stat-body">
+        <div className="user-mini-stat-label">{label}</div>
+        <div className="user-mini-stat-value">{value}</div>
       </div>
     </div>
   );
@@ -29,19 +29,19 @@ function StatCard({ icon, color, label, value }) {
 function StatusPill({ type, value }) {
   // Pick the right icon based on the status type and value
   // Different icons depending on whether it's a payment or booking status
-  let icon = 'fa-circle';
+  let icon = 'circle';
 
   if (type === 'payment') {
-    icon = value === 'paid' ? 'fa-circle-check' : 'fa-hourglass-half';
+    icon = value === 'paid' ? 'circle-check' : 'hourglass-half';
   } else if (type === 'booking') {
-    if (value === 'confirmed') icon = 'fa-ticket';
-    else if (value === 'checked_out') icon = 'fa-door-open';
-    else icon = 'fa-clock';
+    if (value === 'confirmed') icon = 'ticket';
+    else if (value === 'checked_out') icon = 'door-open';
+    else icon = 'clock';
   }
 
   return (
-    <span className={`admin-pill ${value}`}>
-      <i className={`fa-solid ${icon}`}></i>
+    <span className={`user-pill ${value}`}>
+      <i className={icon}></i>
       {value}
     </span>
   );
@@ -119,60 +119,60 @@ export default function User() {
     <UserLayout>
 
       {/* Welcome header — greeting with the user's name */}
-      <div className="admin-welcome">
+      <div className="user-welcome">
         <h1>Welcome back, {profile?.full_name?.split(' ')[0] || 'Guest'}!</h1>
         <p>Here's an overview of your bookings and available rooms.</p>
       </div>
 
       {/* Mini stats — available rooms, bookings, active, paid */}
       {/* Four small cards showing the counts */}
-      <div className="admin-mini-stats">
-        <StatCard icon="fa-bed" color="blue" label="Available Rooms" value={availableCount} />
-        <StatCard icon="fa-ticket" color="green" label="My Bookings" value={bookings.length} />
-        <StatCard icon="fa-clock" color="orange" label="Active Bookings" value={activeBookings} />
-        <StatCard icon="fa-circle-check" color="purple" label="Paid" value={paidCount} />
+      <div className="user-mini-stats">
+        <StatCard icon="bed" color="blue" label="Available Rooms" value={availableCount} />
+        <StatCard icon="ticket" color="green" label="My Bookings" value={bookings.length} />
+        <StatCard icon="clock" color="orange" label="Active Bookings" value={activeBookings} />
+        <StatCard icon="circle-check" color="purple" label="Paid" value={paidCount} />
       </div>
 
-      {error && <p className="admin-error">{error}</p>}
+      {error && <p className="user-error">{error}</p>}
 
       {/* Available rooms panel — grid of available rooms */}
-      <div className="admin-panel mb-4">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-bed"></i> Available Rooms
+      <div className="user-panel user-gap">
+        <div className="user-panel-header">
+          <h3 className="user-panel-title">
+            <i className="bed"></i> Available Rooms
           </h3>
-          <Link to="/user/booking" className="admin-panel-link">
+          <Link to="/user/booking" className="user-panel-link">
             View all →
           </Link>
         </div>
 
         {/* Loading state — spinner while data is loading */}
         {loading && (
-          <div className="admin-loading">
-            <i className="fa-solid fa-spinner fa-spin"></i> Loading…
+          <div className="user-loading">
+            <i className="spinner"></i> Loading…
           </div>
         )}
 
         {/* Empty state — no rooms */}
         {!loading && rooms.length === 0 && (
-          <div className="admin-empty">
-            <i className="fa-solid fa-bed"></i>
-            <div className="admin-empty-title">No rooms available</div>
-            <div className="admin-empty-desc">Wait for admin to add rooms.</div>
+          <div className="user-empty">
+            <i className="bed"></i>
+            <div className="user-empty-title">No rooms available</div>
+            <div className="user-empty-desc">Wait for admin to add rooms.</div>
           </div>
         )}
 
         {/* Room cards — only the first 4 rooms are shown */}
         {!loading && rooms.length > 0 && (
-          <div className="room-grid">
+          <div className="user-room-grid">
             {rooms.slice(0, 4).map((room) => (
-              <div key={room.id} className="room-card">
-                <span className={`room-badge ${room.status === 'available' ? 'badge-success' : 'badge-danger'}`}>
+              <div key={room.id} className="user-room-card">
+                <span className={`user-room-badge ${room.status === 'available' ? 'badge-success' : 'badge-danger'}`}>
                   {room.status}
                 </span>
-                <p className="room-type">{room.room_type}</p>
-                <p className="room-number">#{room.room_number}</p>
-                <p className="room-price">
+                <p className="user-room-type">{room.room_type}</p>
+                <p className="user-room-number">#{room.room_number}</p>
+                <p className="user-room-price">
                   ₱{Number(room.price).toLocaleString()}
                   <span> / night</span>
                 </p>
@@ -182,38 +182,38 @@ export default function User() {
         )}
 
         {/* Book a Room button */}
-        <div className="text-center mt-4">
+        <div className="user-center user-gap-lg">
           <Link to="/user/booking">
-            <button className="app-btn app-btn-primary">
-              <i className="fa-solid fa-plus"></i> Book a Room
+            <button className="user-btn user-btn-primary">
+              <i className="plus"></i> Book a Room
             </button>
           </Link>
         </div>
       </div>
 
       {/* Recent bookings panel — table of the latest 5 bookings */}
-      <div className="admin-panel">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">
-            <i className="fa-solid fa-ticket"></i> Recent Bookings
+      <div className="user-panel">
+        <div className="user-panel-header">
+          <h3 className="user-panel-title">
+            <i className="ticket"></i> Recent Bookings
           </h3>
-          <Link to="/user/booking" className="admin-panel-link">
+          <Link to="/user/booking" className="user-panel-link">
             View all →
           </Link>
         </div>
 
         {/* Empty state — no bookings */}
         {!loading && bookings.length === 0 && (
-          <div className="admin-empty">
-            <i className="fa-solid fa-calendar-xmark"></i>
-            <div className="admin-empty-title">No bookings yet</div>
-            <div className="admin-empty-desc">Book a room to get started.</div>
+          <div className="user-empty">
+            <i className="calendar-xmark"></i>
+            <div className="user-empty-title">No bookings yet</div>
+            <div className="user-empty-desc">Book a room to get started.</div>
           </div>
         )}
 
         {/* Bookings table — only the first 5 bookings */}
         {!loading && bookings.length > 0 && (
-          <table className="admin-table">
+          <table className="user-table">
             <thead>
               <tr>
                 <th>Room</th>
@@ -227,15 +227,15 @@ export default function User() {
               {bookings.slice(0, 5).map((booking) => (
                 <tr key={booking.id}>
                   <td>
-                    <div className="cell-main">Room {booking.rooms?.room_number}</div>
-                    <div className="cell-sub">{booking.rooms?.room_type}</div>
+                    <div className="user-cell-main">Room {booking.rooms?.room_number}</div>
+                    <div className="user-cell-sub">{booking.rooms?.room_type}</div>
                   </td>
                   <td>
-                    <div className="cell-main text-sm">{booking.check_in}</div>
-                    <div className="cell-sub">→ {booking.check_out}</div>
+                    <div className="user-cell-main user-sm">{booking.check_in}</div>
+                    <div className="user-cell-sub">→ {booking.check_out}</div>
                   </td>
                   <td>
-                    <strong className="text-deep-sea">
+                    <strong className="user-deep-sea">
                       ₱{Number(booking.total_amount).toLocaleString()}
                     </strong>
                   </td>

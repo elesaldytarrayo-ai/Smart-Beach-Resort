@@ -26,7 +26,7 @@ function StatCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -51,28 +51,28 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
 
   return (
     <tr>
-      <td className="muted text-mono">{String(booking.id).slice(0, 6)}…</td>
+      <td className="admin-muted admin-mono">{String(booking.id).slice(0, 6)}…</td>
       <td>
-        <div className="cell-main">{booking.profiles?.full_name || '—'}</div>
-        <div className="cell-sub">{booking.profiles?.email}</div>
+        <div className="admin-cell-main">{booking.profiles?.full_name || '—'}</div>
+        <div className="admin-cell-sub">{booking.profiles?.email}</div>
       </td>
       <td>Room {booking.rooms?.room_number}</td>
-      <td className="muted">{booking.check_in}</td>
-      <td className="muted">{booking.check_out}</td>
+      <td className="admin-muted">{booking.check_in}</td>
+      <td className="admin-muted">{booking.check_out}</td>
       <td>₱{Number(booking.total_amount || 0).toLocaleString()}</td>
       <td><StatusPill value={booking.payment_status} /></td>
       <td><StatusPill value={booking.status} /></td>
       <td>
-        <div className="row-actions">
+        <div className="admin-row-actions">
 
           {/* Unpaid → Mark Paid button */}
           {isUnpaid && (
             <button
-              className="app-btn app-btn-primary app-btn-sm"
+              className="admin-btn admin-btn-primary admin-btn-sm"
               onClick={() => onMarkPaid(booking)}
               disabled={isUpdating}
             >
-              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+              <i className={isUpdating ? 'spinner' : 'check'}></i>
               {isUpdating ? 'Marking…' : 'Mark Paid'}
             </button>
           )}
@@ -80,11 +80,11 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
           {/* Confirmed → Check-out button */}
           {isConfirmed && (
             <button
-              className="app-btn app-btn-danger app-btn-sm"
+              className="admin-btn admin-btn-danger admin-btn-sm"
               onClick={() => onUpdateStatus(booking, 'checked_out')}
               disabled={isUpdating}
             >
-              <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-door-open'}`}></i>
+              <i className={isUpdating ? 'spinner' : 'door-open'}></i>
               {isUpdating ? 'Checking…' : 'Check-out'}
             </button>
           )}
@@ -257,28 +257,28 @@ export default function AdminBookings() {
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
-          icon="fa-calendar-check"
+          icon="calendar-check"
           label="Total Bookings"
           value={counts.all}
           sub={`${counts.pending} pending`}
         />
         <StatCard
           color="green"
-          icon="fa-circle-check"
+          icon="circle-check"
           label="Paid"
           value={counts.paid}
           sub={`${counts.confirmed} confirmed`}
         />
         <StatCard
           color="orange"
-          icon="fa-hourglass-half"
+          icon="hourglass-half"
           label="Unpaid"
           value={counts.unpaid}
           sub="Awaiting payment"
         />
         <StatCard
           color="purple"
-          icon="fa-peso-sign"
+          icon="peso-sign"
           label="Revenue"
           value={`₱${totalRevenue.toLocaleString()}`}
           sub="From paid bookings"
@@ -286,9 +286,9 @@ export default function AdminBookings() {
       </div>
 
       {/* Toolbar — search, filter dropdown, refresh button */}
-      <div className="admin-panel mb-4">
-        <div className="row row-center">
-          <div className="col">
+      <div className="admin-panel admin-gap-bottom">
+        <div className="admin-row admin-row-center">
+          <div className="admin-col">
             <input
               className="admin-input"
               placeholder="Search guest name, email, or room…"
@@ -296,7 +296,7 @@ export default function AdminBookings() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="col col-fixed-220">
+          <div className="admin-col admin-col-fixed">
             <select
               className="admin-select"
               value={filter}
@@ -310,28 +310,28 @@ export default function AdminBookings() {
               <option value="checked_out">Checked out ({counts.checked_out})</option>
             </select>
           </div>
-          <button className="app-btn app-btn-secondary" onClick={() => fetchBookings(true)}>
-            <i className="fa-solid fa-rotate"></i> Refresh
+          <button className="admin-btn admin-btn-secondary" onClick={() => fetchBookings(true)}>
+            <i className="rotate"></i> Refresh
           </button>
         </div>
       </div>
 
       {/* Feedback messages */}
-      {error && <p className="admin-error mb-2">{error}</p>}
-      {message && <p className="admin-success mb-2">{message}</p>}
+      {error && <p className="admin-error admin-gap-top">{error}</p>}
+      {message && <p className="admin-success admin-gap-top">{message}</p>}
 
       {/* Bookings table */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
-            <i className="fa-solid fa-calendar-check"></i> All Bookings ({filteredBookings.length})
+            <i className="calendar-check"></i> All Bookings ({filteredBookings.length})
           </h3>
         </div>
 
-        {loading && <p className="muted center">Loading…</p>}
+        {loading && <p className="admin-muted admin-center">Loading…</p>}
 
         {!loading && filteredBookings.length === 0 && (
-          <p className="muted center">No bookings match.</p>
+          <p className="admin-muted admin-center">No bookings match.</p>
         )}
 
         {!loading && filteredBookings.length > 0 && (

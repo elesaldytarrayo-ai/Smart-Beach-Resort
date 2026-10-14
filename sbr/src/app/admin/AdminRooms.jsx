@@ -46,7 +46,7 @@ function StatCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -61,17 +61,17 @@ function StatCard({ color, icon, label, value, sub }) {
 // Fields: room number, room type, price, NFC reader ID
 function AddRoomForm({ form, onChange, onSubmit, error, message }) {
   return (
-    <div className="admin-panel mb-4">
+    <div className="admin-panel admin-gap-bottom">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-plus"></i> Add New Room
+          <i className="plus"></i> Add New Room
         </h3>
       </div>
 
-      <form onSubmit={onSubmit} className="row">
+      <form onSubmit={onSubmit} className="admin-row">
 
         {/* Room number field */}
-        <div className="col">
+        <div className="admin-col">
           <label className="admin-label" htmlFor="room-number">Room Number</label>
           <input
             id="room-number"
@@ -84,7 +84,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
         </div>
 
         {/* Room type dropdown */}
-        <div className="col">
+        <div className="admin-col">
           <label className="admin-label" htmlFor="room-type">Room Type</label>
           <select
             id="room-type"
@@ -99,7 +99,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
         </div>
 
         {/* Price field */}
-        <div className="col">
+        <div className="admin-col">
           <label className="admin-label" htmlFor="room-price">Price per Night</label>
           <input
             id="room-price"
@@ -113,7 +113,7 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
         </div>
 
         {/* NFC reader ID field (optional) */}
-        <div className="col">
+        <div className="admin-col">
           <label className="admin-label" htmlFor="room-nfc">NFC Reader ID</label>
           <input
             id="room-nfc"
@@ -125,10 +125,10 @@ function AddRoomForm({ form, onChange, onSubmit, error, message }) {
         </div>
 
         {/* Submit button */}
-        <div className="col col-fixed-140">
-          <label className="admin-label invisible">Add</label>
-          <button type="submit" className="app-btn app-btn-primary w-full">
-            <i className="fa-solid fa-plus mr-1"></i> Add Room
+        <div className="admin-col admin-col-fixed">
+          <label className="admin-label admin-invisible">Add</label>
+          <button type="submit" className="admin-btn admin-btn-primary admin-full">
+            <i className="plus admin-gap"></i> Add Room
           </button>
         </div>
       </form>
@@ -150,30 +150,30 @@ function RoomRow({ room, updatingId, onCycleStatus, onDelete }) {
       <td><strong>{room.room_number}</strong></td>
       <td>{room.room_type}</td>
       <td>₱{Number(room.price).toLocaleString()}</td>
-      <td className="muted">{room.nfc_reader_id || '—'}</td>
+      <td className="admin-muted">{room.nfc_reader_id || '—'}</td>
       <td>
         <span className={`admin-pill ${room.status}`}>{room.status}</span>
       </td>
       <td>
-        <div className="row-actions">
+        <div className="admin-row-actions">
 
           {/* Cycle status button */}
           <button
-            className="app-btn app-btn-secondary app-btn-sm"
+            className="admin-btn admin-btn-secondary admin-btn-sm"
             onClick={() => onCycleStatus(room)}
             disabled={isUpdating}
           >
-            <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-rotate'}`}></i>
+            <i className={isUpdating ? 'spinner' : 'rotate'}></i>
             {isUpdating ? 'Updating…' : 'Next'}
           </button>
 
           {/* Delete button */}
           <button
-            className="app-btn app-btn-danger app-btn-sm"
+            className="admin-btn admin-btn-danger admin-btn-sm"
             onClick={() => onDelete(room)}
             disabled={isUpdating}
           >
-            <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-trash'}`}></i>
+            <i className={isUpdating ? 'spinner' : 'trash'}></i>
             {isUpdating ? 'Deleting…' : 'Delete'}
           </button>
         </div>
@@ -350,28 +350,28 @@ export default function AdminRooms() {
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
-          icon="fa-bed"
+          icon="bed"
           label="Total Rooms"
           value={counts.all}
           sub="All rooms"
         />
         <StatCard
           color="green"
-          icon="fa-circle-check"
+          icon="circle-check"
           label="Available"
           value={counts.available}
           sub="Ready to book"
         />
         <StatCard
           color="orange"
-          icon="fa-user-lock"
+          icon="user-lock"
           label="Occupied"
           value={counts.occupied}
           sub="Currently in use"
         />
         <StatCard
           color="purple"
-          icon="fa-screwdriver-wrench"
+          icon="screwdriver-wrench"
           label="Maintenance"
           value={counts.maintenance}
           sub="Under repair"
@@ -391,10 +391,10 @@ export default function AdminRooms() {
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
-            <i className="fa-solid fa-bed"></i> All Rooms ({counts.all})
+            <i className="bed"></i> All Rooms ({counts.all})
           </h3>
           <select
-            className="admin-select panel-select"
+            className="admin-select admin-panel-select"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
@@ -406,10 +406,10 @@ export default function AdminRooms() {
           </select>
         </div>
 
-        {loading && <p className="muted center">Loading…</p>}
+        {loading && <p className="admin-muted admin-center">Loading…</p>}
 
         {!loading && rooms.length === 0 && (
-          <p className="muted center">No rooms yet. Add one above to get started.</p>
+          <p className="admin-muted admin-center">No rooms yet. Add one above to get started.</p>
         )}
 
         {!loading && rooms.length > 0 && (

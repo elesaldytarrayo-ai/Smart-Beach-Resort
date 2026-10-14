@@ -40,7 +40,7 @@ function StatCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -56,7 +56,7 @@ function PurposePill({ purpose }) {
   const isCheckIn = purpose === 'check_in';
   return (
     <span className={`admin-pill ${isCheckIn ? 'confirmed' : 'pending'}`}>
-      <i className={`fa-solid ${isCheckIn ? 'fa-right-to-bracket' : 'fa-right-from-bracket'}`}></i>
+      <i className={isCheckIn ? 'right-to-bracket' : 'right-from-bracket'}></i>
       {isCheckIn ? 'Check-in' : 'Check-out'}
     </span>
   );
@@ -64,10 +64,10 @@ function PurposePill({ purpose }) {
 
 // FormattedDate — renders a date consistently, or an em-dash if missing
 function FormattedDate({ value, withTime = false }) {
-  if (!value) return <span className="muted">—</span>;
+  if (!value) return <span className="admin-muted">—</span>;
   const date = new Date(value);
   return (
-    <span className="muted">
+    <span className="admin-muted">
       {withTime ? date.toLocaleString() : date.toLocaleDateString()}
     </span>
   );
@@ -83,14 +83,14 @@ function TokenRow({ token, updatingId, onInvalidate }) {
 
   return (
     <tr>
-      <td className="muted" title={token.id}>{String(token.id).slice(0, 8)}…</td>
+      <td className="admin-muted" title={token.id}>{String(token.id).slice(0, 8)}…</td>
       <td><PurposePill purpose={token.purpose} /></td>
       <td>
-        <div className="cell-main">{guest?.full_name || '—'}</div>
-        <div className="cell-sub">{guest?.email}</div>
+        <div className="admin-cell-main">{guest?.full_name || '—'}</div>
+        <div className="admin-cell-sub">{guest?.email}</div>
       </td>
       <td>Room {room?.room_number || '—'}</td>
-      <td className="muted" title={token.booking_id}>
+      <td className="admin-muted" title={token.booking_id}>
         {String(token.booking_id || '').slice(0, 8)}…
       </td>
       <td>
@@ -104,15 +104,15 @@ function TokenRow({ token, updatingId, onInvalidate }) {
       <td>
         {isActive ? (
           <button
-            className="app-btn app-btn-danger app-btn-sm"
+            className="admin-btn admin-btn-danger admin-btn-sm"
             onClick={() => onInvalidate(token)}
             disabled={isUpdating}
           >
-            <i className={`fa-solid ${isUpdating ? 'fa-spinner fa-spin' : 'fa-ban'}`}></i>
+            <i className={isUpdating ? 'spinner' : 'ban'}></i>
             {isUpdating ? 'Invalidating…' : 'Invalidate'}
           </button>
         ) : (
-          <span className="muted text-sm">—</span>
+          <span className="admin-muted admin-sm">—</span>
         )}
       </td>
     </tr>
@@ -261,28 +261,28 @@ export default function AdminNfc() {
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
-          icon="fa-satellite-dish"
+          icon="satellite-dish"
           label="Total Tokens"
           value={counts.all}
           sub="All-time"
         />
         <StatCard
           color="green"
-          icon="fa-circle-check"
+          icon="circle-check"
           label="Active"
           value={counts.active}
           sub="Ready for check-in"
         />
         <StatCard
           color="orange"
-          icon="fa-wifi"
+          icon="wifi"
           label="Used"
           value={counts.used}
           sub="Already tapped"
         />
         <StatCard
           color="purple"
-          icon="fa-lock"
+          icon="lock"
           label="Invalidated"
           value={counts.invalidated}
           sub={`${counts.expired} expired`}
@@ -290,9 +290,9 @@ export default function AdminNfc() {
       </div>
 
       {/* Toolbar — search, filter dropdown, refresh button */}
-      <div className="admin-panel mb-4">
-        <div className="row row-center">
-          <div className="col">
+      <div className="admin-panel admin-gap-bottom">
+        <div className="admin-row admin-row-center">
+          <div className="admin-col">
             <input
               className="admin-input"
               placeholder="Search by guest, room, booking, or token…"
@@ -300,7 +300,7 @@ export default function AdminNfc() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="col col-fixed-200">
+          <div className="admin-col admin-col-fixed">
             <select
               className="admin-select"
               value={filter}
@@ -313,32 +313,32 @@ export default function AdminNfc() {
               ))}
             </select>
           </div>
-          <button className="app-btn app-btn-secondary" onClick={() => fetchTokens(true)}>
-            <i className="fa-solid fa-rotate"></i> Refresh
+          <button className="admin-btn admin-btn-secondary" onClick={() => fetchTokens(true)}>
+            <i className="rotate"></i> Refresh
           </button>
         </div>
       </div>
 
       {/* Feedback messages */}
-      {error && <p className="admin-error mb-2">{error}</p>}
-      {message && <p className="admin-success mb-2">{message}</p>}
+      {error && <p className="admin-error admin-gap-top">{error}</p>}
+      {message && <p className="admin-success admin-gap-top">{message}</p>}
 
       {/* Token table */}
-      <div className="admin-panel table-scroll-wrapper">
+      <div className="admin-panel admin-scroll-wrapper">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
-            <i className="fa-solid fa-satellite-dish"></i> All NFC Tokens ({filteredTokens.length})
+            <i className="satellite-dish"></i> All NFC Tokens ({filteredTokens.length})
           </h3>
         </div>
 
-        {loading && <p className="muted center">Loading…</p>}
+        {loading && <p className="admin-muted admin-center">Loading…</p>}
 
         {!loading && filteredTokens.length === 0 && (
-          <p className="muted center">No NFC tokens found.</p>
+          <p className="admin-muted admin-center">No NFC tokens found.</p>
         )}
 
         {!loading && filteredTokens.length > 0 && (
-          <table className="admin-table table-wide">
+          <table className="admin-table admin-table-wide">
             <thead>
               <tr>
                 <th>Token ID</th>

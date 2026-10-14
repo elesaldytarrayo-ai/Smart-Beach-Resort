@@ -56,30 +56,30 @@ export default function Login() {
   // Render — auth card with login form and navigation links
   return (
     <AppLayout nav={false} footer={false}>
-      <div className="auth-wrap">
-        <div className="auth-card">
+      <div className="login-wrap">
+        <div className="login-card">
 
           {/* Header — icon, title, and subtitle */}
-          <div className="auth-icon">
-            <i className="fa-solid fa-lock"></i>
+          <div className="login-icon">
+            <i className="lock"></i>
           </div>
           <h2>Welcome Back</h2>
-          <p className="subtitle">Sign in to your Smart Beach Resort account</p>
+          <p className="login-subtitle">Sign in to your Smart Beach Resort account</p>
 
           {/* Login form — email, password, forgot link, error, submit */}
           <form onSubmit={handleLogin}>
 
             {/* Email field */}
-            <div className="admin-field">
+            <div className="login-field">
               <label htmlFor="login-email">
-                <i className="fa-solid fa-envelope"></i> Email
+                <i className="envelope"></i> Email
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-envelope"></i>
+              <div className="login-input-wrap">
+                <i className="envelope"></i>
                 <input
                   id="login-email"
                   name="email"
-                  className="admin-input"
+                  className="login-input"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
@@ -91,16 +91,16 @@ export default function Login() {
             </div>
 
             {/* Password field */}
-            <div className="admin-field">
+            <div className="login-field">
               <label htmlFor="login-password">
-                <i className="fa-solid fa-lock"></i> Password
+                <i className="lock"></i> Password
               </label>
-              <div className="admin-input-wrap">
-                <i className="fa-solid fa-key"></i>
+              <div className="login-input-wrap">
+                <i className="key"></i>
                 <input
                   id="login-password"
                   name="password"
-                  className="admin-input"
+                  className="login-input"
                   type="password"
                   placeholder="Enter your password"
                   value={password}
@@ -113,34 +113,34 @@ export default function Login() {
 
             {/* Forgot password link */}
             <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 16 }}>
-              <Link to="/forgot" className="auth-forgot-link">
+              <Link to="/forgot" className="login-forgot-link">
                 Forgot password?
               </Link>
             </div>
 
             {/* Error message */}
-            {err && <p className="admin-error">{err}</p>}
+            {err && <p className="login-error">{err}</p>}
 
             {/* Submit button */}
             <button
-              className="app-btn app-btn-primary"
+              className="login-btn login-btn-primary"
               disabled={loggingIn}
               style={{ width: '100%', padding: '12px 20px', fontSize: 14 }}
               type="submit"
             >
-              <i className={`fa-solid ${loggingIn ? 'fa-spinner fa-spin' : 'fa-right-to-bracket'}`}></i>
+              <i className={loggingIn ? 'spinner' : 'sign-in'}></i>
               {loggingIn ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
           {/* Footer — divider and create account link */}
-          <div className="auth-divider">
+          <div className="login-divider">
             <span>or</span>
           </div>
 
-          <p className="auth-alt">
+          <p className="login-alt">
             Don't have an account?{' '}
-            <Link to="/register" className="auth-link">
+            <Link to="/register" className="login-link">
               Create one
             </Link>
           </p>

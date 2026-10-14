@@ -10,12 +10,12 @@ import AdminLayout from './AdminLayout.jsx';
 
 const REFRESH_INTERVAL_MS = 10000; // Refresh users every 10 seconds
 
-// Maps a user role to its Font Awesome icon
+// Maps a user role to its icon
 // Used in the role pill and the change-role dropdown
 const ROLE_ICON_MAP = {
-  admin: 'fa-user-shield',
-  staff: 'fa-user-tie',
-  user: 'fa-user'
+  admin: 'user-shield',
+  staff: 'user-tie',
+  user: 'user'
 };
 
 // Available roles for the change-role dropdown
@@ -41,7 +41,7 @@ function StatCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -54,10 +54,10 @@ function StatCard({ color, icon, label, value, sub }) {
 
 // RolePill — renders a colored pill for a user's role
 function RolePill({ role }) {
-  const icon = ROLE_ICON_MAP[role] || 'fa-user';
+  const icon = ROLE_ICON_MAP[role] || 'user';
   return (
     <span className={`admin-pill ${role}`}>
-      <i className={`fa-solid ${icon}`}></i>
+      <i className={icon}></i>
       {role}
     </span>
   );
@@ -72,15 +72,15 @@ function UserRow({ user, updatingId, onRoleChange }) {
     <tr>
       <td><strong>{user.full_name || '—'}</strong></td>
       <td>{user.email}</td>
-      <td className="muted">{user.phone || '—'}</td>
+      <td className="admin-muted">{user.phone || '—'}</td>
       <td><RolePill role={user.role} /></td>
-      <td className="muted">
+      <td className="admin-muted">
         {user.created_at ? new Date(user.created_at).toLocaleDateString() : '—'}
       </td>
       <td>
         {/* Inline role change dropdown */}
         <select
-          className="admin-select role-select"
+          className="admin-select admin-role-select"
           value={user.role}
           onChange={(e) => onRoleChange(user, e.target.value)}
           disabled={isUpdating}
@@ -221,28 +221,28 @@ export default function AdminUsers() {
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
-          icon="fa-users"
+          icon="users"
           label="Total Accounts"
           value={counts.all}
           sub="All users"
         />
         <StatCard
           color="green"
-          icon="fa-user"
+          icon="user"
           label="Users"
           value={counts.user}
           sub="Regular accounts"
         />
         <StatCard
           color="orange"
-          icon="fa-user-tie"
+          icon="user-tie"
           label="Staff"
           value={counts.staff}
           sub="Employees"
         />
         <StatCard
           color="purple"
-          icon="fa-user-shield"
+          icon="user-shield"
           label="Admins"
           value={counts.admin}
           sub="Full access"
@@ -250,9 +250,9 @@ export default function AdminUsers() {
       </div>
 
       {/* Toolbar — search, role filter dropdown, refresh button */}
-      <div className="admin-panel mb-4">
-        <div className="row row-center">
-          <div className="col">
+      <div className="admin-panel admin-gap-bottom">
+        <div className="admin-row admin-row-center">
+          <div className="admin-col">
             <input
               className="admin-input"
               placeholder="Search by name, email, or phone…"
@@ -260,7 +260,7 @@ export default function AdminUsers() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="col col-fixed-180">
+          <div className="admin-col admin-col-fixed">
             <select
               className="admin-select"
               value={roleFilter}
@@ -271,28 +271,28 @@ export default function AdminUsers() {
               ))}
             </select>
           </div>
-          <button className="app-btn app-btn-secondary" onClick={() => fetchUsers(true)}>
-            <i className="fa-solid fa-rotate"></i> Refresh
+          <button className="admin-btn admin-btn-secondary" onClick={() => fetchUsers(true)}>
+            <i className="rotate"></i> Refresh
           </button>
         </div>
       </div>
 
       {/* Feedback messages */}
-      {error && <p className="admin-error mb-2">{error}</p>}
-      {message && <p className="admin-success mb-2">{message}</p>}
+      {error && <p className="admin-error admin-gap-top">{error}</p>}
+      {message && <p className="admin-success admin-gap-top">{message}</p>}
 
       {/* Users table */}
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
-            <i className="fa-solid fa-users"></i> All Accounts ({users.length})
+            <i className="users"></i> All Accounts ({users.length})
           </h3>
         </div>
 
-        {loading && <p className="muted center">Loading…</p>}
+        {loading && <p className="admin-muted admin-center">Loading…</p>}
 
         {!loading && filteredUsers.length === 0 && (
-          <p className="muted center">No accounts match.</p>
+          <p className="admin-muted admin-center">No accounts match.</p>
         )}
 
         {!loading && filteredUsers.length > 0 && (

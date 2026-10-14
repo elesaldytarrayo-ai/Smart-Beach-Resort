@@ -29,7 +29,7 @@ function StatCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -47,15 +47,15 @@ function RecentReservationsTable({ bookings, loading }) {
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-calendar-check"></i> Recent Reservations
+          <i className="calendar-check"></i> Recent Reservations
         </h3>
         <Link to="/admin/bookings" className="admin-panel-link">View all</Link>
       </div>
 
-      {loading && <p className="muted center">Loading…</p>}
+      {loading && <p className="admin-muted admin-center">Loading…</p>}
 
       {!loading && bookings.length === 0 && (
-        <p className="muted center">No bookings yet.</p>
+        <p className="admin-muted admin-center">No bookings yet.</p>
       )}
 
       {!loading && bookings.length > 0 && (
@@ -74,8 +74,8 @@ function RecentReservationsTable({ bookings, loading }) {
               <tr key={booking.id}>
                 <td><strong>{booking.profiles?.full_name || '—'}</strong></td>
                 <td>Room {booking.rooms?.room_number}</td>
-                <td className="muted">{booking.check_in}</td>
-                <td className="muted">{booking.check_out}</td>
+                <td className="admin-muted">{booking.check_in}</td>
+                <td className="admin-muted">{booking.check_out}</td>
                 <td>
                   <span className={`admin-pill ${booking.status}`}>{booking.status}</span>
                 </td>
@@ -102,7 +102,7 @@ function RoomOccupancyChart({ stats }) {
     <div className="admin-panel">
       <div className="admin-panel-header">
         <h3 className="admin-panel-title">
-          <i className="fa-solid fa-chart-pie"></i> Room Occupancy
+          <i className="chart-pie"></i> Room Occupancy
         </h3>
       </div>
 
@@ -115,13 +115,13 @@ function RoomOccupancyChart({ stats }) {
 
             {/* Occupied arc */}
             <circle cx="100" cy="100" r={DONUT_RADIUS} fill="none"
-              className="donut-stroke-occupied" strokeWidth="20"
+              className="admin-arc-occupied" strokeWidth="20"
               strokeDasharray={`${occupiedDash} ${DONUT_CIRCUMFERENCE - occupiedDash}`}
               strokeDashoffset="0" strokeLinecap="round" />
 
             {/* Available arc (offset by occupied) */}
             <circle cx="100" cy="100" r={DONUT_RADIUS} fill="none"
-              className="donut-stroke-available" strokeWidth="20"
+              className="admin-arc-available" strokeWidth="20"
               strokeDasharray={`${availableDash} ${DONUT_CIRCUMFERENCE - availableDash}`}
               strokeDashoffset={-occupiedDash} strokeLinecap="round" />
           </svg>
@@ -136,19 +136,19 @@ function RoomOccupancyChart({ stats }) {
         <div className="admin-donut-legend">
           <div className="admin-legend-item">
             <span className="admin-legend-left">
-              <span className="admin-legend-dot donut-legend-occupied" />Occupied
+              <span className="admin-legend-dot admin-dot-occupied" />Occupied
             </span>
             <strong>{stats.occupiedRooms}</strong>
           </div>
           <div className="admin-legend-item">
             <span className="admin-legend-left">
-              <span className="admin-legend-dot donut-legend-available" />Available
+              <span className="admin-legend-dot admin-dot-available" />Available
             </span>
             <strong>{stats.availableRooms}</strong>
           </div>
           <div className="admin-legend-item">
             <span className="admin-legend-left">
-              <span className="admin-legend-dot donut-legend-maintenance" />Maintenance
+              <span className="admin-legend-dot admin-dot-maintenance" />Maintenance
             </span>
             <strong>{stats.maintenanceRooms}</strong>
           </div>
@@ -283,28 +283,28 @@ export default function Admin() {
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
-          icon="fa-bed"
+          icon="bed"
           label="Total Rooms"
           value={stats.rooms}
           sub={`${stats.availableRooms} available`}
         />
         <StatCard
           color="green"
-          icon="fa-users"
+          icon="users"
           label="Current Guests"
           value={stats.occupiedRooms}
           sub={`${occupiedPercent}% occupancy`}
         />
         <StatCard
           color="orange"
-          icon="fa-calendar-check"
+          icon="calendar-check"
           label="Today's Check-ins"
           value={stats.todayCheckins}
           sub={`${stats.checkedOutBookings} check-outs total`}
         />
         <StatCard
           color="purple"
-          icon="fa-credit-card"
+          icon="credit-card"
           label="Today's Payments"
           value={`₱${stats.todayRevenue.toLocaleString()}`}
           sub={`${stats.paidBookings} paid booking(s)`}

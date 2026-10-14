@@ -57,7 +57,7 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
       {/* Logo — brand icon and text */}
       <div className="admin-logo">
         <div className="admin-logo-icon">
-          <i className="fa-solid fa-umbrella-beach"></i>
+          <i className="umbrella"></i>
         </div>
         <div className="admin-logo-text">
           <div className="admin-logo-title">SBR</div>
@@ -82,7 +82,7 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
             to={item.to}
             className={`admin-nav-item ${isActive(item.to) ? 'active' : ''}`}
           >
-            <span className="admin-nav-icon"><i className={`fa-solid ${item.icon}`}></i></span>
+            <span className="admin-nav-icon"><i className={item.icon}></i></span>
             <span className="admin-nav-label">{item.label}</span>
           </Link>
         ))}
@@ -91,10 +91,10 @@ function AdminSidebar({ profile, menu, isActive, onLogout }) {
 
         {/* Sign out button */}
         <button
-          className="admin-nav-item bg-transparent border-none w-full text-left cursor-pointer"
+          className="admin-nav-item admin-transparent admin-border-none admin-full admin-left admin-pointer"
           onClick={onLogout}
         >
-          <span className="admin-nav-icon"><i className="fa-solid fa-right-from-bracket"></i></span>
+          <span className="admin-nav-icon"><i className="sign-out"></i></span>
           <span className="admin-nav-label">Sign Out</span>
         </button>
       </nav>
@@ -109,7 +109,7 @@ function SearchGroup({ icon, title, items, renderItem, onItemClick, targetPath }
   return (
     <div className="admin-search-group">
       <div className="admin-search-group-title">
-        <i className={`fa-solid ${icon}`}></i> {title}
+        <i className={icon}></i> {title}
       </div>
       {items.map((item) => (
         <button
@@ -132,7 +132,7 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
   const groups = [
     {
       key: 'rooms',
-      icon: 'fa-bed',
+      icon: 'bed',
       title: 'Rooms',
       items: searchResults.rooms,
       targetPath: '/admin/rooms',
@@ -147,7 +147,7 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
     },
     {
       key: 'users',
-      icon: 'fa-user',
+      icon: 'user',
       title: 'Users',
       items: searchResults.users,
       targetPath: '/admin/users',
@@ -160,7 +160,7 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
     },
     {
       key: 'bookings',
-      icon: 'fa-calendar-check',
+      icon: 'calendar-check',
       title: 'Bookings',
       items: searchResults.bookings,
       targetPath: '/admin/bookings',
@@ -175,7 +175,7 @@ function SearchDropdown({ searchResults, searchQuery, hasSearchResults, onItemCl
     },
     {
       key: 'payments',
-      icon: 'fa-credit-card',
+      icon: 'credit-card',
       title: 'Payments',
       items: searchResults.payments,
       targetPath: '/admin/payments',
@@ -244,7 +244,7 @@ function NotificationsDropdown({ notifications, onMarkAllRead, onItemClick }) {
                 onClick={() => onItemClick(notif.link)}
               >
                 <span className="admin-notif-icon">
-                  <i className={`fa-solid ${notif.icon}`}></i>
+                  <i className={notif.icon}></i>
                 </span>
                 <div className="admin-notif-content">
                   <div className="admin-notif-title">{notif.title}</div>
@@ -274,19 +274,19 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
 
   // Menu items for the admin dropdown
   const menuItems = [
-    { icon: 'fa-gear',       label: 'Settings',     to: '/admin/settings' },
-    { icon: 'fa-chart-line', label: 'Dashboard',    to: '/admin' },
-    { icon: 'fa-users',      label: 'Manage Users', to: '/admin/users' }
+    { icon: 'gear',       label: 'Settings',     to: '/admin/settings' },
+    { icon: 'chart-line', label: 'Dashboard',    to: '/admin' },
+    { icon: 'users',      label: 'Manage Users', to: '/admin/users' }
   ];
 
   return (
     <div className="admin-user-dropdown">
       {/* Header — avatar, name, and email */}
       <div className="admin-user-dropdown-header">
-        <div className="admin-topbar-avatar avatar-lg">{initial}</div>
+        <div className="admin-topbar-avatar admin-avatar-lg">{initial}</div>
         <div>
-          <div className="fw-bold text-sm">{profile?.full_name || 'Admin'}</div>
-          <div className="muted text-sm">{profile?.email}</div>
+          <div className="admin-bold admin-sm">{profile?.full_name || 'Admin'}</div>
+          <div className="admin-muted admin-sm">{profile?.email}</div>
         </div>
       </div>
 
@@ -299,7 +299,7 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
           className="admin-user-dropdown-item"
           onClick={() => onNavigate(item.to)}
         >
-          <i className={`fa-solid ${item.icon}`}></i>
+          <i className={item.icon}></i>
           <span>{item.label}</span>
         </button>
       ))}
@@ -307,8 +307,8 @@ function UserMenuDropdown({ profile, onNavigate, onLogout }) {
       <div className="admin-user-dropdown-divider" />
 
       {/* Sign out */}
-      <button className="admin-user-dropdown-item danger" onClick={onLogout}>
-        <i className="fa-solid fa-right-from-bracket"></i>
+      <button className="admin-user-dropdown-item admin-danger" onClick={onLogout}>
+        <i className="sign-out"></i>
         <span>Sign Out</span>
       </button>
     </div>
@@ -384,7 +384,7 @@ export default function AdminLayout({ children }) {
         notifs.push({
           id: `bk-${booking.id}`,
           type: 'booking',
-          icon: booking.status === 'pending' ? 'fa-calendar-plus' : 'fa-calendar-check',
+          icon: booking.status === 'pending' ? 'calendar-plus' : 'calendar-check',
           title: `New booking from ${booking.profiles?.full_name || 'Guest'}`,
           message: `Room ${booking.rooms?.room_number || '—'} · ₱${Number(booking.total_amount || 0).toLocaleString()}`,
           time: booking.created_at,
@@ -397,7 +397,7 @@ export default function AdminLayout({ children }) {
         notifs.push({
           id: `pay-${payment.id}`,
           type: 'payment',
-          icon: 'fa-credit-card',
+          icon: 'credit-card',
           title: `Payment from ${payment.bookings?.profiles?.full_name || 'Guest'}`,
           message: `₱${Number(payment.amount || 0).toLocaleString()} via ${payment.method || 'paymongo'}`,
           time: payment.paid_at,
@@ -535,14 +535,14 @@ export default function AdminLayout({ children }) {
 
   // Sidebar menu items
   const menu = [
-    { icon: 'fa-chart-line', label: 'Dashboard', to: '/admin' },
-    { icon: 'fa-bed', label: 'Rooms', to: '/admin/rooms' },
-    { icon: 'fa-users', label: 'Users', to: '/admin/users' },
-    { icon: 'fa-user-tie', label: 'Staff', to: '/admin/staff' },
-    { icon: 'fa-calendar-check', label: 'Reservations', to: '/admin/bookings' },
-    { icon: 'fa-credit-card', label: 'Payments', to: '/admin/payments' },
-    { icon: 'fa-satellite-dish', label: 'NFC Management', to: '/admin/nfc' },
-    { icon: 'fa-gear', label: 'Settings', to: '/admin/settings' }
+    { icon: 'chart-line',     label: 'Dashboard',      to: '/admin' },
+    { icon: 'bed',            label: 'Rooms',          to: '/admin/rooms' },
+    { icon: 'users',          label: 'Users',          to: '/admin/users' },
+    { icon: 'user-tie',       label: 'Staff',          to: '/admin/staff' },
+    { icon: 'calendar-check', label: 'Reservations',   to: '/admin/bookings' },
+    { icon: 'credit-card',    label: 'Payments',       to: '/admin/payments' },
+    { icon: 'satellite-dish', label: 'NFC Management', to: '/admin/nfc' },
+    { icon: 'gear',           label: 'Settings',       to: '/admin/settings' }
   ];
 
   // isActive — checks if a menu path is currently active
@@ -573,8 +573,8 @@ export default function AdminLayout({ children }) {
         <div className="admin-topbar">
 
           {/* Search bar and dropdown */}
-          <div className="admin-search position-relative" ref={searchRef}>
-            <i className="fa-solid fa-magnifying-glass"></i>
+          <div className="admin-search admin-relative" ref={searchRef}>
+            <i className="search"></i>
             <input
               type="text"
               placeholder="Search rooms, users, bookings, payments..."
@@ -595,7 +595,7 @@ export default function AdminLayout({ children }) {
           <div className="admin-topbar-actions">
 
             {/* Notifications bell and dropdown */}
-            <div className="position-relative" ref={notifRef}>
+            <div className="admin-relative" ref={notifRef}>
               <button
                 className="admin-bell"
                 onClick={() => {
@@ -604,7 +604,7 @@ export default function AdminLayout({ children }) {
                 }}
                 title="Notifications"
               >
-                <i className="fa-solid fa-bell"></i>
+                <i className="bell"></i>
                 {unreadCount > 0 && (
                   <span className="admin-bell-badge">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -621,11 +621,11 @@ export default function AdminLayout({ children }) {
             </div>
 
             {/* User menu — avatar and dropdown */}
-            <div className="position-relative" ref={userMenuRef}>
+            <div className="admin-relative" ref={userMenuRef}>
               <div className="admin-topbar-user" onClick={() => setUserMenuOpen(!userMenuOpen)}>
                 <div className="admin-topbar-avatar">{initial}</div>
                 <span className="admin-topbar-name">{firstName}</span>
-                <i className="fa-solid fa-chevron-down text-sm text-muted"></i>
+                <i className="chevron-down admin-sm admin-muted"></i>
               </div>
               {userMenuOpen && (
                 <UserMenuDropdown
@@ -647,4 +647,4 @@ export default function AdminLayout({ children }) {
       </div>
     </div>
   );
-} 
+}

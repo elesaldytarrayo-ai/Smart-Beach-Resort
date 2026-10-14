@@ -9,11 +9,11 @@ import AdminLayout from './AdminLayout.jsx';
 
 const REFRESH_INTERVAL_MS = 10000; // Refresh payments every 10 seconds
 
-// Maps a payment method string to its corresponding Font Awesome icon
+// Maps a payment method string to its corresponding icon
 // Falls back to a generic credit-card icon for unknown methods
 const METHOD_ICON_MAP = {
-  paymongo: 'fa-mobile-screen',
-  'manual-admin': 'fa-user-shield'
+  paymongo: 'mobile-screen',
+  'manual-admin': 'user-shield'
 };
 
 // Defines the filter options for the dropdown
@@ -36,7 +36,7 @@ function StatCard({ color, icon, label, value, sub }) {
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
         <span className="admin-stat-icon">
-          <i className={`fa-solid ${icon}`}></i>
+          <i className={icon}></i>
         </span>
       </div>
       <div>
@@ -49,10 +49,10 @@ function StatCard({ color, icon, label, value, sub }) {
 
 // MethodIcon — renders the payment method with its corresponding icon
 function MethodIcon({ method }) {
-  const icon = METHOD_ICON_MAP[method] || 'fa-credit-card';
+  const icon = METHOD_ICON_MAP[method] || 'credit-card';
   return (
     <>
-      <i className={`fa-solid ${icon} mr-1`}></i>
+      <i className={`${icon} admin-gap`}></i>
       {method || '—'}
     </>
   );
@@ -60,16 +60,16 @@ function MethodIcon({ method }) {
 
 // FormattedDate — renders a date consistently with time, or an em-dash if missing
 function FormattedDate({ value }) {
-  if (!value) return <span className="muted">—</span>;
-  return <span className="muted">{new Date(value).toLocaleString()}</span>;
+  if (!value) return <span className="admin-muted">—</span>;
+  return <span className="admin-muted">{new Date(value).toLocaleString()}</span>;
 }
 
 // TruncatedId — renders the first 8 characters of an ID with an ellipsis
 // Full ID is shown on hover via title attribute
 function TruncatedId({ value }) {
-  if (!value) return <span className="muted">—</span>;
+  if (!value) return <span className="admin-muted">—</span>;
   return (
-    <span className="muted" title={value}>
+    <span className="admin-muted" title={value}>
       {String(value).slice(0, 8)}…
     </span>
   );
@@ -78,9 +78,9 @@ function TruncatedId({ value }) {
 // TruncatedText — renders the first N characters of a text value
 // Full text is shown on hover via title attribute
 function TruncatedText({ value, length = 12 }) {
-  if (!value) return <span className="muted">—</span>;
+  if (!value) return <span className="admin-muted">—</span>;
   return (
-    <span className="muted" title={value}>
+    <span className="admin-muted" title={value}>
       {String(value).slice(0, length)}…
     </span>
   );
@@ -97,8 +97,8 @@ function PaymentRow({ payment }) {
       <td><TruncatedId value={payment.id} /></td>
       <td><TruncatedId value={payment.booking_id} /></td>
       <td>
-        <div className="cell-main">{guest?.full_name || '—'}</div>
-        <div className="cell-sub">{guest?.email}</div>
+        <div className="admin-cell-main">{guest?.full_name || '—'}</div>
+        <div className="admin-cell-sub">{guest?.email}</div>
       </td>
       <td>Room {room?.room_number || '—'}</td>
       <td>
@@ -226,28 +226,28 @@ export default function AdminPayments() {
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
-          icon="fa-credit-card"
+          icon="credit-card"
           label="Total Payments"
           value={counts.all}
           sub={`${paymongoCount} via PayMongo`}
         />
         <StatCard
           color="green"
-          icon="fa-circle-check"
+          icon="circle-check"
           label="Paid"
           value={counts.paid}
           sub="Completed"
         />
         <StatCard
           color="orange"
-          icon="fa-hourglass-half"
+          icon="hourglass-half"
           label="Pending"
           value={counts.pending}
           sub="Awaiting"
         />
         <StatCard
           color="purple"
-          icon="fa-peso-sign"
+          icon="peso-sign"
           label="Total Revenue"
           value={`₱${totalRevenue.toLocaleString()}`}
           sub="All-time"
@@ -255,9 +255,9 @@ export default function AdminPayments() {
       </div>
 
       {/* Toolbar — search, filter dropdown, refresh button */}
-      <div className="admin-panel mb-4">
-        <div className="row row-center">
-          <div className="col">
+      <div className="admin-panel admin-gap-bottom">
+        <div className="admin-row admin-row-center">
+          <div className="admin-col">
             <input
               className="admin-input"
               placeholder="Search ID, guest, reference…"
@@ -265,7 +265,7 @@ export default function AdminPayments() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="col col-fixed-180">
+          <div className="admin-col admin-col-fixed">
             <select
               className="admin-select"
               value={filter}
@@ -278,31 +278,31 @@ export default function AdminPayments() {
               ))}
             </select>
           </div>
-          <button className="app-btn app-btn-secondary" onClick={() => fetchPayments(true)}>
-            <i className="fa-solid fa-rotate"></i> Refresh
+          <button className="admin-btn admin-btn-secondary" onClick={() => fetchPayments(true)}>
+            <i className="rotate"></i> Refresh
           </button>
         </div>
       </div>
 
       {/* Feedback messages */}
-      {error && <p className="admin-error mb-2">{error}</p>}
+      {error && <p className="admin-error admin-gap-top">{error}</p>}
 
       {/* Payments table */}
-      <div className="admin-panel table-scroll-wrapper">
+      <div className="admin-panel admin-scroll-wrapper">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
-            <i className="fa-solid fa-credit-card"></i> All Payments ({filteredPayments.length})
+            <i className="credit-card"></i> All Payments ({filteredPayments.length})
           </h3>
         </div>
 
-        {loading && <p className="muted center">Loading…</p>}
+        {loading && <p className="admin-muted admin-center">Loading…</p>}
 
         {!loading && filteredPayments.length === 0 && (
-          <p className="muted center">No payments yet.</p>
+          <p className="admin-muted admin-center">No payments yet.</p>
         )}
 
         {!loading && filteredPayments.length > 0 && (
-          <table className="admin-table table-wide">
+          <table className="admin-table admin-table-wide">
             <thead>
               <tr>
                 <th>Payment ID</th>
