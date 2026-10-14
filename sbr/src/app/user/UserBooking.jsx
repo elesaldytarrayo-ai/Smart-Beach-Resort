@@ -278,7 +278,7 @@ export default function UserBooking() {
       localStorage.removeItem(PENDING_KEY);
       localStorage.removeItem(SESSION_KEY);
 
-      setNfcBanner('Payment confirmed! Tap your phone to the room NFC reader.');
+      setNfcBanner('Payment confirmed! Tap your NFC authentication to the room.');
       setMessage('Booking PAID + CONFIRMED. NFC token issued.');
       await fetchData();
     } catch (err) {
@@ -476,7 +476,7 @@ export default function UserBooking() {
   async function handleNfcCheckIn(booking) {
     setError(''); setMessage(''); setNfcBanner('');
     setNfcChecking(true);
-    setNfcBanner('Waiting for NFC tap… Tap your phone to the room reader.');
+    setNfcBanner('Waiting for NFC tap… Tap your NFC authentication to the room.');
 
     try {
       console.log('[NFC] Reading tag...');
