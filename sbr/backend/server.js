@@ -5,6 +5,7 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import CryptoJS from 'crypto-js';
 import { supabaseAdmin } from './supabaseAdmin.js';
 import { createCheckoutSession, verifyPaymentBySessionId } from './payments.js';
 import { makeCheckInToken, makeCheckOutToken, hashToken } from './nfc.js';
@@ -19,6 +20,26 @@ app.use(cors({
   ].filter(Boolean),
   credentials: true
 }));
+
+// ============================================================
+// ENCRYPTION HELPERS (same key as frontend)
+// ============================================================
+const ENCRYPTION_KEY =
+  process.env.VITE_ENCRYPTION_KEY ||
+  'default-key-change-me-32-chars!!';
+
+function encrypt(text) {
+  if (text === null || text === undefined || text === '') return null;
+  return CryptoJS.AES.encrypt(String(text), ENCRYPTION_KEY).toString();
+}
+
+function decrypt(cipher) {
+  if (!cipher) return '';
+  if (typeof cipher !== 'string') return String(cipher);
+  if (!cipher.startsWith('U2FsdGVkX1')) return cipher;
+  const bytes = CryptoJS.AES.decrypt(cipher, ENCRYPTION_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+}
 
 // Convert a value (Unix seconds, Unix ms, or string) into an ISO date string.
 function toISODate(value, fallbackNow = true) {
@@ -50,11 +71,18 @@ async function setRoomStatus(roomId, status) {
   console.log(`🛏️ Room ${roomId.slice(0, 8)}… → ${status}`);
 }
 
-// Save a payment record. Upserts by booking_id.
+// ============================================================
+// Save a payment record (ENCRYPTED).
+// Upserts by booking_id.
+// ============================================================
 async function savePayment({ bookingId, amount, method, paymentId, paidAt, payerInfo }) {
   const paidAtISO = toISODate(paidAt);
 
   console.log('💾 Upserting payment for booking:', bookingId);
+
+  // ✅ ENCRYPT ang reference at paymongo_id
+  const encryptedRef = encrypt(paymentId);
+  const encryptedPaymongoId = encrypt(paymentId);
 
   const result = await supabaseAdmin
     .from('payments')
@@ -64,8 +92,8 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
         amount: Number(amount) || 0,
         method: method || 'paymongo',
         status: 'paid',
-        reference: paymentId || null,
-        paymongo_id: paymentId || null,
+        reference_number_encrypted: encryptedRef,          // ✅
+        paymongo_id_encrypted: encryptedPaymongoId,        // ✅
         payer_info: payerInfo || null,
         currency: 'PHP',
         paid_at: paidAtISO
@@ -88,7 +116,7 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
     throw new Error('Failed to save payment: ' + result.error.message);
   }
 
-  console.log('✅ Payment saved');
+  console.log('✅ Payment saved (encrypted)');
 }
 
 // Mark a booking as paid + confirmed, and mark the room as occupied.
@@ -234,7 +262,8 @@ app.get('/', (_req, res) => {
     config: {
       supabase: !!process.env.SUPABASE_URL,
       paymongo: !!process.env.PAYMONGO_SECRET_KEY,
-      nfc: !!process.env.NFC_SECRET
+      nfc: !!process.env.NFC_SECRET,
+      encryption: !!process.env.VITE_ENCRYPTION_KEY
     }
   });
 });
@@ -304,9 +333,10 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
       description: description || `Room ${booking.rooms?.room_number}`
     });
 
+    // ✅ ENCRYPT ang paymongo_session_id bago i-save
     await supabaseAdmin
       .from('bookings')
-      .update({ paymongo_session_id: sessionId })
+      .update({ paymongo_session_id_encrypted: encrypt(sessionId) })
       .eq('id', bookingId);
 
     res.json({ ok: true, checkoutUrl, sessionId });
@@ -345,7 +375,12 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       });
     }
 
-    const sessionToCheck = sessionId || booking.paymongo_session_id;
+    // ✅ Decrypt ang paymongo_session_id mula sa DB
+    const storedSessionId = booking.paymongo_session_id_encrypted
+      ? decrypt(booking.paymongo_session_id_encrypted)
+      : null;
+
+    const sessionToCheck = sessionId || storedSessionId;
     if (!sessionToCheck) {
       return res.json({ ok: true, paid: false, message: 'No session ID' });
     }
@@ -363,7 +398,7 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
     // 1. Confirm booking (this also marks the room as occupied).
     await confirmBooking(bookingId);
 
-    // 2. Save payment.
+    // 2. Save payment (auto-encrypted inside savePayment).
     await savePayment({
       bookingId,
       amount: verify.amount || booking.total_amount,
@@ -660,8 +695,9 @@ app.listen(PORT, () => {
   console.log('\n════════════════════════════════════════════════════════');
   console.log(`✅ SBR Backend: http://localhost:${PORT}`);
   console.log('────────────────────────────────────────────────────────');
-  console.log(` Supabase : ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
-  console.log(` PayMongo : ${process.env.PAYMONGO_SECRET_KEY ? '✅' : '❌'}`);
-  console.log(` NFC      : ${process.env.NFC_SECRET ? '✅' : '⚠️'}`);
+  console.log(` Supabase   : ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
+  console.log(` PayMongo   : ${process.env.PAYMONGO_SECRET_KEY ? '✅' : '❌'}`);
+  console.log(` NFC        : ${process.env.NFC_SECRET ? '✅' : '⚠️'}`);
+  console.log(` Encryption : ${process.env.VITE_ENCRYPTION_KEY ? '✅' : '⚠️'}`);
   console.log('════════════════════════════════════════════════════════\n');
 });
