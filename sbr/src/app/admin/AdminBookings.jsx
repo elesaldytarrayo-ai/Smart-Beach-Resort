@@ -1,13 +1,10 @@
-// Imports — React hooks, Supabase, and admin layout wrapper
+// Imports — React hooks, Supabase (secure), and admin layout wrapper
 import { useEffect, useState } from 'react';
-import { supabase } from '../../supabase.js';
+import { supabase, secureSelect, secureInsert, secureUpdate } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
-// Constants
-const REFRESH_INTERVAL_MS = 10000; // Refresh bookings every 10 seconds
+const REFRESH_INTERVAL_MS = 10000;
 
-// Filter definitions for the reservation status dropdown
-// A booking matches a filter if BOTH its payment AND status checks pass
 const FILTER_PREDICATES = {
   all: () => true,
   paid: (b) => b.payment_status === 'paid',
@@ -17,17 +14,12 @@ const FILTER_PREDICATES = {
   checked_out: (b) => b.status === 'checked_out'
 };
 
-// Resuable Sub-Components
-// StatCard — displays a large KPI card on the bookings dashboard
-// Used for the big colored cards at the top (total, paid, unpaid, revenue)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
       <div className="admin-stat-top">
         <span className="admin-stat-label">{label}</span>
-        <span className="admin-stat-icon">
-          <i className={icon}></i>
-        </span>
+        <span className="admin-stat-icon"><i className={icon}></i></span>
       </div>
       <div>
         <div className="admin-stat-value">{value}</div>
@@ -37,13 +29,27 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// StatusPill — renders a colored pill for payment or booking status
 function StatusPill({ value }) {
   return <span className={`admin-pill ${value}`}>{value}</span>;
 }
 
-// ReservationRow — renders a single row in the bookings table with action buttons
-// Shows booking details and actions (mark paid, check-out)
+function DecryptedSession({ value }) {
+  if (!value) return <span className="admin-muted admin-sm">—</span>;
+  return (
+    <span
+      title={value}
+      style={{
+        color: '#2e7d32',
+        fontWeight: 600,
+        fontSize: 11,
+        fontFamily: 'Courier New, monospace'
+      }}
+    >
+      🔓 {String(value).slice(0, 16)}…
+    </span>
+  );
+}
+
 function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
   const isUpdating = updatingId === booking.id;
   const isUnpaid = booking.payment_status !== 'paid';
@@ -62,28 +68,17 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
       <td>₱{Number(booking.total_amount || 0).toLocaleString()}</td>
       <td><StatusPill value={booking.payment_status} /></td>
       <td><StatusPill value={booking.status} /></td>
+      <td><DecryptedSession value={booking.paymongo_session_id} /></td>
       <td>
         <div className="admin-row-actions">
-
-          {/* Unpaid → Mark Paid button */}
           {isUnpaid && (
-            <button
-              className="admin-btn admin-btn-primary admin-btn-sm"
-              onClick={() => onMarkPaid(booking)}
-              disabled={isUpdating}
-            >
+            <button className="admin-btn admin-btn-primary admin-btn-sm" onClick={() => onMarkPaid(booking)} disabled={isUpdating}>
               <i className={isUpdating ? 'spinner' : 'check'}></i>
               {isUpdating ? 'Marking…' : 'Mark Paid'}
             </button>
           )}
-
-          {/* Confirmed → Check-out button */}
           {isConfirmed && (
-            <button
-              className="admin-btn admin-btn-danger admin-btn-sm"
-              onClick={() => onUpdateStatus(booking, 'checked_out')}
-              disabled={isUpdating}
-            >
+            <button className="admin-btn admin-btn-danger admin-btn-sm" onClick={() => onUpdateStatus(booking, 'checked_out')} disabled={isUpdating}>
               <i className={isUpdating ? 'spinner' : 'door-open'}></i>
               {isUpdating ? 'Checking…' : 'Check-out'}
             </button>
@@ -94,11 +89,7 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
   );
 }
 
-// Main Admin Bookings Component
-// AdminBookings — displays all reservations with filtering, search, and actions
 export default function AdminBookings() {
-
-  // State — bookings, filter, search, loading, updatingId, error, message
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -107,19 +98,16 @@ export default function AdminBookings() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  // Data Fetching
-  // fetchBookings — fetches all bookings from the database
-  // isInitialLoad controls whether to show the loading spinner
   async function fetchBookings(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
     try {
       setError('');
-      const { data, error: fetchError } = await supabase
-        .from('bookings')
-        .select('*, profiles(full_name, email, phone), rooms(room_number, room_type, price)')
-        .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      const data = await secureSelect('bookings', {
+        columns: '*, profiles(full_name, email, phone), rooms(room_number, room_type, price)',
+        order: { column: 'created_at', ascending: false }
+      });
+
       setBookings(data || []);
     } catch (err) {
       setError(err.message);
@@ -128,15 +116,12 @@ export default function AdminBookings() {
     }
   }
 
-  // Load bookings on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchBookings(true);
     const interval = setInterval(() => fetchBookings(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Actions
-  // handleMarkPaid — marks a booking as paid and creates a payment record
   async function handleMarkPaid(booking) {
     const confirmed = window.confirm(
       `Mark booking as PAID?\n\nGuest: ${booking.profiles?.full_name}\nAmount: ₱${booking.total_amount}`
@@ -148,23 +133,15 @@ export default function AdminBookings() {
     setUpdatingId(booking.id);
 
     try {
-      // 1. Update the booking record
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .update({ payment_status: 'paid', status: 'confirmed' })
-        .eq('id', booking.id);
+      await secureUpdate('bookings', { id: booking.id }, { payment_status: 'paid', status: 'confirmed' });
 
-      if (bookingError) throw bookingError;
+      const existing = await secureSelect('payments', {
+        columns: 'id',
+        match: { booking_id: booking.id }
+      });
 
-      // 2. Create payment record if one doesn't exist
-      const { data: existingPayment } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('booking_id', booking.id)
-        .maybeSingle();
-
-      if (!existingPayment) {
-        const { error: paymentError } = await supabase.from('payments').insert({
+      if (!existing || existing.length === 0) {
+        await secureInsert('payments', {
           booking_id: booking.id,
           amount: booking.total_amount,
           method: 'manual-admin',
@@ -172,7 +149,6 @@ export default function AdminBookings() {
           currency: 'PHP',
           paid_at: new Date().toISOString()
         });
-        if (paymentError) throw paymentError;
       }
 
       setMessage('Booking marked as paid.');
@@ -184,7 +160,6 @@ export default function AdminBookings() {
     }
   }
 
-  // handleUpdateStatus — updates the status of a booking after confirmation
   async function handleUpdateStatus(booking, newStatus) {
     const confirmed = window.confirm(`Change status to "${newStatus}"?`);
     if (!confirmed) return;
@@ -194,13 +169,7 @@ export default function AdminBookings() {
     setUpdatingId(booking.id);
 
     try {
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({ status: newStatus })
-        .eq('id', booking.id);
-
-      if (updateError) throw updateError;
-
+      await secureUpdate('bookings', { id: booking.id }, { status: newStatus });
       setMessage(`Status updated to "${newStatus}".`);
       await fetchBookings(false);
     } catch (err) {
@@ -210,8 +179,6 @@ export default function AdminBookings() {
     }
   }
 
-  // Derived Data
-  // Counts per filter key for stat cards and dropdown labels
   const counts = {
     all: bookings.length,
     paid: bookings.filter(FILTER_PREDICATES.paid).length,
@@ -221,12 +188,10 @@ export default function AdminBookings() {
     checked_out: bookings.filter(FILTER_PREDICATES.checked_out).length
   };
 
-  // Total revenue from paid bookings
   const totalRevenue = bookings
     .filter(FILTER_PREDICATES.paid)
     .reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
 
-  // Bookings after applying the active filter and search query
   const filteredBookings = bookings.filter((booking) => {
     const matchesFilter = FILTER_PREDICATES[filter]?.(booking) ?? true;
     if (!matchesFilter) return false;
@@ -237,71 +202,40 @@ export default function AdminBookings() {
         ${booking.profiles?.full_name || ''}
         ${booking.profiles?.email || ''}
         ${booking.rooms?.room_number || ''}
+        ${booking.paymongo_session_id || ''}
       `.toLowerCase();
       if (!searchable.includes(query)) return false;
     }
     return true;
   });
 
-  // Render
   return (
     <AdminLayout>
 
-      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>Reservations</h1>
-        <p>All bookings from guests.</p>
+        <p>All bookings from guests. PayMongo session ay auto-decrypted.</p>
       </div>
 
-      {/* KPI stat cards — total, paid, unpaid, revenue */}
       <div className="admin-stat-grid">
-        <StatCard
-          color="blue"
-          icon="calendar-check"
-          label="Total Bookings"
-          value={counts.all}
-          sub={`${counts.pending} pending`}
-        />
-        <StatCard
-          color="green"
-          icon="circle-check"
-          label="Paid"
-          value={counts.paid}
-          sub={`${counts.confirmed} confirmed`}
-        />
-        <StatCard
-          color="orange"
-          icon="hourglass-half"
-          label="Unpaid"
-          value={counts.unpaid}
-          sub="Awaiting payment"
-        />
-        <StatCard
-          color="purple"
-          icon="peso-sign"
-          label="Revenue"
-          value={`₱${totalRevenue.toLocaleString()}`}
-          sub="From paid bookings"
-        />
+        <StatCard color="blue"   icon="calendar-check" label="Total Bookings" value={counts.all}                         sub={`${counts.pending} pending`} />
+        <StatCard color="green"  icon="circle-check"   label="Paid"           value={counts.paid}                        sub={`${counts.confirmed} confirmed`} />
+        <StatCard color="orange" icon="hourglass-half" label="Unpaid"         value={counts.unpaid}                      sub="Awaiting payment" />
+        <StatCard color="purple" icon="peso-sign"      label="Revenue"        value={`₱${totalRevenue.toLocaleString()}`} sub="From paid bookings" />
       </div>
 
-      {/* Toolbar — search, filter dropdown, refresh button */}
       <div className="admin-panel admin-gap-bottom">
         <div className="admin-row admin-row-center">
           <div className="admin-col">
             <input
               className="admin-input"
-              placeholder="Search guest name, email, or room…"
+              placeholder="Search guest name, email, room, or PayMongo session…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <div className="admin-col admin-col-fixed">
-            <select
-              className="admin-select"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            >
+            <select className="admin-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
               <option value="all">All ({counts.all})</option>
               <option value="paid">Paid ({counts.paid})</option>
               <option value="unpaid">Unpaid ({counts.unpaid})</option>
@@ -316,12 +250,10 @@ export default function AdminBookings() {
         </div>
       </div>
 
-      {/* Feedback messages */}
       {error && <p className="admin-error admin-gap-top">{error}</p>}
       {message && <p className="admin-success admin-gap-top">{message}</p>}
 
-      {/* Bookings table */}
-      <div className="admin-panel">
+      <div className="admin-panel admin-scroll-wrapper">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
             <i className="calendar-check"></i> All Bookings ({filteredBookings.length})
@@ -335,7 +267,7 @@ export default function AdminBookings() {
         )}
 
         {!loading && filteredBookings.length > 0 && (
-          <table className="admin-table">
+          <table className="admin-table admin-table-wide">
             <thead>
               <tr>
                 <th>ID</th>
@@ -346,6 +278,7 @@ export default function AdminBookings() {
                 <th>Total</th>
                 <th>Payment</th>
                 <th>Status</th>
+                <th>🔓 PayMongo Session</th>
                 <th>Actions</th>
               </tr>
             </thead>

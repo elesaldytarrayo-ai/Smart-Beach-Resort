@@ -2059,3 +2059,551 @@ i[class] {
   .page-actions { flex-direction: column; align-items: stretch; }
   .home-btn { width: 100%; }
 }
+
+/* Decrypt Viewer
+/* ============================================================
+   19. DECRYPT VIEWER PAGE (CENTERED)
+   ============================================================ */
+
+/* Wrap — full viewport, centered */
+.decrypt-wrap {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at top, rgba(45,142,207,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(111,195,232,0.10) 0%, transparent 60%),
+    linear-gradient(180deg, #eaf4fa 0%, #d5e8f3 100%);
+}
+
+/* Container — centered card */
+.decrypt-container {
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: var(--shadow-pop);
+  border: 1px solid #e5ebf0;
+  position: relative;
+  overflow: hidden;
+}
+
+.decrypt-container::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--lagoon), var(--sky), var(--foam), var(--sky), var(--lagoon));
+}
+
+/* Header — centered */
+.decrypt-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.decrypt-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--deep-sea);
+  margin: 0;
+  letter-spacing: -0.4px;
+  text-align: center;
+}
+
+.decrypt-title i {
+  font-size: 30px;
+  color: var(--icon-blue) !important;
+}
+
+.decrypt-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 24px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* Icon circle (above title) */
+.decrypt-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  background: rgba(45,142,207,0.1);
+  border-radius: 50%;
+}
+
+.decrypt-icon i {
+  color: var(--icon-blue) !important;
+  font-size: 32px;
+}
+
+/* Toolbar — centered */
+.decrypt-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: #f9fbfd;
+  border-radius: 12px;
+  border: 1px solid #e5ebf0;
+  margin-bottom: 24px;
+}
+
+.decrypt-toolbar label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.decrypt-toolbar label i {
+  color: var(--icon-blue) !important;
+  font-size: 13px;
+}
+
+.decrypt-toolbar select {
+  padding: 10px 36px 10px 14px;
+  background: #fff;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  border: 1px solid #d8e2ec;
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  min-width: 180px;
+  transition: all 0.15s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7f95' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px;
+}
+
+.decrypt-toolbar select:hover {
+  border-color: #b5cbe0;
+}
+
+.decrypt-toolbar select:focus {
+  border-color: var(--icon-blue);
+  box-shadow: 0 0 0 4px rgba(45,142,207,0.12);
+}
+
+/* Stat chips — centered */
+.decrypt-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.decrypt-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e8f4fb;
+  color: #1e5fa8;
+}
+
+.decrypt-stat i {
+  font-size: 11px;
+  color: inherit !important;
+}
+
+.decrypt-stat.encrypted {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.decrypt-stat.decrypted {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Table */
+.decrypt-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e5ebf0;
+  background: #fff;
+  margin-bottom: 20px;
+}
+
+.decrypt-table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.decrypt-table-wrap::-webkit-scrollbar-track {
+  background: #f5f7fa;
+}
+
+.decrypt-table-wrap::-webkit-scrollbar-thumb {
+  background: #d0dbe5;
+  border-radius: 4px;
+}
+
+.decrypt-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #b5cbe0;
+}
+
+.decrypt-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.decrypt-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 12px 14px;
+  background: #f9fbfd;
+  border-bottom: 1px solid #e5ebf0;
+  white-space: nowrap;
+}
+
+.decrypt-table thead th.col-encrypted {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.decrypt-table thead th.col-decrypted {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.decrypt-table thead th .col-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  font-size: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.decrypt-table thead th.col-encrypted .col-badge {
+  background: #c62828;
+  color: #fff;
+}
+
+.decrypt-table thead th.col-decrypted .col-badge {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.decrypt-table tbody tr {
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.decrypt-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.decrypt-table tbody tr:hover {
+  background: #f5faff;
+}
+
+.decrypt-table tbody td {
+  padding: 12px 14px;
+  vertical-align: top;
+  font-size: 12px;
+  color: var(--text);
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.decrypt-table tbody td.cell-encrypted {
+  background: #fff8f8;
+}
+
+.decrypt-table tbody td.cell-decrypted {
+  background: #f1f8e9;
+}
+
+.decrypt-table code {
+  display: block;
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  word-break: break-all;
+  max-width: 240px;
+}
+
+.decrypt-table td.cell-encrypted code {
+  color: #c62828;
+}
+
+.decrypt-table td.cell-decrypted code {
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.decrypt-table td code {
+  color: #333;
+}
+
+/* Empty / loading — centered */
+.decrypt-empty,
+.decrypt-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  background: #f9fbfd;
+  border-radius: 12px;
+  border: 1px dashed #d8e2ec;
+}
+
+.decrypt-empty i,
+.decrypt-loading i {
+  font-size: 40px;
+  color: #d0dbe5;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.decrypt-loading i {
+  color: var(--icon-blue) !important;
+  animation: spin 1s linear infinite;
+}
+
+.decrypt-empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-soft);
+  margin-bottom: 4px;
+}
+
+.decrypt-empty-desc {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Error — centered */
+.decrypt-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fff0f2;
+  color: var(--danger);
+  border-left: 4px solid var(--danger);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* Legend — centered */
+.decrypt-legend {
+  padding: 16px;
+  background: #f9fbfd;
+  border-radius: 12px;
+  border: 1px solid #e5ebf0;
+  margin-top: 20px;
+}
+
+.decrypt-legend-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--deep-sea);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.decrypt-legend-title i {
+  color: var(--icon-blue) !important;
+  font-size: 14px;
+}
+
+.decrypt-legend-items {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.decrypt-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.decrypt-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.decrypt-legend-swatch.encrypted {
+  background: #fff8f8;
+  border-color: #ef9a9a;
+}
+
+.decrypt-legend-swatch.decrypted {
+  background: #f1f8e9;
+  border-color: #a5d6a7;
+}
+
+.decrypt-legend-swatch.regular {
+  background: #fff;
+  border-color: #e0e0e0;
+}
+
+.decrypt-legend-item code {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid #e5ebf0;
+  color: #c62828;
+}
+
+/* Footer — centered */
+.decrypt-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f4f8;
+  font-size: 12px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.decrypt-footer strong {
+  color: var(--deep-sea);
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .decrypt-container {
+    padding: 24px 20px;
+    border-radius: 14px;
+  }
+
+  .decrypt-title {
+    font-size: 20px;
+  }
+
+  .decrypt-title i {
+    font-size: 22px;
+  }
+
+  .decrypt-icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .decrypt-icon i {
+    font-size: 26px;
+  }
+
+  .decrypt-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .decrypt-toolbar select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .decrypt-table code {
+    max-width: 160px;
+  }
+
+  .decrypt-legend-items {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .decrypt-wrap {
+    padding: 12px;
+  }
+
+  .decrypt-container {
+    padding: 20px 16px;
+  }
+
+  .decrypt-title {
+    font-size: 18px;
+  }
+
+  .decrypt-subtitle {
+    font-size: 13px;
+  }
+
+  .decrypt-table thead th,
+  .decrypt-table tbody td {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .decrypt-table code {
+    font-size: 10px;
+    max-width: 120px;
+  }
+
+  .decrypt-footer {
+    gap: 12px;
+  }
+}

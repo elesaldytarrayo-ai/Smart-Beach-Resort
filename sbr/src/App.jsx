@@ -9,6 +9,9 @@ import Register from './app/Register.jsx';
 import ForgotPassword from './app/ForgotPassword.jsx';
 import ResetPassword from './app/ResetPassword.jsx';
 
+// Decrypt pages
+import DecryptViewer from './app/DecryptViewer.jsx';
+
 // User pages
 import User from './app/user/User.jsx';
 import UserBooking from './app/user/UserBooking.jsx';
@@ -71,6 +74,9 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Decrypt */}
+      <Route path="/decrypt-viewer" element={<DecryptViewer />} />
 
       {/* User */}
       <Route path="/user" element={<Protected role="user"><User /></Protected>} />

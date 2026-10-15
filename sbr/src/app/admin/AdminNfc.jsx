@@ -1,17 +1,14 @@
-// Imports — React hooks, Supabase, and admin layout wrapper
+// Imports — React hooks, Supabase (secure), and admin layout wrapper
 import { useEffect, useState } from 'react';
-import { supabase } from '../../supabase.js';
+import { supabase, secureSelect, secureUpdate } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
 
 // ============================================================
 // CONSTANTS
 // ============================================================
+const REFRESH_INTERVAL_MS = 10000;
+const FETCH_LIMIT = 200;
 
-const REFRESH_INTERVAL_MS = 10000; // Refresh tokens every 10 seconds
-const FETCH_LIMIT = 200;           // Max tokens to fetch
-
-// Maps an NFC token status to a CSS pill class for coloring
-// Active → green, Used → yellow, Invalidated/Expired → red
 const STATUS_PILL_MAP = {
   active: 'confirmed',
   used: 'pending',
@@ -19,7 +16,6 @@ const STATUS_PILL_MAP = {
   expired: 'unpaid'
 };
 
-// Defines the filter options for the dropdown
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Active' },
@@ -32,8 +28,6 @@ const FILTERS = [
 // REUSABLE SUB-COMPONENTS
 // ============================================================
 
-// StatCard — displays a large KPI card on the NFC dashboard
-// Used for the big colored cards at the top (total, active, used, invalidated)
 function StatCard({ color, icon, label, value, sub }) {
   return (
     <div className={`admin-stat-card ${color}`}>
@@ -51,7 +45,6 @@ function StatCard({ color, icon, label, value, sub }) {
   );
 }
 
-// PurposePill — renders a colored pill indicating check-in or check-out
 function PurposePill({ purpose }) {
   const isCheckIn = purpose === 'check_in';
   return (
@@ -62,7 +55,6 @@ function PurposePill({ purpose }) {
   );
 }
 
-// FormattedDate — renders a date consistently, or an em-dash if missing
 function FormattedDate({ value, withTime = false }) {
   if (!value) return <span className="admin-muted">—</span>;
   const date = new Date(value);
@@ -73,8 +65,25 @@ function FormattedDate({ value, withTime = false }) {
   );
 }
 
-// TokenRow — renders a single NFC token row in the table with its action button
-// Shows token ID, purpose, guest, room, booking, status, dates, and invalidate button
+// ✅ Decrypted NFC UID/Token
+function DecryptedNfc({ value, length = 20 }) {
+  if (!value) return <span className="admin-muted">—</span>;
+  return (
+    <span
+      className="admin-muted"
+      title={value}
+      style={{
+        color: '#2e7d32',
+        fontWeight: 600,
+        fontSize: 12,
+        fontFamily: 'Courier New, monospace'
+      }}
+    >
+      🔓 {String(value).slice(0, length)}{String(value).length > length ? '…' : ''}
+    </span>
+  );
+}
+
 function TokenRow({ token, updatingId, onInvalidate }) {
   const guest = token.bookings?.profiles;
   const room = token.bookings?.rooms;
@@ -98,9 +107,12 @@ function TokenRow({ token, updatingId, onInvalidate }) {
           {token.status}
         </span>
       </td>
+      {/* ✅ Decrypted NFC UID */}
+      <td><DecryptedNfc value={token.nfc_uid} length={16} /></td>
+      {/* ✅ Decrypted NFC Token */}
+      <td><DecryptedNfc value={token.nfc_token} length={20} /></td>
       <td><FormattedDate value={token.expires_at} withTime /></td>
       <td><FormattedDate value={token.used_at} withTime /></td>
-      <td><FormattedDate value={token.created_at} /></td>
       <td>
         {isActive ? (
           <button
@@ -122,11 +134,7 @@ function TokenRow({ token, updatingId, onInvalidate }) {
 // ============================================================
 // MAIN ADMIN NFC COMPONENT
 // ============================================================
-
-// AdminNfc — displays all NFC tokens with filtering, search, and invalidation
 export default function AdminNfc() {
-
-  // State — tokens, filter, search, loading, updatingId, error, message
   const [tokens, setTokens] = useState([]);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -136,29 +144,27 @@ export default function AdminNfc() {
   const [message, setMessage] = useState('');
 
   // ============================================================
-  // DATA FETCHING
+  // DATA FETCHING — AUTO DECRYPT
   // ============================================================
-
-  // fetchTokens — fetches all NFC tokens with related booking, profile, and room data
-  // isInitialLoad controls whether to show the loading spinner
   async function fetchTokens(isInitialLoad = false) {
     if (isInitialLoad) setLoading(true);
     try {
       setError('');
-      const { data, error: fetchError } = await supabase
-        .from('nfc_tokens')
-        .select(`
+
+      // ✅ secureSelect — AUTO DECRYPT ang nfc_uid at nfc_token
+      const data = await secureSelect('nfc_tokens', {
+        columns: `
           *,
           bookings (
             id, check_in, check_out, status, payment_status,
             profiles (full_name, email),
             rooms (room_number, room_type)
           )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(FETCH_LIMIT);
+        `,
+        order: { column: 'created_at', ascending: false },
+        limit: FETCH_LIMIT
+      });
 
-      if (fetchError) throw fetchError;
       setTokens(data || []);
     } catch (err) {
       setError(err.message);
@@ -167,7 +173,6 @@ export default function AdminNfc() {
     }
   }
 
-  // Load tokens on mount + auto-refresh every 10 seconds
   useEffect(() => {
     fetchTokens(true);
     const interval = setInterval(() => fetchTokens(false), REFRESH_INTERVAL_MS);
@@ -175,11 +180,8 @@ export default function AdminNfc() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================================
-  // ACTIONS
+  // ACTIONS — AUTO ENCRYPT update
   // ============================================================
-
-  // handleInvalidate — marks an NFC token as invalidated after confirmation
-  // The token will no longer be accepted by the NFC verify endpoint
   async function handleInvalidate(token) {
     const confirmed = window.confirm(
       `Invalidate this NFC token?\n\nPurpose: ${token.purpose}`
@@ -191,15 +193,15 @@ export default function AdminNfc() {
     setUpdatingId(token.id);
 
     try {
-      const { error: updateError } = await supabase
-        .from('nfc_tokens')
-        .update({
+      // ✅ secureUpdate — auto-encrypt kung may encrypted fields
+      await secureUpdate(
+        'nfc_tokens',
+        { id: token.id },
+        {
           status: 'invalidated',
           invalidated_at: new Date().toISOString()
-        })
-        .eq('id', token.id);
-
-      if (updateError) throw updateError;
+        }
+      );
 
       setMessage('Token invalidated successfully.');
       await fetchTokens(false);
@@ -213,8 +215,6 @@ export default function AdminNfc() {
   // ============================================================
   // DERIVED DATA
   // ============================================================
-
-  // Counts per status for stat cards and filter dropdown
   const counts = {
     all: tokens.length,
     active: tokens.filter((t) => t.status === 'active').length,
@@ -223,7 +223,6 @@ export default function AdminNfc() {
     expired: tokens.filter((t) => t.status === 'expired').length
   };
 
-  // Tokens after applying the active filter and search query
   const filteredTokens = tokens.filter((token) => {
     if (filter !== 'all' && token.status !== filter) return false;
 
@@ -232,7 +231,8 @@ export default function AdminNfc() {
       const searchable = [
         token.id,
         token.booking_id,
-        token.token_hash,
+        token.nfc_uid,        // ✅ decrypted — searchable
+        token.nfc_token,      // ✅ decrypted — searchable
         token.purpose,
         token.bookings?.profiles?.full_name,
         token.bookings?.profiles?.email,
@@ -247,17 +247,14 @@ export default function AdminNfc() {
   // ============================================================
   // RENDER
   // ============================================================
-
   return (
     <AdminLayout>
 
-      {/* Welcome header */}
       <div className="admin-welcome">
         <h1>NFC Management</h1>
-        <p>View, monitor, and invalidate all NFC tokens.</p>
+        <p>View, monitor, and invalidate all NFC tokens. NFC UID at token ay auto-decrypted.</p>
       </div>
 
-      {/* KPI stat cards — total, active, used, invalidated */}
       <div className="admin-stat-grid">
         <StatCard
           color="blue"
@@ -289,13 +286,12 @@ export default function AdminNfc() {
         />
       </div>
 
-      {/* Toolbar — search, filter dropdown, refresh button */}
       <div className="admin-panel admin-gap-bottom">
         <div className="admin-row admin-row-center">
           <div className="admin-col">
             <input
               className="admin-input"
-              placeholder="Search by guest, room, booking, or token…"
+              placeholder="Search by guest, room, booking, NFC UID, or token…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -319,11 +315,9 @@ export default function AdminNfc() {
         </div>
       </div>
 
-      {/* Feedback messages */}
       {error && <p className="admin-error admin-gap-top">{error}</p>}
       {message && <p className="admin-success admin-gap-top">{message}</p>}
 
-      {/* Token table */}
       <div className="admin-panel admin-scroll-wrapper">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">
@@ -347,9 +341,10 @@ export default function AdminNfc() {
                 <th>Room</th>
                 <th>Booking ID</th>
                 <th>Status</th>
+                <th>🔓 NFC UID</th>
+                <th>🔓 NFC Token</th>
                 <th>Expires</th>
                 <th>Used at</th>
-                <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>

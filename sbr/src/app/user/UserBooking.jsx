@@ -1,59 +1,38 @@
-// Imports — React hooks, routing, Supabase, NFC, encryption, and layout
+// Imports
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { supabase } from '../../supabase.js';
+import { supabase, secureSelect, secureInsert, secureUpdate } from '../../supabase.js';
 import { writeNFC, readNFC } from '../../nfc.js';
 import { encrypt, decrypt } from '../../encryption.js';
 import UserLayout from './UserLayout.jsx';
 
-// --- Constants ---
 const API = 'http://localhost:5000';
-
 const PENDING_KEY = 'sbr:pendingBookingId';
 const SESSION_KEY = 'sbr:pendingSessionId';
-
 const NFC_TOKEN_KEY = 'sbr:lastNfcToken';
 const NFC_PURPOSE_KEY = 'sbr:nfcPurpose';
-
 const MAX_POLL_ATTEMPTS = 5;
 const POLL_INTERVAL_MS = 2000;
 const MS_PER_DAY = 86400000;
 
-// --- Helper: today's date in YYYY-MM-DD ---
 function getToday() {
   const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// --- Helper: tomorrow's date in YYYY-MM-DD ---
 function getTomorrow() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// --- Lookup Maps ---
-const PAYMENT_ICONS = {
-  paid: 'circle-check',
-  unpaid: 'hourglass-half'
-};
-
+const PAYMENT_ICONS = { paid: 'circle-check', unpaid: 'hourglass-half' };
 const BOOKING_ICONS = {
   confirmed: 'ticket',
   checked_out: 'door-open',
   cancelled: 'ban',
   pending: 'clock'
 };
-
-// ============================================================
-// SUB-COMPONENTS
-// ============================================================
 
 function StatusPill({ type, value }) {
   const icon = type === 'payment'
@@ -103,7 +82,6 @@ function BookingCard({ booking, paying, updatingId, nfcChecking, onPay, onCheckI
       </div>
 
       <div className="booking-actions booking-gap-top-md">
-        {/* Unpaid: Pay + Cancel */}
         {isUnpaid && !isCancelled && (
           <>
             <button
@@ -125,7 +103,6 @@ function BookingCard({ booking, paying, updatingId, nfcChecking, onPay, onCheckI
           </>
         )}
 
-        {/* Paid, NOT checked out: NFC Check-in + Check-out + Cancel */}
         {isPaid && !isCheckedOut && !isCancelled && (
           <>
             <button
@@ -155,14 +132,12 @@ function BookingCard({ booking, paying, updatingId, nfcChecking, onPay, onCheckI
           </>
         )}
 
-        {/* Checked out */}
         {isCheckedOut && (
           <span className="booking-muted booking-sm">
             <i className="circle-check booking-ok booking-gap-right"></i> Checked out
           </span>
         )}
 
-        {/* Cancelled */}
         {isCancelled && (
           <span className="booking-muted booking-sm">
             <i className="ban booking-bad booking-gap-right"></i> Cancelled
@@ -173,16 +148,11 @@ function BookingCard({ booking, paying, updatingId, nfcChecking, onPay, onCheckI
   );
 }
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
-
 export default function UserBooking() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const verifyGuardRef = useRef(false);
 
-  // --- State ---
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [form, setForm] = useState({ room_id: '', check_in: '', check_out: '' });
@@ -194,13 +164,8 @@ export default function UserBooking() {
   const [updatingId, setUpdatingId] = useState(null);
   const [nfcChecking, setNfcChecking] = useState(false);
 
-  // --- Date bounds ---
   const today = getToday();
   const tomorrow = getTomorrow();
-
-  /* ============================================================
-     FETCH DATA
-     ============================================================ */
 
   async function fetchData() {
     setLoading(true);
@@ -213,12 +178,12 @@ export default function UserBooking() {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) { navigate('/login'); return; }
 
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select('*, rooms(room_number, room_type, price)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (bookingsError) throw bookingsError;
+      const bookingsData = await secureSelect('bookings', {
+        columns: '*, rooms(room_number, room_type, price)',
+        match: { user_id: user.id },
+        order: { column: 'created_at', ascending: false }
+      });
+
       setBookings(bookingsData || []);
     } catch (err) {
       console.error('Fetch error:', err);
@@ -230,12 +195,7 @@ export default function UserBooking() {
 
   useEffect(() => { fetchData(); }, []); // eslint-disable-line
 
-  // Only show rooms that are available
   const availableRooms = rooms.filter((room) => room.status === 'available');
-
-  // ============================================================
-  // PAYMONGO VERIFICATION
-  // ============================================================
 
   async function pollPaymentVerification(bookingId, sessionId, accessToken) {
     for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
@@ -269,7 +229,39 @@ export default function UserBooking() {
       const sessionId = localStorage.getItem(SESSION_KEY);
       const result = await pollPaymentVerification(bookingId, sessionId, session.access_token);
 
+      if (result.payment) {
+        try {
+          await secureInsert('payments', {
+            booking_id: bookingId,
+            amount: result.payment.amount || result.amount || 0,
+            method: result.payment.method || 'paymongo',
+            status: 'paid',
+            reference_number: result.payment.reference || result.payment.paymongo_id,
+            paymongo_id: result.payment.paymongo_id,
+            currency: 'PHP',
+            paid_at: new Date().toISOString()
+          });
+        } catch (saveErr) {
+          console.warn('Payment save failed:', saveErr);
+        }
+      }
+
       if (result.nfc?.rawToken) {
+        try {
+          await secureInsert('nfc_tokens', {
+            booking_id: bookingId,
+            room_id: bookings.find((b) => b.id === bookingId)?.room_id,
+            token_hash: result.nfc.rawToken,
+            nfc_uid: result.nfc.uid || `NFC-${bookingId.slice(0, 8)}`,
+            nfc_token: result.nfc.rawToken,
+            purpose: result.nfc.purpose || 'check_in',
+            status: 'active',
+            expires_at: new Date(Date.now() + MS_PER_DAY).toISOString()
+          });
+        } catch (saveErr) {
+          console.warn('NFC save failed:', saveErr);
+        }
+
         sessionStorage.setItem(NFC_TOKEN_KEY, encrypt(result.nfc.rawToken));
         sessionStorage.setItem(NFC_PURPOSE_KEY, result.nfc.purpose || 'check_in');
         await writeNFC(result.nfc.rawToken);
@@ -307,10 +299,6 @@ export default function UserBooking() {
     }
   }, []); // eslint-disable-line
 
-  // ============================================================
-  // ACTIONS
-  // ============================================================
-
   async function handleCreateBooking(e) {
     e.preventDefault();
     setError(''); setMessage('');
@@ -318,23 +306,13 @@ export default function UserBooking() {
     if (!form.room_id) return setError('Please select a room.');
     if (!form.check_in || !form.check_out) return setError('Please select both dates.');
 
-    // Prevent past dates
-    if (form.check_in < today) {
-      return setError('Check-in date cannot be in the past.');
-    }
-    if (form.check_out <= form.check_in) {
-      return setError('Check-out date must be after the check-in date.');
-    }
-    if (form.check_out < tomorrow) {
-      return setError('Check-out date must be at least tomorrow.');
-    }
+    if (form.check_in < today) return setError('Check-in date cannot be in the past.');
+    if (form.check_out <= form.check_in) return setError('Check-out date must be after the check-in date.');
+    if (form.check_out < tomorrow) return setError('Check-out date must be at least tomorrow.');
 
     const room = rooms.find((r) => r.id === form.room_id);
     if (!room) return setError('Room not found.');
-
-    if (room.status !== 'available') {
-      return setError('This room is no longer available. Please pick another.');
-    }
+    if (room.status !== 'available') return setError('This room is no longer available.');
 
     const nights = Math.max(1, Math.round(
       (new Date(form.check_out) - new Date(form.check_in)) / MS_PER_DAY
@@ -343,7 +321,8 @@ export default function UserBooking() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error: insertError } = await supabase.from('bookings').insert({
+
+      await secureInsert('bookings', {
         user_id: user.id,
         room_id: room.id,
         check_in: form.check_in,
@@ -352,7 +331,6 @@ export default function UserBooking() {
         status: 'pending',
         payment_status: 'unpaid'
       });
-      if (insertError) throw insertError;
 
       setMessage(`Booking created — ${nights} night(s), total ₱${total.toLocaleString()}`);
       setForm({ room_id: '', check_in: '', check_out: '' });
@@ -391,6 +369,19 @@ export default function UserBooking() {
       }
 
       if (json.sessionId) localStorage.setItem(SESSION_KEY, json.sessionId);
+
+      if (json.sessionId) {
+        try {
+          await secureUpdate(
+            'bookings',
+            { id: booking.id },
+            { paymongo_session_id: json.sessionId }
+          );
+        } catch (saveErr) {
+          console.warn('Session ID save failed:', saveErr);
+        }
+      }
+
       window.location.href = json.checkoutUrl;
     } catch (err) {
       setError(err.message);
@@ -403,7 +394,7 @@ export default function UserBooking() {
       `Cancel this booking?\n\n` +
       `Room ${booking.rooms?.room_number} — ${booking.check_in} → ${booking.check_out}\n` +
       `Total: ₱${Number(booking.total_amount).toLocaleString()}\n\n` +
-      `⚠️ This will PERMANENTLY DELETE the booking. This action cannot be undone.`
+      `⚠️ This will PERMANENTLY DELETE the booking.`
     );
     if (!confirmed) return;
 
@@ -412,7 +403,7 @@ export default function UserBooking() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Session expired. Please log in again.');
+      if (!user) throw new Error('Session expired.');
 
       const { error: deleteError, count } = await supabase
         .from('bookings')
@@ -422,25 +413,19 @@ export default function UserBooking() {
         .eq('payment_status', 'unpaid');
 
       if (deleteError) throw deleteError;
-      if (count === 0) throw new Error('Booking could not be deleted — it may have been paid.');
+      if (count === 0) throw new Error('Booking could not be deleted.');
 
       setMessage('✅ Booking cancelled and permanently deleted.');
       await fetchData();
     } catch (err) {
-      console.error('Cancel error:', err);
-      setError(err.message || 'Failed to cancel booking.');
+      setError(err.message);
     } finally {
       setUpdatingId(null);
     }
   }
 
   async function handleCancelPaidBooking(booking) {
-    const confirmed = window.confirm(
-      `Cancel this PAID booking?\n\n` +
-      `Room ${booking.rooms?.room_number} — ${booking.check_in} → ${booking.check_out}\n` +
-      `Total: ₱${Number(booking.total_amount).toLocaleString()}\n\n` +
-      `The payment record will be kept for accounting. Active NFC tokens will be invalidated.`
-    );
+    const confirmed = window.confirm(`Cancel this PAID booking?`);
     if (!confirmed) return;
 
     setError(''); setMessage('');
@@ -448,7 +433,7 @@ export default function UserBooking() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Session expired. Please log in again.');
+      if (!session) throw new Error('Session expired.');
 
       const response = await fetch(`${API}/api/bookings/cancel`, {
         method: 'POST',
@@ -465,43 +450,33 @@ export default function UserBooking() {
       setMessage('✅ Booking cancelled. NFC invalidated. Payment record kept.');
       await fetchData();
     } catch (err) {
-      console.error('Cancel paid error:', err);
-      setError(err.message || 'Failed to cancel paid booking.');
+      setError(err.message);
     } finally {
       setUpdatingId(null);
     }
   }
 
-  // handleNfcCheckIn — reads NFC, verifies with backend
   async function handleNfcCheckIn(booking) {
     setError(''); setMessage(''); setNfcBanner('');
     setNfcChecking(true);
-    setNfcBanner('Waiting for NFC tap… Tap your NFC authentication to the room.');
+    setNfcBanner('Waiting for NFC tap…');
 
     try {
-      console.log('[NFC] Reading tag...');
       const nfcResult = await readNFC();
-      console.log('[NFC] Read result:', nfcResult);
 
-      if (!nfcResult.ok) {
-        throw new Error(nfcResult.error || 'Failed to read NFC tag.');
-      }
+      if (!nfcResult.ok) throw new Error(nfcResult.error || 'Failed to read NFC tag.');
 
       let rawToken = nfcResult.text;
 
       if (nfcResult.simulated && rawToken) {
-        console.log('[NFC] Simulated mode — decrypting token...');
         rawToken = decrypt(rawToken);
       }
 
-      if (!rawToken) {
-        throw new Error('No NFC token found. Please complete payment first.');
-      }
+      if (!rawToken) throw new Error('No NFC token found.');
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Session expired. Please log in again.');
+      if (!session) throw new Error('Session expired.');
 
-      console.log('[NFC] Sending to backend for verification...');
       const response = await fetch(`${API}/api/nfc/verify`, {
         method: 'POST',
         headers: {
@@ -512,15 +487,12 @@ export default function UserBooking() {
       });
 
       const json = await response.json();
-      console.log('[NFC] Backend response:', json);
-
       if (!json.ok) throw new Error(json.error || 'Check-in failed.');
 
       setNfcBanner('');
       setMessage('✅ Check-in successful via NFC. Welcome!');
       await fetchData();
     } catch (err) {
-      console.error('[NFC] Check-in error:', err);
       setNfcBanner('');
       setError(err.message || 'Check-in failed.');
     } finally {
@@ -558,10 +530,6 @@ export default function UserBooking() {
     }
   }
 
-  // ============================================================
-  // RENDER
-  // ============================================================
-
   return (
     <UserLayout>
       <div className="booking-welcome">
@@ -570,20 +538,15 @@ export default function UserBooking() {
       </div>
 
       {nfcBanner && (
-        <div className="booking-banner booking-gap-bottom" aria-live="polite">
+        <div className="booking-banner booking-gap-bottom">
           <i className="wifi booking-gap-right"></i>
           {nfcBanner}
         </div>
       )}
 
-      {error && (
-        <p className="booking-error booking-gap-bottom" aria-live="polite">{error}</p>
-      )}
-      {message && (
-        <p className="booking-success booking-gap-bottom" aria-live="polite">{message}</p>
-      )}
+      {error && <p className="booking-error booking-gap-bottom">{error}</p>}
+      {message && <p className="booking-success booking-gap-bottom">{message}</p>}
 
-      {/* Booking Form — only shows AVAILABLE rooms */}
       <div className="booking-panel booking-gap-bottom">
         <div className="booking-panel-header">
           <h3 className="booking-panel-title">
@@ -595,7 +558,7 @@ export default function UserBooking() {
           <div className="booking-empty">
             <i className="bed"></i>
             <div className="booking-empty-title">No rooms available</div>
-            <div className="booking-empty-desc">All rooms are occupied. Try again later.</div>
+            <div className="booking-empty-desc">All rooms are occupied.</div>
           </div>
         )}
 
@@ -656,7 +619,6 @@ export default function UserBooking() {
         )}
       </div>
 
-      {/* Reservations */}
       <div className="booking-panel">
         <div className="booking-panel-header">
           <h3 className="booking-panel-title">

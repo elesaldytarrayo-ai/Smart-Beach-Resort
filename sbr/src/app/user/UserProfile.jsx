@@ -1,55 +1,41 @@
-// Imports — React hooks, Supabase, encryption helpers, and layout wrapper
+// Imports — React hooks, Supabase (secure), encryption helpers, and layout wrapper
 import { useEffect, useState } from 'react';
-import { supabase } from '../../supabase.js';
+import { supabase, secureSelect, secureUpdate } from '../../supabase.js';
 import { encrypt, decrypt } from '../../encryption.js';
 import UserLayout from './UserLayout.jsx';
 
-// UserProfile — renders two forms: one for personal info, one for password
 export default function UserProfile() {
+  const [profile, setProfile] = useState({ full_name: '', email: '', phone: '', password: '' });
 
-  // --- Profile state — full name, email, and phone ---
-  const [profile, setProfile] = useState({ full_name: '', email: '', phone: '' });
-
-  // --- Password state — new password and confirm password ---
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // --- Feedback state — split per form (profile vs password) ---
   const [profileError, setProfileError] = useState('');
   const [profileMessage, setProfileMessage] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordMessage, setPasswordMessage] = useState('');
 
-  // --- Loading states — initial load, saving profile, changing password ---
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  // ============================================================
-  // DATA FETCHING
-  // ============================================================
-
-  // loadProfile — loads the user's profile and decrypts the phone number
-  // Returns early if there's no active session (no redirect needed)
   async function loadProfile() {
     setLoading(true);
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth?.user) return;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', auth.user.id)
-        .single();
+      const data = await secureSelect('profiles', {
+        columns: '*',
+        match: { id: auth.user.id },
+        single: true
+      });
 
-      if (error) throw error;
-
-      // Decrypt phone if it exists
       setProfile({
         full_name: data.full_name || '',
         email: data.email || auth.user.email || '',
-        phone: data.phone ? decrypt(data.phone) : ''
+        phone: data.phone || '',
+        password: data.password || ''
       });
     } catch (error) {
       console.error('Failed to load profile:', error);
@@ -59,16 +45,8 @@ export default function UserProfile() {
     }
   }
 
-  // Load profile on mount
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useEffect(() => { loadProfile(); }, []);
 
-  // ============================================================
-  // FORM HANDLERS
-  // ============================================================
-
-  // handleSaveProfile — saves name and encrypted phone to Supabase
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileError('');
@@ -79,18 +57,14 @@ export default function UserProfile() {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth?.user) throw new Error('No active session. Please log in again.');
 
-      // Encrypt phone before saving
-      const updatePayload = {
-        full_name: profile.full_name.trim(),
-        phone: profile.phone ? encrypt(profile.phone.trim()) : null
-      };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updatePayload)
-        .eq('id', auth.user.id);
-
-      if (error) throw error;
+      await secureUpdate(
+        'profiles',
+        { id: auth.user.id },
+        {
+          full_name: profile.full_name.trim(),
+          phone: profile.phone ? profile.phone.trim() : null
+        }
+      );
 
       setProfileMessage('Profile updated successfully.');
     } catch (error) {
@@ -100,13 +74,11 @@ export default function UserProfile() {
     }
   }
 
-  // handleChangePassword — updates password via Supabase Auth
   async function handleChangePassword(e) {
     e.preventDefault();
     setPasswordError('');
     setPasswordMessage('');
 
-    // Client-side validation
     if (newPassword !== confirmPassword) {
       return setPasswordError('Passwords do not match.');
     }
@@ -119,6 +91,11 @@ export default function UserProfile() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
 
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth?.user) {
+        await secureUpdate('profiles', { id: auth.user.id }, { password: newPassword });
+      }
+
       setPasswordMessage('Password updated successfully.');
       setNewPassword('');
       setConfirmPassword('');
@@ -129,14 +106,9 @@ export default function UserProfile() {
     }
   }
 
-  // ============================================================
-  // RENDER
-  // ============================================================
-
   return (
     <UserLayout>
 
-      {/* Welcome header */}
       <div className="profile-welcome">
         <h1>My Profile</h1>
         <p>Update your personal information and change your password.</p>
@@ -144,68 +116,32 @@ export default function UserProfile() {
 
       <div className="profile-grid">
 
-        {/* ============================================================
-            PERSONAL INFO PANEL
-            ============================================================ */}
         <div className="profile-panel">
           <div className="profile-panel-header">
-            <h3 className="profile-panel-title">
-              <i className="circle-user"></i> Personal Information
-            </h3>
+            <h3 className="profile-panel-title"><i className="circle-user"></i> Personal Information</h3>
           </div>
 
           <form onSubmit={handleSaveProfile}>
-
-            {/* Full name field */}
             <div className="profile-field">
-              <label htmlFor="full-name">
-                <i className="user"></i> Full Name
-              </label>
-              <input
-                id="full-name"
-                className="profile-input"
-                placeholder="Juan Dela Cruz"
-                value={profile.full_name || ''}
-                onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                disabled={loading}
-                required
-              />
+              <label htmlFor="full-name"><i className="user"></i> Full Name</label>
+              <input id="full-name" className="profile-input" placeholder="Juan Dela Cruz" value={profile.full_name || ''} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} disabled={loading} required />
             </div>
 
-            {/* Email field (read-only) */}
             <div className="profile-field">
-              <label htmlFor="email">
-                <i className="envelope"></i> Email
-              </label>
-              <input
-                id="email"
-                className="profile-input"
-                value={profile.email || ''}
-                disabled
-              />
+              <label htmlFor="email"><i className="envelope"></i> Email</label>
+              <input id="email" className="profile-input" value={profile.email || ''} disabled />
               <p className="profile-hint">Email cannot be changed.</p>
             </div>
 
-            {/* Phone field */}
             <div className="profile-field">
-              <label htmlFor="phone">
-                <i className="phone"></i> Phone
-              </label>
-              <input
-                id="phone"
-                className="profile-input"
-                placeholder="0912 345 6789"
-                value={profile.phone || ''}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                disabled={loading}
-              />
+              <label htmlFor="phone"><i className="phone"></i> Phone 🔒</label>
+              <input id="phone" className="profile-input" placeholder="0912 345 6789" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} disabled={loading} />
+              <p className="profile-hint">🔓 Naka-decrypt sa display. 🔒 Naka-encrypt sa Supabase.</p>
             </div>
 
-            {/* Feedback messages */}
             {profileError && <p className="profile-error">{profileError}</p>}
             {profileMessage && <p className="profile-success">{profileMessage}</p>}
 
-            {/* Save button */}
             <div className="profile-actions">
               <button type="submit" className="profile-btn profile-btn-primary" disabled={savingProfile || loading}>
                 <i className={savingProfile ? 'spinner' : 'floppy-disk'}></i>
@@ -215,59 +151,25 @@ export default function UserProfile() {
           </form>
         </div>
 
-        {/* ============================================================
-            CHANGE PASSWORD PANEL
-            ============================================================ */}
         <div className="profile-panel">
           <div className="profile-panel-header">
-            <h3 className="profile-panel-title">
-              <i className="key"></i> Change Password
-            </h3>
+            <h3 className="profile-panel-title"><i className="key"></i> Change Password</h3>
           </div>
 
           <form onSubmit={handleChangePassword}>
-
-            {/* New password field */}
             <div className="profile-field">
-              <label htmlFor="new-password">
-                <i className="lock"></i> New Password
-              </label>
-              <input
-                id="new-password"
-                className="profile-input"
-                type="password"
-                placeholder="Min 6 characters"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
+              <label htmlFor="new-password"><i className="lock"></i> New Password</label>
+              <input id="new-password" className="profile-input" type="password" placeholder="Min 6 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
             </div>
 
-            {/* Confirm password field */}
             <div className="profile-field">
-              <label htmlFor="confirm-password">
-                <i className="lock"></i> Confirm Password
-              </label>
-              <input
-                id="confirm-password"
-                className="profile-input"
-                type="password"
-                placeholder="Re-enter password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-              />
+              <label htmlFor="confirm-password"><i className="lock"></i> Confirm Password</label>
+              <input id="confirm-password" className="profile-input" type="password" placeholder="Re-enter password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
             </div>
 
-            {/* Feedback messages */}
             {passwordError && <p className="profile-error">{passwordError}</p>}
             {passwordMessage && <p className="profile-success">{passwordMessage}</p>}
 
-            {/* Update button */}
             <div className="profile-actions">
               <button type="submit" className="profile-btn profile-btn-primary" disabled={changingPassword}>
                 <i className={changingPassword ? 'spinner' : 'shield-halved'}></i>
