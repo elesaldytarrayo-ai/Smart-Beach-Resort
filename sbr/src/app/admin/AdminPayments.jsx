@@ -51,24 +51,6 @@ function TruncatedId({ value }) {
   );
 }
 
-function DecryptedCell({ value, length = 20 }) {
-  if (!value) return <span className="admin-muted">—</span>;
-  return (
-    <span
-      className="admin-muted"
-      title={value}
-      style={{
-        color: '#2e7d32',
-        fontWeight: 600,
-        fontSize: 12,
-        fontFamily: 'Courier New, monospace'
-      }}
-    >
-      🔓 {String(value).slice(0, length)}{String(value).length > length ? '…' : ''}
-    </span>
-  );
-}
-
 function PaymentRow({ payment }) {
   const guest = payment.bookings?.profiles;
   const room = payment.bookings?.rooms;
@@ -85,8 +67,6 @@ function PaymentRow({ payment }) {
       <td><strong>₱{Number(payment.amount || 0).toLocaleString()}</strong></td>
       <td><MethodIcon method={payment.method} /></td>
       <td><span className={`admin-pill ${payment.status}`}>{payment.status}</span></td>
-      <td><DecryptedCell value={payment.reference_number} length={20} /></td>
-      <td><DecryptedCell value={payment.paymongo_id} length={20} /></td>
       <td><FormattedDate value={payment.paid_at} /></td>
     </tr>
   );
@@ -103,17 +83,19 @@ export default function AdminPayments() {
     if (isInitialLoad) setLoading(true);
     try {
       setError('');
+
       const data = await secureSelect('payments', {
         columns: `
           *,
           bookings (
             id, check_in, check_out, total_amount, payment_status, status,
-            profiles (full_name, email, phone),
+            profiles (full_name, email),
             rooms (room_number, room_type)
           )
         `,
         order: { column: 'created_at', ascending: false }
       });
+
       setPayments(data || []);
     } catch (err) {
       setError(err.message);
@@ -149,8 +131,6 @@ export default function AdminPayments() {
       const searchable = [
         payment.id,
         payment.booking_id,
-        payment.reference_number,
-        payment.paymongo_id,
         payment.method,
         payment.bookings?.profiles?.full_name,
         payment.bookings?.profiles?.email,
@@ -164,9 +144,10 @@ export default function AdminPayments() {
 
   return (
     <AdminLayout>
+
       <div className="admin-welcome">
         <h1>Payments</h1>
-        <p>All payment transactions. Reference Number at PayMongo ID ay auto-decrypted.</p>
+        <p>All payment transactions.</p>
       </div>
 
       <div className="admin-stat-grid">
@@ -181,7 +162,7 @@ export default function AdminPayments() {
           <div className="admin-col">
             <input
               className="admin-input"
-              placeholder="Search ID, guest, reference, paymongo…"
+              placeholder="Search ID, guest…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -225,8 +206,6 @@ export default function AdminPayments() {
                 <th>Amount</th>
                 <th>Method</th>
                 <th>Status</th>
-                <th>🔓 Reference Number</th>
-                <th>🔓 PayMongo ID</th>
                 <th>Paid at</th>
               </tr>
             </thead>
@@ -238,6 +217,7 @@ export default function AdminPayments() {
           </table>
         )}
       </div>
+
     </AdminLayout>
   );
 }

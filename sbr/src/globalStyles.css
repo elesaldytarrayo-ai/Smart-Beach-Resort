@@ -2061,10 +2061,12 @@ i[class] {
 }
 
 /* ============================================================
-   20. DECRYPT VIEWER — HORIZONTAL TABLE
+   20. DECRYPT VIEWER — ORGANIZED TABLE WITH ROW NUMBERS
    ============================================================ */
 
-/* Page container */
+/* ------------------------------------------------------------
+   20.1 PAGE CONTAINER
+   ------------------------------------------------------------ */
 .decrypt-page {
   min-height: 100vh;
   width: 100%;
@@ -2109,7 +2111,9 @@ i[class] {
   font-size: 12px;
 }
 
-/* Container — wider for horizontal scroll */
+/* ------------------------------------------------------------
+   20.2 CARD CONTAINER
+   ------------------------------------------------------------ */
 .decrypt-container {
   width: 100%;
   max-width: 1600px;
@@ -2130,7 +2134,9 @@ i[class] {
   background: linear-gradient(90deg, var(--lagoon), var(--sky), var(--foam), var(--sky), var(--lagoon));
 }
 
-/* Icon circle */
+/* ------------------------------------------------------------
+   20.3 HEADER (icon + title + subtitle)
+   ------------------------------------------------------------ */
 .decrypt-icon {
   display: flex;
   align-items: center;
@@ -2146,7 +2152,6 @@ i[class] {
   font-size: 32px;
 }
 
-/* Header */
 .decrypt-header {
   display: flex;
   flex-direction: column;
@@ -2178,7 +2183,9 @@ i[class] {
   line-height: 1.5;
 }
 
-/* Toolbar */
+/* ------------------------------------------------------------
+   20.4 TOOLBAR (table selector + reload + stats)
+   ------------------------------------------------------------ */
 .decrypt-toolbar {
   display: flex;
   align-items: center;
@@ -2222,12 +2229,14 @@ i[class] {
   background-position: right 14px center;
   background-size: 10px;
 }
+.decrypt-toolbar select:hover {
+  border-color: #b5cbe0;
+}
 .decrypt-toolbar select:focus {
   border-color: var(--icon-blue);
   box-shadow: 0 0 0 4px rgba(45,142,207,0.12);
 }
 
-/* Stats */
 .decrypt-stats {
   display: flex;
   gap: 10px;
@@ -2247,6 +2256,10 @@ i[class] {
   background: #e8f4fb;
   color: #1e5fa8;
 }
+.decrypt-stat i {
+  font-size: 11px;
+  color: inherit !important;
+}
 .decrypt-stat.encrypted {
   background: #ffebee;
   color: #c62828;
@@ -2256,9 +2269,9 @@ i[class] {
   color: #2e7d32;
 }
 
-/* ============================================================
-   SCROLL HINT
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.5 SCROLL HINT
+   ------------------------------------------------------------ */
 .decrypt-scroll-hint {
   display: flex;
   align-items: center;
@@ -2283,9 +2296,9 @@ i[class] {
   50% { transform: translateX(4px); }
 }
 
-/* ============================================================
-   TABLE — HORIZONTAL SCROLL, NO TRUNCATION
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.6 TABLE WRAP (scrollable)
+   ------------------------------------------------------------ */
 .decrypt-table-wrap {
   overflow-x: auto;
   overflow-y: auto;
@@ -2297,7 +2310,7 @@ i[class] {
   box-shadow: inset 0 1px 0 rgba(0,0,0,0.02);
 }
 
-/* Scrollbar styling */
+/* Custom scrollbar */
 .decrypt-table-wrap::-webkit-scrollbar {
   width: 12px;
   height: 12px;
@@ -2318,7 +2331,9 @@ i[class] {
   background: #f5f7fa;
 }
 
-/* Table base — auto width para sa lahat ng content */
+/* ------------------------------------------------------------
+   20.7 TABLE BASE
+   ------------------------------------------------------------ */
 .decrypt-table {
   width: max-content;
   min-width: 100%;
@@ -2328,7 +2343,9 @@ i[class] {
   table-layout: auto;
 }
 
-/* Table header — sticky */
+/* ------------------------------------------------------------
+   20.8 TABLE HEADER (sticky)
+   ------------------------------------------------------------ */
 .decrypt-table thead th {
   position: sticky;
   top: 0;
@@ -2345,13 +2362,11 @@ i[class] {
   white-space: nowrap;
   min-width: 100px;
 }
-
 .decrypt-th-content {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-
 .decrypt-table thead th.col-encrypted {
   background: #ffebee;
   color: #c62828;
@@ -2367,7 +2382,9 @@ i[class] {
   font-size: 11px;
 }
 
-/* Row number column — sticky left */
+/* ------------------------------------------------------------
+   20.9 ROW NUMBER COLUMN (sticky left)
+   ------------------------------------------------------------ */
 .decrypt-table .decrypt-th-num,
 .decrypt-table .decrypt-td-num {
   position: sticky;
@@ -2376,26 +2393,42 @@ i[class] {
   width: 50px;
   min-width: 50px;
   text-align: center;
-  font-weight: 700;
-  background: #f0f4f8;
-  color: var(--muted);
-  border-right: 2px solid #e5ebf0;
+  font-weight: 800;
   font-size: 12px;
+  background: #e8eef4;
+  color: var(--deep-sea);
+  border-right: 2px solid #e5ebf0;
 }
 .decrypt-table thead .decrypt-th-num {
   z-index: 4;
-  background: #e8eef4;
+  background: #d6e0ea;
+  color: var(--deep-sea);
+  font-size: 12px;
+}
+.decrypt-table tbody td.decrypt-td-num {
+  background: #f0f4f8;
+  color: var(--muted);
+  font-weight: 700;
 }
 
-/* Table body */
+/* Hover effect on row number */
+.decrypt-table tbody tr:hover td.decrypt-td-num {
+  background: #d6e4f0;
+  color: var(--icon-blue);
+}
+
+/* ------------------------------------------------------------
+   20.10 TABLE BODY
+   ------------------------------------------------------------ */
 .decrypt-table tbody tr {
   transition: background 0.12s ease;
+  border-bottom: 1px solid #f0f4f8;
+}
+.decrypt-table tbody tr:last-child {
+  border-bottom: none;
 }
 .decrypt-table tbody tr:hover {
   background: #f5faff;
-}
-.decrypt-table tbody tr:hover .decrypt-td-num {
-  background: #e3eef8;
 }
 
 .decrypt-table tbody td {
@@ -2407,7 +2440,6 @@ i[class] {
   white-space: nowrap;
 }
 
-/* Cell colors */
 .decrypt-table tbody td.cell-encrypted {
   background: #fff8f8;
 }
@@ -2415,9 +2447,9 @@ i[class] {
   background: #f1f8e9;
 }
 
-/* ============================================================
-   CELL CODE — FULL TEXT, NO TRUNCATION
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.11 CELL CODE
+   ------------------------------------------------------------ */
 .decrypt-cell-code {
   display: block;
   font-family: 'Courier New', 'Monaco', monospace;
@@ -2427,7 +2459,6 @@ i[class] {
   white-space: nowrap;
   word-break: keep-all;
 }
-
 .decrypt-table td.cell-encrypted .decrypt-cell-code {
   color: #c62828;
 }
@@ -2436,9 +2467,9 @@ i[class] {
   font-weight: 600;
 }
 
-/* ============================================================
-   EMPTY / LOADING / ERROR
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.12 EMPTY / LOADING / ERROR
+   ------------------------------------------------------------ */
 .decrypt-empty,
 .decrypt-loading {
   text-align: center;
@@ -2484,9 +2515,9 @@ i[class] {
   margin-bottom: 16px;
 }
 
-/* ============================================================
-   FOOTER
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.13 FOOTER
+   ------------------------------------------------------------ */
 .decrypt-footer {
   display: flex;
   justify-content: center;
@@ -2504,9 +2535,9 @@ i[class] {
   font-weight: 700;
 }
 
-/* ============================================================
-   LEGEND
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.14 LEGEND
+   ------------------------------------------------------------ */
 .decrypt-legend {
   padding: 16px;
   background: #f9fbfd;
@@ -2564,9 +2595,9 @@ i[class] {
   border-color: #e0e0e0;
 }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
+/* ------------------------------------------------------------
+   20.15 RESPONSIVE
+   ------------------------------------------------------------ */
 @media (max-width: 900px) {
   .decrypt-container {
     padding: 24px 12px;
@@ -2574,6 +2605,16 @@ i[class] {
   }
   .decrypt-title {
     font-size: 20px;
+  }
+  .decrypt-title i {
+    font-size: 22px;
+  }
+  .decrypt-icon {
+    width: 60px;
+    height: 60px;
+  }
+  .decrypt-icon i {
+    font-size: 26px;
   }
   .decrypt-toolbar {
     flex-direction: column;
@@ -2630,5 +2671,8 @@ i[class] {
   .decrypt-table .decrypt-td-num {
     width: 36px;
     min-width: 36px;
+  }
+  .decrypt-footer {
+    gap: 12px;
   }
 }

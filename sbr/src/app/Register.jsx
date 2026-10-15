@@ -50,7 +50,7 @@ export default function Register() {
             {
               full_name: form.full_name.trim(),
               phone: form.phone.trim() || null,
-              password: form.password              // ← AUTO-ENCRYPT
+              password: form.password              // ← AUTO-ENCRYPT (hindi naka-display)
             }
           );
         } catch (profileError) {
@@ -82,6 +82,7 @@ export default function Register() {
 
           <form onSubmit={handleRegister}>
 
+            {/* Full Name */}
             <div className="admin-field">
               <label>
                 <i className="fa-solid fa-user"></i> Full Name
@@ -101,6 +102,7 @@ export default function Register() {
               </div>
             </div>
 
+            {/* Email */}
             <div className="admin-field">
               <label>
                 <i className="fa-solid fa-envelope"></i> Email
@@ -120,12 +122,10 @@ export default function Register() {
               </div>
             </div>
 
+            {/* Phone — ✅ WALANG "🔒 (auto-encrypt)" */}
             <div className="admin-field">
               <label>
-                <i className="fa-solid fa-phone"></i> Phone 🔒
-                <span style={{ fontSize: 11, color: '#666', marginLeft: 6 }}>
-                  (auto-encrypt)
-                </span>
+                <i className="fa-solid fa-phone"></i> Phone
               </label>
               <div className="admin-input-wrap">
                 <i className="fa-solid fa-phone"></i>
@@ -141,12 +141,10 @@ export default function Register() {
               </div>
             </div>
 
+            {/* Password — ✅ WALANG "🔒 (auto-encrypt)" */}
             <div className="admin-field">
               <label>
-                <i className="fa-solid fa-lock"></i> Password 🔒
-                <span style={{ fontSize: 11, color: '#666', marginLeft: 6 }}>
-                  (auto-encrypt)
-                </span>
+                <i className="fa-solid fa-lock"></i> Password
               </label>
               <div className="admin-input-wrap">
                 <i className="fa-solid fa-key"></i>

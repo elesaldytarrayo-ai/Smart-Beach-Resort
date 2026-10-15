@@ -80,7 +80,6 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
 
   console.log('💾 Upserting payment for booking:', bookingId);
 
-  // ✅ ENCRYPT ang reference at paymongo_id
   const encryptedRef = encrypt(paymentId);
   const encryptedPaymongoId = encrypt(paymentId);
 
@@ -92,8 +91,8 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
         amount: Number(amount) || 0,
         method: method || 'paymongo',
         status: 'paid',
-        reference_number_encrypted: encryptedRef,          // ✅
-        paymongo_id_encrypted: encryptedPaymongoId,        // ✅
+        reference_number_encrypted: encryptedRef,
+        paymongo_id_encrypted: encryptedPaymongoId,
         payer_info: payerInfo || null,
         currency: 'PHP',
         paid_at: paidAtISO
@@ -101,7 +100,6 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
       { onConflict: 'booking_id' }
     );
 
-  // Duplicate is fine — payment already exists.
   if (result.error) {
     const isDuplicate =
       result.error.code === '23505' ||
@@ -121,7 +119,6 @@ async function savePayment({ bookingId, amount, method, paymentId, paidAt, payer
 
 // Mark a booking as paid + confirmed, and mark the room as occupied.
 async function confirmBooking(bookingId) {
-  // Get the room ID first.
   const bookingResult = await supabaseAdmin
     .from('bookings')
     .select('room_id')
@@ -130,7 +127,6 @@ async function confirmBooking(bookingId) {
 
   const roomId = bookingResult.data?.room_id;
 
-  // Update the booking.
   const result = await supabaseAdmin
     .from('bookings')
     .update({ payment_status: 'paid', status: 'confirmed' })
@@ -138,10 +134,40 @@ async function confirmBooking(bookingId) {
 
   if (result.error) throw new Error('Booking confirm failed: ' + result.error.message);
 
-  // Mark the room as occupied.
   await setRoomStatus(roomId, 'occupied');
 
   console.log('🟢 Booking confirmed:', bookingId);
+}
+
+// ============================================================
+// ✅ HELPER: Save NFC token with encrypted values
+// ============================================================
+async function saveNfcToken({
+  bookingId,
+  roomId,
+  token,
+  purpose,
+  status = 'active'
+}) {
+  const uid = token.uid || `NFC-${String(bookingId).slice(0, 8)}`;
+
+  const result = await supabaseAdmin.from('nfc_tokens').insert({
+    booking_id: bookingId,
+    room_id: roomId || null,
+    token_hash: token.hash,
+    nfc_uid_encrypted: encrypt(uid),                  // ✅ AUTO-ENCRYPT
+    nfc_token_encrypted: encrypt(token.raw),          // ✅ AUTO-ENCRYPT
+    purpose: purpose || token.purpose,
+    status,
+    expires_at: token.expiresAt
+  });
+
+  if (result.error) {
+    console.error('❌ saveNfcToken error:', result.error);
+    throw new Error('Failed to save NFC token: ' + result.error.message);
+  }
+
+  console.log('✅ NFC token saved (encrypted)');
 }
 
 // ============================================================
@@ -185,13 +211,13 @@ app.post(
           const roomId = bookingResult.data?.room_id;
           if (roomId) {
             const token = makeCheckInToken();
-            await supabaseAdmin.from('nfc_tokens').insert({
-              booking_id: bookingId,
-              room_id: roomId,
-              token_hash: token.hash,
-              purpose: token.purpose,
-              status: 'active',
-              expires_at: token.expiresAt
+            // ✅ FIXED — may nfc_uid_encrypted at nfc_token_encrypted
+            await saveNfcToken({
+              bookingId,
+              roomId,
+              token,
+              purpose: 'check_in',
+              status: 'active'
             });
           }
         }
@@ -211,8 +237,6 @@ app.use(express.json());
 // ============================================================
 // Auth middleware
 // ============================================================
-
-// Check the user's token and attach role to req.user.
 async function authUser(req, res, next) {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -240,7 +264,6 @@ async function authUser(req, res, next) {
   }
 }
 
-// Only allow certain roles.
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -253,8 +276,6 @@ function requireRole(...roles) {
 // ============================================================
 // Routes
 // ============================================================
-
-// Health check.
 app.get('/', (_req, res) => {
   res.json({
     status: 'ok',
@@ -300,7 +321,6 @@ app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, 
 });
 
 // Create a PayMongo checkout session for a booking.
-// Rejects if the room is already occupied.
 app.post('/api/payments/checkout', authUser, async (req, res) => {
   try {
     const { bookingId, description } = req.body;
@@ -322,7 +342,6 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
       return res.json({ ok: true, alreadyPaid: true });
     }
 
-    // Reject if the room is already occupied by someone else.
     if (booking.rooms?.status === 'occupied') {
       return res.status(400).json({ error: 'Room is already occupied' });
     }
@@ -346,7 +365,7 @@ app.post('/api/payments/checkout', authUser, async (req, res) => {
   }
 });
 
-// Verify a payment. Confirms the booking and issues an NFC token.
+// Verify a payment.
 app.post('/api/payments/verify', authUser, async (req, res) => {
   try {
     const { bookingId, sessionId } = req.body;
@@ -366,7 +385,6 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    // Already paid + confirmed → return early.
     if (booking.payment_status === 'paid' && booking.status === 'confirmed') {
       console.log(' ✅ Already paid & confirmed — skipping');
       return res.json({
@@ -375,7 +393,6 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       });
     }
 
-    // ✅ Decrypt ang paymongo_session_id mula sa DB
     const storedSessionId = booking.paymongo_session_id_encrypted
       ? decrypt(booking.paymongo_session_id_encrypted)
       : null;
@@ -395,10 +412,8 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       });
     }
 
-    // 1. Confirm booking (this also marks the room as occupied).
     await confirmBooking(bookingId);
 
-    // 2. Save payment (auto-encrypted inside savePayment).
     await savePayment({
       bookingId,
       amount: verify.amount || booking.total_amount,
@@ -408,7 +423,6 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       payerInfo: verify.payerInfo
     });
 
-    // 3. Issue an NFC check-in token if none exists yet.
     const existingResult = await supabaseAdmin
       .from('nfc_tokens')
       .select('id')
@@ -429,13 +443,13 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       const token = makeCheckInToken();
       rawToken = token.raw;
 
-      await supabaseAdmin.from('nfc_tokens').insert({
-        booking_id: bookingId,
-        room_id: booking.room_id,
-        token_hash: token.hash,
-        purpose: token.purpose,
-        status: 'active',
-        expires_at: token.expiresAt
+      // ✅ FIXED — may nfc_uid_encrypted at nfc_token_encrypted
+      await saveNfcToken({
+        bookingId,
+        roomId: booking.room_id,
+        token,
+        purpose: 'check_in',
+        status: 'active'
       });
       console.log('✅ NFC token issued');
     } else {
@@ -455,7 +469,7 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
   }
 });
 
-// Verify an NFC token (check-in or check-out).
+// Verify an NFC token.
 app.post('/api/nfc/verify', authUser, async (req, res) => {
   try {
     const { rawToken, purpose } = req.body;
@@ -474,7 +488,6 @@ app.post('/api/nfc/verify', authUser, async (req, res) => {
     const token = tokenResult.data;
     if (!token) return res.status(400).json({ error: 'Invalid or expired NFC token' });
 
-    // Expired?
     if (new Date(token.expires_at) < new Date()) {
       await supabaseAdmin
         .from('nfc_tokens')
@@ -483,7 +496,6 @@ app.post('/api/nfc/verify', authUser, async (req, res) => {
       return res.status(400).json({ error: 'NFC token expired' });
     }
 
-    // Mark as used.
     await supabaseAdmin
       .from('nfc_tokens')
       .update({ status: 'used', used_at: new Date().toISOString() })
@@ -495,14 +507,12 @@ app.post('/api/nfc/verify', authUser, async (req, res) => {
   }
 });
 
-// Check out a booking and issue a check-out token.
-// Also frees up the room so others can book it again.
+// Check out a booking.
 app.post('/api/checkout', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
     if (!bookingId) return res.status(400).json({ error: 'Missing bookingId' });
 
-    // Get the booking first (to know the room).
     const bookingResult = await supabaseAdmin
       .from('bookings')
       .select('room_id')
@@ -512,31 +522,29 @@ app.post('/api/checkout', authUser, async (req, res) => {
 
     const roomId = bookingResult.data?.room_id;
 
-    // Invalidate any active tokens for this booking.
     await supabaseAdmin
       .from('nfc_tokens')
       .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
       .eq('booking_id', bookingId)
       .eq('status', 'active');
 
-    // Mark booking as checked out.
     await supabaseAdmin
       .from('bookings')
       .update({ status: 'checked_out' })
       .eq('id', bookingId)
       .eq('user_id', req.user.id);
 
-    // Free up the room — back to available.
     await setRoomStatus(roomId, 'available');
 
-    // Issue a check-out token.
     const token = makeCheckOutToken();
-    await supabaseAdmin.from('nfc_tokens').insert({
-      booking_id: bookingId,
-      token_hash: token.hash,
-      purpose: token.purpose,
-      status: 'active',
-      expires_at: token.expiresAt
+
+    // ✅ FIXED — may nfc_uid_encrypted at nfc_token_encrypted
+    await saveNfcToken({
+      bookingId,
+      roomId,
+      token,
+      purpose: 'check_out',
+      status: 'active'
     });
 
     res.json({ ok: true, nfc: { rawToken: token.raw, purpose: 'check_out' } });
@@ -545,8 +553,7 @@ app.post('/api/checkout', authUser, async (req, res) => {
   }
 });
 
-// Cancel a paid booking (soft cancel).
-// Also frees up the room.
+// Cancel a paid booking.
 app.post('/api/bookings/cancel', authUser, async (req, res) => {
   try {
     const { bookingId } = req.body;
@@ -572,20 +579,17 @@ app.post('/api/bookings/cancel', authUser, async (req, res) => {
       return res.status(400).json({ error: 'Unpaid bookings must be deleted, not cancelled.' });
     }
 
-    // Invalidate active NFC tokens.
     await supabaseAdmin
       .from('nfc_tokens')
       .update({ status: 'invalidated', invalidated_at: new Date().toISOString() })
       .eq('booking_id', bookingId)
       .eq('status', 'active');
 
-    // Soft cancel.
     await supabaseAdmin
       .from('bookings')
       .update({ status: 'cancelled', payment_status: 'cancelled' })
       .eq('id', bookingId);
 
-    // Free up the room — back to available.
     await setRoomStatus(booking.room_id, 'available');
 
     res.json({ ok: true, message: 'Booking cancelled' });
@@ -611,7 +615,6 @@ app.get('/api/staff/reservations', authUser, requireRole('staff', 'admin'), asyn
 // ============================================================
 // NOTIFICATIONS
 // ============================================================
-
 app.get('/api/notifications', authUser, async (req, res) => {
   try {
     const role = req.user.role;

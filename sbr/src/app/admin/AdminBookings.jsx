@@ -1,4 +1,4 @@
-// Imports — React hooks, Supabase (secure), and admin layout wrapper
+// Imports
 import { useEffect, useState } from 'react';
 import { supabase, secureSelect, secureInsert, secureUpdate } from '../../supabase.js';
 import AdminLayout from './AdminLayout.jsx';
@@ -33,23 +33,6 @@ function StatusPill({ value }) {
   return <span className={`admin-pill ${value}`}>{value}</span>;
 }
 
-function DecryptedSession({ value }) {
-  if (!value) return <span className="admin-muted admin-sm">—</span>;
-  return (
-    <span
-      title={value}
-      style={{
-        color: '#2e7d32',
-        fontWeight: 600,
-        fontSize: 11,
-        fontFamily: 'Courier New, monospace'
-      }}
-    >
-      🔓 {String(value).slice(0, 16)}…
-    </span>
-  );
-}
-
 function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
   const isUpdating = updatingId === booking.id;
   const isUnpaid = booking.payment_status !== 'paid';
@@ -68,7 +51,6 @@ function ReservationRow({ booking, updatingId, onMarkPaid, onUpdateStatus }) {
       <td>₱{Number(booking.total_amount || 0).toLocaleString()}</td>
       <td><StatusPill value={booking.payment_status} /></td>
       <td><StatusPill value={booking.status} /></td>
-      <td><DecryptedSession value={booking.paymongo_session_id} /></td>
       <td>
         <div className="admin-row-actions">
           {isUnpaid && (
@@ -104,7 +86,7 @@ export default function AdminBookings() {
       setError('');
 
       const data = await secureSelect('bookings', {
-        columns: '*, profiles(full_name, email, phone), rooms(room_number, room_type, price)',
+        columns: '*, profiles(full_name, email), rooms(room_number, room_type, price)',
         order: { column: 'created_at', ascending: false }
       });
 
@@ -202,7 +184,6 @@ export default function AdminBookings() {
         ${booking.profiles?.full_name || ''}
         ${booking.profiles?.email || ''}
         ${booking.rooms?.room_number || ''}
-        ${booking.paymongo_session_id || ''}
       `.toLowerCase();
       if (!searchable.includes(query)) return false;
     }
@@ -214,7 +195,7 @@ export default function AdminBookings() {
 
       <div className="admin-welcome">
         <h1>Reservations</h1>
-        <p>All bookings from guests. PayMongo session ay auto-decrypted.</p>
+        <p>All bookings from guests.</p>
       </div>
 
       <div className="admin-stat-grid">
@@ -229,7 +210,7 @@ export default function AdminBookings() {
           <div className="admin-col">
             <input
               className="admin-input"
-              placeholder="Search guest name, email, room, or PayMongo session…"
+              placeholder="Search guest name, email, or room…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -278,7 +259,6 @@ export default function AdminBookings() {
                 <th>Total</th>
                 <th>Payment</th>
                 <th>Status</th>
-                <th>🔓 PayMongo Session</th>
                 <th>Actions</th>
               </tr>
             </thead>
