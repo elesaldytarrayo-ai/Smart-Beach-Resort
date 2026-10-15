@@ -1,6 +1,9 @@
 /* ============================================================
    src/supabase.js
    Supabase client + AUTOMATIC encrypt/decrypt.
+   ------------------------------------------------------------
+   ✅ Encrypted only sa Supabase
+   ✅ Decrypted sa frontend (/decrypt-viewer)
    ============================================================ */
 
 import { createClient } from '@supabase/supabase-js';
@@ -17,6 +20,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
+/* ============================================================
+   ENCRYPTED FIELDS MAP
+   ============================================================ */
 const ENCRYPTED_FIELDS = {
   profiles: {
     password: 'password_encrypted',
@@ -37,6 +43,9 @@ const ENCRYPTED_FIELDS = {
   }
 };
 
+/* ============================================================
+   HELPER: Encrypt record bago i-save
+   ============================================================ */
 function encryptRecord(table, payload) {
   if (!payload || typeof payload !== 'object') return payload;
 
@@ -58,6 +67,9 @@ function encryptRecord(table, payload) {
   return out;
 }
 
+/* ============================================================
+   HELPER: Decrypt record pagkatapos mag-select
+   ============================================================ */
 function decryptRecord(table, record) {
   if (!record || typeof record !== 'object') return record;
 
@@ -80,6 +92,9 @@ function decryptRecord(table, record) {
   return out;
 }
 
+/* ============================================================
+   secureSelect
+   ============================================================ */
 export async function secureSelect(table, options = {}) {
   const {
     columns = '*',
@@ -113,6 +128,9 @@ export async function secureSelect(table, options = {}) {
     : decryptRecord(table, data || []);
 }
 
+/* ============================================================
+   secureInsert
+   ============================================================ */
 export async function secureInsert(table, payload) {
   const toInsert = encryptRecord(table, payload);
 
@@ -127,6 +145,9 @@ export async function secureInsert(table, payload) {
   return decryptRecord(table, data);
 }
 
+/* ============================================================
+   secureUpdate
+   ============================================================ */
 export async function secureUpdate(table, match, payload) {
   const toUpdate = encryptRecord(table, payload);
 
@@ -142,6 +163,9 @@ export async function secureUpdate(table, match, payload) {
   return decryptRecord(table, data);
 }
 
+/* ============================================================
+   secureDelete
+   ============================================================ */
 export async function secureDelete(table, match) {
   let query = supabase.from(table).delete();
 
