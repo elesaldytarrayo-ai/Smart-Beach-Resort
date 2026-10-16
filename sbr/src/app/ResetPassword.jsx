@@ -1,75 +1,96 @@
-/* ============================================================
-   src/app/ResetPassword.jsx
-   Handles the password reset page after the user clicks the
-   reset link in their email. Uses the session established by
-   Supabase from the email link to update the password.
-   ============================================================ */
+/* Password reset page.
+   Shown after the user clicks the reset link in their email.
+   Supabase automatically creates a session from the link,
+   and we use that session to update the password.
+*/
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
+/* Delay before redirecting after a successful password change */
+const REDIRECT_DELAY_MS = 1800;
+
+/* Minimum allowed password length */
+const MIN_PASSWORD_LENGTH = 6;
+
+/* Main component — the reset password page */
 export default function ResetPassword() {
   const navigate = useNavigate();
 
-  // Form state
+  /* Form state */
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [err, setErr] = useState('');
+  const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Session validity state
+  /* Session validity state */
   const [hasSession, setHasSession] = useState(false);
   const [checking, setChecking] = useState(true);
 
-  // Check if the user arrived from a valid reset link
-  // (Supabase automatically creates a session from the email link)
+  /* Check if the user arrived from a valid reset link.
+     Supabase automatically creates a session from the email link.
+  */
   useEffect(() => {
-    (async () => {
+    let isMounted = true;
+
+    async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
 
+      if (!isMounted) return;
+
+      /* No session — link is invalid or expired */
       if (!session) {
-        setErr('Invalid or expired reset link. Please request a new one.');
+        setError('Invalid or expired reset link. Please request a new one.');
         setChecking(false);
         return;
       }
 
+      /* Session found — allow the user to reset the password */
       setHasSession(true);
       setChecking(false);
-    })();
+    }
+
+    checkSession();
+
+    /* Prevent state updates on unmounted component */
+    return () => { isMounted = false; };
   }, []);
 
+  /* Handle the password update form submission */
   async function handleReset(e) {
     e.preventDefault();
-    setErr('');
+    setError('');
     setMessage('');
 
-    // Client-side validation
+    /* Client-side validation */
     if (password !== confirmPassword) {
-      return setErr('Passwords do not match.');
+      return setError('Passwords do not match.');
     }
-    if (password.length < 6) {
-      return setErr('Password must be at least 6 characters.');
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
     }
 
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      /* Ask Supabase to update the password for the current session */
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
 
-      setMessage('✅ Password updated successfully. Redirecting to login…');
-      setTimeout(() => navigate('/login'), 1800);
+      setMessage('Password updated successfully. Redirecting to login…');
+      setTimeout(() => navigate('/login'), REDIRECT_DELAY_MS);
     } catch (err) {
-      setErr(err.message || 'Failed to update password.');
+      setError(err.message || 'Failed to update password.');
     } finally {
       setLoading(false);
     }
   }
 
-  // Loading state — while checking if the session is valid
+  /* Loading state — checking if the session is valid */
   if (checking) {
     return (
       <AppLayout nav={false} footer={false}>
@@ -86,7 +107,7 @@ export default function ResetPassword() {
     );
   }
 
-  // Invalid or expired session
+  /* Invalid or expired session */
   if (!hasSession) {
     return (
       <AppLayout nav={false} footer={false}>
@@ -96,13 +117,10 @@ export default function ResetPassword() {
               <i className="fa-solid fa-circle-exclamation"></i>
             </div>
             <h2>Link Expired</h2>
-            <p className="subtitle">{err}</p>
+            <p className="subtitle">{error}</p>
 
-            <Link
-              to="/forgot"
-              className="app-btn app-btn-primary"
-              style={{ width: '100%', padding: '12px 20px', marginTop: 16 }}
-            >
+            {/* Ask the user to request a new link */}
+            <Link to="/forgot" className="app-btn app-btn-primary btn-full-width mt-3">
               <i className="fa-solid fa-rotate-right mr-1"></i>
               Request New Link
             </Link>
@@ -112,7 +130,7 @@ export default function ResetPassword() {
     );
   }
 
-  // Valid session — show the reset form
+  /* Valid session — show the reset form */
   return (
     <AppLayout nav={false} footer={false}>
       <div className="auth-wrap">
@@ -128,7 +146,7 @@ export default function ResetPassword() {
           {/* Form */}
           <form onSubmit={handleReset}>
 
-            {/* New password */}
+            {/* New password field */}
             <div className="admin-field">
               <label htmlFor="reset-password">
                 <i className="fa-solid fa-lock"></i> New Password
@@ -143,13 +161,13 @@ export default function ResetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={MIN_PASSWORD_LENGTH}
                   autoComplete="new-password"
                 />
               </div>
             </div>
 
-            {/* Confirm password */}
+            {/* Confirm password field */}
             <div className="admin-field">
               <label htmlFor="reset-confirm">
                 <i className="fa-solid fa-lock"></i> Confirm Password
@@ -164,33 +182,33 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={MIN_PASSWORD_LENGTH}
                   autoComplete="new-password"
                 />
               </div>
             </div>
 
-            {/* Feedback */}
-            {err && <p className="admin-error">{err}</p>}
-            {message && <p className="admin-success">{message}</p>}
+            {/* Feedback messages */}
+            {error && <p className="admin-error" aria-live="polite">{error}</p>}
+            {message && <p className="admin-success" aria-live="polite">{message}</p>}
 
-            {/* Submit */}
+            {/* Submit button */}
             <button
               type="submit"
-              className="app-btn app-btn-primary"
+              className="app-btn app-btn-primary btn-full-width mt-2"
               disabled={loading}
-              style={{ width: '100%', padding: '12px 20px', marginTop: 8 }}
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-check'} mr-1`}></i>
               {loading ? 'Updating…' : 'Update Password'}
             </button>
           </form>
 
-          {/* Footer */}
+          {/* Divider */}
           <div className="auth-divider">
             <span>or</span>
           </div>
 
+          {/* Back to login link */}
           <p className="auth-alt">
             <Link to="/login" className="auth-link">
               <i className="fa-solid fa-arrow-left mr-1"></i>

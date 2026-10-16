@@ -1,7 +1,4 @@
-/* ============================================================
-   src/globalStyles.css
-   Smart Beach Resort — Clean Design System
-   ============================================================ */
+/* Smart Beach Resort — Clean Design System */
 
 /* ============================================================
    1. DESIGN TOKENS
@@ -92,32 +89,28 @@ html { scroll-behavior: smooth; }
    3. UTILITY CLASSES
    ============================================================ */
 
-/* Spacing — admin */
-.admin-gap        { margin-right: 4px; }
-.admin-gap-top    { margin-top: 8px; }
-.admin-gap-bottom { margin-bottom: 24px; }
-.admin-gap-lg     { margin-top: 16px; }
+/* Spacing */
+.admin-gap         { margin-right: 4px; }
+.admin-gap-top     { margin-top: 8px; }
+.admin-gap-bottom  { margin-bottom: 24px; }
+.admin-gap-lg      { margin-top: 16px; }
 
-/* Spacing — user */
-.user-gap    { margin-right: 4px; }
-.user-gap-lg { margin-top: 24px; }
+.user-gap          { margin-right: 4px; }
+.user-gap-lg       { margin-top: 24px; }
 
-/* Spacing — booking */
 .booking-gap-right  { margin-right: 8px; }
 .booking-gap-left   { margin-left: 8px; }
 .booking-gap-top    { margin-top: 8px; }
 .booking-gap-top-md { margin-top: 16px; }
 .booking-gap-bottom { margin-bottom: 24px; }
 
-/* Spacing — staff */
-.staff-gap        { margin-right: 4px; }
-.staff-gap-bottom { margin-bottom: 24px; }
+.staff-gap         { margin-right: 4px; }
+.staff-gap-bottom  { margin-bottom: 24px; }
 
-/* Spacing — auth */
-.forgot-gap { margin-right: 4px; }
-.reset-gap  { margin-right: 4px; }
+.forgot-gap        { margin-right: 4px; }
+.reset-gap         { margin-right: 4px; }
 
-/* Text — admin */
+/* Text */
 .admin-center    { text-align: center; }
 .admin-bold      { font-weight: 700; }
 .admin-sm        { font-size: 12px; }
@@ -126,7 +119,6 @@ html { scroll-behavior: smooth; }
 .admin-danger    { color: var(--danger); }
 .admin-invisible { visibility: hidden; }
 
-/* Text — user */
 .user-center   { text-align: center; }
 .user-bold     { font-weight: 700; }
 .user-sm       { font-size: 12px; }
@@ -134,14 +126,12 @@ html { scroll-behavior: smooth; }
 .user-deep-sea { color: var(--deep-sea); }
 .user-danger   { color: var(--danger); }
 
-/* Text — booking */
 .booking-sm    { font-size: 12px; }
 .booking-muted { color: var(--muted); font-size: 13px; }
 .booking-right { text-align: right; }
 .booking-ok    { color: var(--success); }
 .booking-bad   { color: var(--danger); }
 
-/* Text — staff */
 .staff-sm    { font-size: 12px; }
 .staff-muted { color: var(--muted); font-size: 13px; }
 .staff-right { text-align: right; }
@@ -153,6 +143,7 @@ html { scroll-behavior: smooth; }
 .admin-full        { width: 100%; }
 .admin-left        { text-align: left; }
 .admin-pointer     { cursor: pointer; }
+
 .user-relative     { position: relative; }
 .user-transparent  { background: transparent; }
 .user-border-none  { border: none; }
@@ -160,18 +151,22 @@ html { scroll-behavior: smooth; }
 .user-left         { text-align: left; }
 .user-pointer      { cursor: pointer; }
 
-/* Flex row helpers */
-.admin-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+/* Flex helpers */
+.admin-row        { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
 .admin-row-center { align-items: center; }
-.admin-col { flex: 1 1 240px; min-width: 0; }
-.admin-col-fixed { flex: 0 0 180px; }
+.admin-col        { flex: 1 1 240px; min-width: 0; }
+.admin-col-fixed  { flex: 0 0 180px; }
 
 .admin-row-actions,
 .staff-row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .staff-row-end { justify-content: flex-end; }
 
+/* Legend colors */
+.legend-encrypted { color: #c62828; }
+.legend-decrypted { color: #2e7d32; }
+
 /* ============================================================
-   4. ICONS — base + single-word → FA6 glyph map
+   4. ICONS — single-word → FA6 glyph map
    ============================================================ */
 i[class] {
   color: var(--icon-blue);
@@ -185,27 +180,27 @@ i[class] {
 }
 
 /* Navigation & UI */
-.house::before            { content: "\f015"; }
-.gear::before             { content: "\f013"; }
-.bell::before             { content: "\f0f3"; }
-.bell-concierge::before   { content: "\f562"; }
-.search::before           { content: "\f002"; }
-.chevron-down::before     { content: "\f078"; }
-.list::before             { content: "\f03a"; }
-.rotate::before           { content: "\f2f1"; }
-.rotate-right::before     { content: "\f2f9"; }
-.sign-in::before          { content: "\f2f6"; }
-.sign-out::before         { content: "\f2f5"; }
+.house::before              { content: "\f015"; }
+.gear::before               { content: "\f013"; }
+.bell::before               { content: "\f0f3"; }
+.bell-concierge::before     { content: "\f562"; }
+.search::before             { content: "\f002"; }
+.chevron-down::before       { content: "\f078"; }
+.list::before               { content: "\f03a"; }
+.rotate::before             { content: "\f2f1"; }
+.rotate-right::before       { content: "\f2f9"; }
+.sign-in::before            { content: "\f2f6"; }
+.sign-out::before           { content: "\f2f5"; }
 .right-to-bracket::before   { content: "\f2f6"; }
 .right-from-bracket::before { content: "\f2f5"; }
-.arrow-left::before       { content: "\f060"; }
-.arrow-right::before      { content: "\f061"; }
-.plus::before             { content: "\f067"; }
-.check::before            { content: "\f00c"; }
-.xmark::before            { content: "\f00d"; }
-.ban::before              { content: "\f05e"; }
-.trash::before            { content: "\f1f8"; }
-.paper-plane::before      { content: "\f1d8"; }
+.arrow-left::before         { content: "\f060"; }
+.arrow-right::before        { content: "\f061"; }
+.plus::before               { content: "\f067"; }
+.check::before              { content: "\f00c"; }
+.xmark::before              { content: "\f00d"; }
+.ban::before                { content: "\f05e"; }
+.trash::before              { content: "\f1f8"; }
+.paper-plane::before        { content: "\f1d8"; }
 
 /* Status & info */
 .clock::before              { content: "\f017"; }
@@ -268,12 +263,7 @@ i[class] {
 
 /* ============================================================
    5. AUTH PAGES (login, register, forgot, reset)
-   Uses two class systems:
-   - Legacy: .login-*, .register-*, .forgot-*, .reset-*
-   - New:    .auth-* (used by Register.jsx and others)
    ============================================================ */
-
-/* Wrap — full viewport, centered */
 .login-wrap,
 .register-wrap,
 .forgot-wrap,
@@ -290,7 +280,6 @@ i[class] {
     linear-gradient(180deg, #eaf4fa 0%, #d5e8f3 100%);
 }
 
-/* Card */
 .login-card,
 .register-card,
 .forgot-card,
@@ -307,7 +296,6 @@ i[class] {
   border: 1px solid #e5ebf0;
 }
 
-/* Top gradient bar */
 .login-card::before,
 .register-card::before,
 .forgot-card::before,
@@ -320,14 +308,12 @@ i[class] {
   background: linear-gradient(90deg, var(--lagoon), var(--sky), var(--foam), var(--sky), var(--lagoon));
 }
 
-/* Headings */
 .login-card h2,
 .register-card h2,
 .forgot-card h2,
 .reset-card h2,
 .auth-card h2 { text-align: center; margin: 0 0 6px; color: var(--deep-sea); }
 
-/* Subtitles */
 .login-subtitle,
 .register-subtitle,
 .forgot-subtitle,
@@ -336,7 +322,6 @@ i[class] {
 
 .reset-center { text-align: center; }
 
-/* Icon circle */
 .login-icon,
 .register-icon,
 .forgot-icon,
@@ -357,7 +342,6 @@ i[class] {
 .reset-icon i,
 .auth-icon i { color: var(--icon-blue) !important; font-size: 32px; }
 
-/* Forgot password link */
 .login-forgot-link {
   font-size: 12.5px;
   font-weight: 600;
@@ -367,7 +351,12 @@ i[class] {
 }
 .login-forgot-link:hover { color: #1e5fa8; text-decoration: underline; }
 
-/* Divider */
+.login-forgot {
+  text-align: right;
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
+
 .login-divider,
 .register-divider,
 .forgot-divider,
@@ -392,14 +381,12 @@ i[class] {
   background: #e5ebf0;
 }
 
-/* Footer text */
 .login-alt,
 .register-alt,
 .forgot-alt,
 .reset-alt,
 .auth-alt { text-align: center; font-size: 13px; color: #6b7f95; margin: 0; }
 
-/* Footer links */
 .login-link,
 .register-link,
 .forgot-link,
@@ -421,7 +408,6 @@ i[class] {
 .reset-link:hover,
 .auth-link:hover { text-decoration: underline; }
 
-/* Fields */
 .login-field,
 .register-field,
 .forgot-field,
@@ -446,7 +432,6 @@ i[class] {
 .reset-field label i,
 .auth-card .admin-field label i { color: var(--icon-blue) !important; font-size: 11px; width: 14px; }
 
-/* Input wrappers */
 .login-input-wrap,
 .register-input-wrap,
 .forgot-input-wrap,
@@ -466,7 +451,6 @@ i[class] {
   z-index: 1;
 }
 
-/* Inputs */
 .login-input-wrap .login-input,
 .register-input-wrap .register-input,
 .forgot-input-wrap .forgot-input,
@@ -507,11 +491,9 @@ i[class] {
 .reset-input::placeholder,
 .auth-card .admin-input::placeholder { color: #a8b8c8; }
 
-/* Field hint */
 .register-field-hint,
 .auth-card .admin-field-hint { font-size: 11px; color: var(--muted); margin: -2px 0 0; font-style: italic; }
 
-/* Error messages */
 .login-error,
 .register-error,
 .forgot-error,
@@ -535,7 +517,6 @@ i[class] {
   margin: 8px 0;
 }
 
-/* Success messages */
 .login-success,
 .register-success,
 .forgot-success,
@@ -558,7 +539,6 @@ i[class] {
   margin: 8px 0;
 }
 
-/* Buttons — shared base */
 .login-btn,
 .register-btn,
 .forgot-btn,
@@ -586,7 +566,6 @@ i[class] {
   text-decoration: none;
 }
 
-/* Primary buttons */
 .login-btn-primary,
 .register-btn-primary,
 .forgot-btn-primary,
@@ -638,7 +617,6 @@ i[class] {
 .profile-btn-primary:disabled,
 .app-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-/* Secondary buttons */
 .admin-btn-secondary,
 .staff-btn-secondary,
 .booking-btn-secondary,
@@ -659,7 +637,6 @@ i[class] {
 .page-btn-secondary:hover,
 .app-btn-secondary:hover { background: #f9fbfd; border-color: var(--icon-blue); }
 
-/* Danger buttons */
 .admin-btn-danger,
 .staff-btn-danger,
 .booking-btn-danger {
@@ -674,10 +651,12 @@ i[class] {
 .staff-btn-danger:hover,
 .booking-btn-danger:hover { background: #ffe0e4; border-color: var(--danger); }
 
-/* Small buttons */
 .admin-btn-sm,
 .staff-btn-sm,
 .booking-btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* Shared utility classes */
+.btn-full-width { width: 100%; }
 
 /* ============================================================
    6. HOME PAGE
@@ -721,12 +700,11 @@ i[class] {
 .home-btn { padding: 12px 24px; font-size: 14px; }
 
 /* ============================================================
-   7. SHELLS (admin + user share the same layout primitives)
+   7. SHELLS (admin + user share layout primitives)
    ============================================================ */
 .admin-layout,
 .user-layout { display: flex; min-height: 100vh; background: #f5f7fa; }
 
-/* Sidebar */
 .admin-sidebar,
 .user-sidebar {
   width: 240px;
@@ -744,7 +722,6 @@ i[class] {
 .admin-sidebar::-webkit-scrollbar-thumb,
 .user-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 
-/* Logo */
 .admin-logo,
 .user-logo {
   display: flex;
@@ -776,7 +753,6 @@ i[class] {
   margin-top: 2px;
 }
 
-/* User card */
 .admin-user-card,
 .user-card {
   display: flex;
@@ -813,7 +789,6 @@ i[class] {
   margin-top: 2px;
 }
 
-/* Nav */
 .admin-nav,
 .user-nav { padding: 12px; flex: 1; }
 .admin-nav-item,
@@ -860,7 +835,6 @@ i[class] {
 .admin-nav-divider,
 .user-nav-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 12px 8px; }
 
-/* Main + topbar */
 .admin-main,
 .user-main { flex: 1; margin-left: 240px; display: flex; flex-direction: column; min-width: 0; }
 
@@ -907,7 +881,6 @@ i[class] {
 .admin-topbar-actions,
 .user-topbar-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 
-/* Bell */
 .admin-bell,
 .user-bell {
   position: relative;
@@ -941,7 +914,6 @@ i[class] {
   border: 2px solid #fff;
 }
 
-/* Topbar user menu */
 .admin-topbar-user,
 .user-topbar-menu {
   display: flex;
@@ -971,7 +943,6 @@ i[class] {
 .admin-avatar-lg,
 .user-avatar-lg { width: 40px; height: 40px; }
 
-/* Content area */
 .admin-content,
 .user-content { padding: 32px; flex: 1; }
 
@@ -1032,7 +1003,6 @@ i[class] {
 .admin-search-item-sub,
 .user-search-item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-/* Notification dropdown */
 .admin-notif-dropdown,
 .user-notif-dropdown {
   position: absolute;
@@ -1138,7 +1108,6 @@ i[class] {
   background: #fafcfd;
 }
 
-/* User menu dropdown */
 .admin-user-dropdown,
 .user-menu-dropdown {
   position: absolute;
@@ -1194,7 +1163,7 @@ i[class] {
 .user-menu-item.user-danger:hover { background: #fff0f2; }
 
 /* ============================================================
-   9. PANELS + TABLES + PILLS + STATES (shared across shells)
+   9. PANELS + TABLES + PILLS + STATES
    ============================================================ */
 .admin-panel,
 .user-panel,
@@ -1247,7 +1216,6 @@ i[class] {
 .user-panel-link:hover { text-decoration: underline; }
 .admin-panel-select { width: auto; min-width: 160px; margin-bottom: 0; }
 
-/* Tables */
 .admin-table,
 .user-table,
 .staff-table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -1300,7 +1268,6 @@ i[class] {
 .admin-scroll-wrapper { overflow-x: auto; }
 .admin-table-wide { min-width: 1100px; }
 
-/* Pills */
 .admin-pill,
 .user-pill,
 .booking-pill,
@@ -1354,7 +1321,6 @@ i[class] {
 .admin-pill.admin       { background: #fce7f3; color: #9d174d; }
 .booking-pill.cancelled { background: #fee2e2; color: #991b1b; }
 
-/* Empty / loading */
 .admin-empty,
 .user-empty,
 .staff-empty,
@@ -1387,7 +1353,6 @@ i[class] {
   display: block;
 }
 
-/* Welcome headings */
 .admin-welcome,
 .user-welcome,
 .staff-welcome,
@@ -1410,7 +1375,6 @@ i[class] {
 .booking-welcome p,
 .profile-welcome p { font-size: 14px; color: var(--muted); margin: 0; }
 
-/* Info banners */
 .admin-info-banner,
 .staff-info-banner,
 .booking-banner {
@@ -1429,7 +1393,6 @@ i[class] {
 .staff-info-banner i,
 .booking-banner i { color: var(--icon-blue) !important; font-size: 16px; margin-top: 1px; flex-shrink: 0; }
 
-/* Mini stats */
 .admin-mini-stats,
 .user-mini-stats,
 .staff-mini-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -1494,7 +1457,6 @@ i[class] {
 .user-mini-stat-value,
 .staff-mini-stat-value { font-size: 20px; font-weight: 800; color: var(--deep-sea); line-height: 1.1; }
 
-/* Form fields, inputs, labels */
 .admin-field,
 .booking-field,
 .profile-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
@@ -1566,7 +1528,6 @@ i[class] {
 
 .admin-role-select { width: auto; min-width: 120px; padding: 6px 10px; font-size: 12px; margin-bottom: 0; }
 
-/* Form grids + action rows */
 .admin-form-grid,
 .booking-form-grid {
   display: grid;
@@ -1585,7 +1546,6 @@ i[class] {
   margin-top: 8px;
 }
 
-/* Toolbars */
 .admin-toolbar,
 .staff-toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
 .admin-toolbar-search,
@@ -1647,7 +1607,6 @@ i[class] {
   pointer-events: none;
 }
 
-/* Chips */
 .admin-chips,
 .staff-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 
@@ -1739,7 +1698,6 @@ i[class] {
 
 .admin-dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 
-/* Donut chart */
 .admin-donut-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
 .admin-donut { position: relative; width: 180px; height: 180px; margin-bottom: 24px; }
 .admin-donut svg { transform: rotate(-90deg); width: 100%; height: 100%; }
@@ -1913,6 +1871,11 @@ i[class] {
   to   { transform: rotate(360deg); }
 }
 
+@keyframes slideRight {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(4px); }
+}
+
 /* ============================================================
    17. LOADING / ACCESS-CHECK SCREEN
    ============================================================ */
@@ -1958,7 +1921,6 @@ i[class] {
   font-size: 13px;
 }
 
-/* Optional card-style loader (matches auth card look) */
 .loading-card {
   width: 100%;
   max-width: 400px;
@@ -1986,87 +1948,8 @@ i[class] {
 .loading-card p { margin: 0; color: var(--muted); font-size: 13px; }
 
 /* ============================================================
-   18. RESPONSIVE
+   18. DECRYPT VIEWER
    ============================================================ */
-@media (max-width: 1100px) {
-  .admin-dashboard-grid,
-  .staff-grid,
-  .profile-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 900px) {
-  .admin-sidebar,
-  .user-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
-  .admin-sidebar.open,
-  .user-sidebar.open { transform: translateX(0); }
-  .admin-main,
-  .user-main { margin-left: 0; }
-  .admin-content,
-  .user-content { padding: 16px; }
-  .admin-topbar,
-  .user-topbar { padding: 12px 16px; }
-  .admin-search,
-  .user-search { max-width: none; }
-  .admin-welcome h1,
-  .user-welcome h1,
-  .staff-welcome h1,
-  .booking-welcome h1,
-  .profile-welcome h1 { font-size: 22px; }
-  .admin-stat-value { font-size: 26px; }
-}
-
-@media (max-width: 720px) {
-  .admin-row { gap: 12px; }
-  .admin-col-fixed { flex: 1 1 100%; }
-
-  th, td { padding: 8px 6px; font-size: 13px; }
-  h1 { font-size: 22px; }
-  h2 { font-size: 19px; }
-
-  .login-card,
-  .register-card,
-  .forgot-card,
-  .reset-card,
-  .auth-card,
-  .loading-card { padding: 32px 22px; }
-
-  .admin-toolbar,
-  .staff-toolbar { flex-direction: column; align-items: stretch; }
-  .admin-toolbar-filter { min-width: auto; width: 100%; }
-  .admin-form-grid,
-  .booking-form-grid { grid-template-columns: 1fr; }
-  .admin-chips,
-  .staff-chips { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
-  .admin-chips::-webkit-scrollbar,
-  .staff-chips::-webkit-scrollbar { height: 4px; }
-
-  .admin-search-dropdown,
-  .admin-notif-dropdown,
-  .admin-user-dropdown,
-  .user-search-dropdown,
-  .user-notif-dropdown,
-  .user-menu-dropdown {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    width: auto;
-  }
-  .admin-notif-dropdown,
-  .user-notif-dropdown { max-height: 70vh; }
-
-  .homepage h1 { font-size: 28px; }
-  .page-subtitle { font-size: 14px; }
-  .page-actions { flex-direction: column; align-items: stretch; }
-  .home-btn { width: 100%; }
-}
-
-/* ============================================================
-   20. DECRYPT VIEWER — ORGANIZED TABLE WITH ROW NUMBERS
-   ============================================================ */
-
-/* ------------------------------------------------------------
-   20.1 PAGE CONTAINER
-   ------------------------------------------------------------ */
 .decrypt-page {
   min-height: 100vh;
   width: 100%;
@@ -2111,9 +1994,6 @@ i[class] {
   font-size: 12px;
 }
 
-/* ------------------------------------------------------------
-   20.2 CARD CONTAINER
-   ------------------------------------------------------------ */
 .decrypt-container {
   width: 100%;
   max-width: 1600px;
@@ -2134,9 +2014,6 @@ i[class] {
   background: linear-gradient(90deg, var(--lagoon), var(--sky), var(--foam), var(--sky), var(--lagoon));
 }
 
-/* ------------------------------------------------------------
-   20.3 HEADER (icon + title + subtitle)
-   ------------------------------------------------------------ */
 .decrypt-icon {
   display: flex;
   align-items: center;
@@ -2183,9 +2060,6 @@ i[class] {
   line-height: 1.5;
 }
 
-/* ------------------------------------------------------------
-   20.4 TOOLBAR (table selector + reload + stats)
-   ------------------------------------------------------------ */
 .decrypt-toolbar {
   display: flex;
   align-items: center;
@@ -2269,36 +2143,6 @@ i[class] {
   color: #2e7d32;
 }
 
-/* ------------------------------------------------------------
-   20.5 SCROLL HINT
-   ------------------------------------------------------------ */
-.decrypt-scroll-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: #e8f4fb;
-  color: #1e5fa8;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  border-left: 4px solid var(--icon-blue);
-}
-.decrypt-scroll-hint i {
-  color: var(--icon-blue) !important;
-  font-size: 14px;
-  animation: slideRight 1.5s ease-in-out infinite;
-}
-@keyframes slideRight {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(4px); }
-}
-
-/* ------------------------------------------------------------
-   20.6 TABLE WRAP (scrollable)
-   ------------------------------------------------------------ */
 .decrypt-table-wrap {
   overflow-x: auto;
   overflow-y: auto;
@@ -2310,30 +2154,16 @@ i[class] {
   box-shadow: inset 0 1px 0 rgba(0,0,0,0.02);
 }
 
-/* Custom scrollbar */
-.decrypt-table-wrap::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-.decrypt-table-wrap::-webkit-scrollbar-track {
-  background: #f5f7fa;
-  border-radius: 6px;
-}
+.decrypt-table-wrap::-webkit-scrollbar { width: 12px; height: 12px; }
+.decrypt-table-wrap::-webkit-scrollbar-track { background: #f5f7fa; border-radius: 6px; }
 .decrypt-table-wrap::-webkit-scrollbar-thumb {
   background: #b5cbe0;
   border-radius: 6px;
   border: 2px solid #f5f7fa;
 }
-.decrypt-table-wrap::-webkit-scrollbar-thumb:hover {
-  background: #98a8ba;
-}
-.decrypt-table-wrap::-webkit-scrollbar-corner {
-  background: #f5f7fa;
-}
+.decrypt-table-wrap::-webkit-scrollbar-thumb:hover { background: #98a8ba; }
+.decrypt-table-wrap::-webkit-scrollbar-corner { background: #f5f7fa; }
 
-/* ------------------------------------------------------------
-   20.7 TABLE BASE
-   ------------------------------------------------------------ */
 .decrypt-table {
   width: max-content;
   min-width: 100%;
@@ -2343,9 +2173,6 @@ i[class] {
   table-layout: auto;
 }
 
-/* ------------------------------------------------------------
-   20.8 TABLE HEADER (sticky)
-   ------------------------------------------------------------ */
 .decrypt-table thead th {
   position: sticky;
   top: 0;
@@ -2382,9 +2209,6 @@ i[class] {
   font-size: 11px;
 }
 
-/* ------------------------------------------------------------
-   20.9 ROW NUMBER COLUMN (sticky left)
-   ------------------------------------------------------------ */
 .decrypt-table .decrypt-th-num,
 .decrypt-table .decrypt-td-num {
   position: sticky;
@@ -2411,25 +2235,17 @@ i[class] {
   font-weight: 700;
 }
 
-/* Hover effect on row number */
 .decrypt-table tbody tr:hover td.decrypt-td-num {
   background: #d6e4f0;
   color: var(--icon-blue);
 }
 
-/* ------------------------------------------------------------
-   20.10 TABLE BODY
-   ------------------------------------------------------------ */
 .decrypt-table tbody tr {
   transition: background 0.12s ease;
   border-bottom: 1px solid #f0f4f8;
 }
-.decrypt-table tbody tr:last-child {
-  border-bottom: none;
-}
-.decrypt-table tbody tr:hover {
-  background: #f5faff;
-}
+.decrypt-table tbody tr:last-child { border-bottom: none; }
+.decrypt-table tbody tr:hover { background: #f5faff; }
 
 .decrypt-table tbody td {
   padding: 10px 16px;
@@ -2440,16 +2256,9 @@ i[class] {
   white-space: nowrap;
 }
 
-.decrypt-table tbody td.cell-encrypted {
-  background: #fff8f8;
-}
-.decrypt-table tbody td.cell-decrypted {
-  background: #f1f8e9;
-}
+.decrypt-table tbody td.cell-encrypted { background: #fff8f8; }
+.decrypt-table tbody td.cell-decrypted { background: #f1f8e9; }
 
-/* ------------------------------------------------------------
-   20.11 CELL CODE
-   ------------------------------------------------------------ */
 .decrypt-cell-code {
   display: block;
   font-family: 'Courier New', 'Monaco', monospace;
@@ -2467,9 +2276,6 @@ i[class] {
   font-weight: 600;
 }
 
-/* ------------------------------------------------------------
-   20.12 EMPTY / LOADING / ERROR
-   ------------------------------------------------------------ */
 .decrypt-empty,
 .decrypt-loading {
   text-align: center;
@@ -2515,9 +2321,6 @@ i[class] {
   margin-bottom: 16px;
 }
 
-/* ------------------------------------------------------------
-   20.13 FOOTER
-   ------------------------------------------------------------ */
 .decrypt-footer {
   display: flex;
   justify-content: center;
@@ -2535,9 +2338,6 @@ i[class] {
   font-weight: 700;
 }
 
-/* ------------------------------------------------------------
-   20.14 LEGEND
-   ------------------------------------------------------------ */
 .decrypt-legend {
   padding: 16px;
   background: #f9fbfd;
@@ -2595,84 +2395,111 @@ i[class] {
   border-color: #e0e0e0;
 }
 
-/* ------------------------------------------------------------
-   20.15 RESPONSIVE
-   ------------------------------------------------------------ */
+/* ============================================================
+   19. RESPONSIVE
+   ============================================================ */
+@media (max-width: 1100px) {
+  .admin-dashboard-grid,
+  .staff-grid,
+  .profile-grid { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 900px) {
+  .admin-sidebar,
+  .user-sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+  .admin-sidebar.open,
+  .user-sidebar.open { transform: translateX(0); }
+  .admin-main,
+  .user-main { margin-left: 0; }
+  .admin-content,
+  .user-content { padding: 16px; }
+  .admin-topbar,
+  .user-topbar { padding: 12px 16px; }
+  .admin-search,
+  .user-search { max-width: none; }
+  .admin-welcome h1,
+  .user-welcome h1,
+  .staff-welcome h1,
+  .booking-welcome h1,
+  .profile-welcome h1 { font-size: 22px; }
+  .admin-stat-value { font-size: 26px; }
+
   .decrypt-container {
     padding: 24px 12px;
     border-radius: 14px;
   }
-  .decrypt-title {
-    font-size: 20px;
-  }
-  .decrypt-title i {
-    font-size: 22px;
-  }
-  .decrypt-icon {
-    width: 60px;
-    height: 60px;
-  }
-  .decrypt-icon i {
-    font-size: 26px;
-  }
-  .decrypt-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .decrypt-toolbar select {
-    width: 100%;
-    min-width: auto;
-  }
+  .decrypt-title { font-size: 20px; }
+  .decrypt-title i { font-size: 22px; }
+  .decrypt-icon { width: 60px; height: 60px; }
+  .decrypt-icon i { font-size: 26px; }
+  .decrypt-toolbar { flex-direction: column; align-items: stretch; }
+  .decrypt-toolbar select { width: 100%; min-width: auto; }
   .decrypt-back {
     top: 12px;
     left: 12px;
     padding: 6px 12px;
     font-size: 12px;
   }
-  .decrypt-legend-items {
-    flex-direction: column;
-    gap: 8px;
+  .decrypt-legend-items { flex-direction: column; gap: 8px; }
+  .decrypt-table thead th { font-size: 10px; padding: 10px 12px; }
+  .decrypt-cell-code { font-size: 10px; }
+}
+
+@media (max-width: 720px) {
+  .admin-row { gap: 12px; }
+  .admin-col-fixed { flex: 1 1 100%; }
+
+  th, td { padding: 8px 6px; font-size: 13px; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 19px; }
+
+  .login-card,
+  .register-card,
+  .forgot-card,
+  .reset-card,
+  .auth-card,
+  .loading-card { padding: 32px 22px; }
+
+  .admin-toolbar,
+  .staff-toolbar { flex-direction: column; align-items: stretch; }
+  .admin-toolbar-filter { min-width: auto; width: 100%; }
+  .admin-form-grid,
+  .booking-form-grid { grid-template-columns: 1fr; }
+  .admin-chips,
+  .staff-chips { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .admin-chips::-webkit-scrollbar,
+  .staff-chips::-webkit-scrollbar { height: 4px; }
+
+  .admin-search-dropdown,
+  .admin-notif-dropdown,
+  .admin-user-dropdown,
+  .user-search-dropdown,
+  .user-notif-dropdown,
+  .user-menu-dropdown {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    width: auto;
   }
-  .decrypt-table thead th {
-    font-size: 10px;
-    padding: 10px 12px;
-  }
-  .decrypt-cell-code {
-    font-size: 10px;
-  }
+  .admin-notif-dropdown,
+  .user-notif-dropdown { max-height: 70vh; }
+
+  .homepage h1 { font-size: 28px; }
+  .page-subtitle { font-size: 14px; }
+  .page-actions { flex-direction: column; align-items: stretch; }
+  .home-btn { width: 100%; }
 }
 
 @media (max-width: 600px) {
-  .decrypt-page {
-    padding: 60px 8px 20px;
-  }
-  .decrypt-container {
-    padding: 16px 10px;
-  }
-  .decrypt-title {
-    font-size: 16px;
-  }
-  .decrypt-subtitle {
-    font-size: 12px;
-  }
-  .decrypt-table {
-    font-size: 11px;
-  }
+  .decrypt-page { padding: 60px 8px 20px; }
+  .decrypt-container { padding: 16px 10px; }
+  .decrypt-title { font-size: 16px; }
+  .decrypt-subtitle { font-size: 12px; }
+  .decrypt-table { font-size: 11px; }
   .decrypt-table thead th,
-  .decrypt-table tbody td {
-    padding: 8px 10px;
-    font-size: 10px;
-  }
-  .decrypt-cell-code {
-    font-size: 10px;
-  }
+  .decrypt-table tbody td { padding: 8px 10px; font-size: 10px; }
+  .decrypt-cell-code { font-size: 10px; }
   .decrypt-table .decrypt-th-num,
-  .decrypt-table .decrypt-td-num {
-    width: 36px;
-    min-width: 36px;
-  }
-  .decrypt-footer {
-    gap: 12px;
-  }
+  .decrypt-table .decrypt-td-num { width: 36px; min-width: 36px; }
+  .decrypt-footer { gap: 12px; }
 }

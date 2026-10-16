@@ -1,27 +1,37 @@
-// Imports — React hook, routing, Supabase client, and layout wrapper
+/* Login page — signs in the user and redirects them
+   to the correct dashboard based on their role.
+*/
+
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
-// Login — signs in the user and redirects based on their role
+/* Role-to-destination map for faster lookups */
+const ROLE_DESTINATIONS = {
+  admin: '/admin',
+  staff: '/staff',
+  user:  '/user'
+};
+
+/* Main component — the login page */
 export default function Login() {
   const navigate = useNavigate();
 
-  // Form states — email, password, error message, and loading indicator
+  /* Form and feedback state */
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [err, setErr] = useState('');
+  const [error, setError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
-  // handleLogin — authenticates the user, fetches their role, then redirects
+  /* Handle the login form submission */
   async function handleLogin(e) {
     e.preventDefault();
-    setErr('');
+    setError('');
     setLoggingIn(true);
 
     try {
-      // 1. Authenticate with Supabase
+      /* Authenticate with Supabase */
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
@@ -29,7 +39,7 @@ export default function Login() {
 
       if (authError) throw authError;
 
-      // 2. Get role from profiles table
+      /* Fetch the user's role from the profiles table */
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -40,33 +50,30 @@ export default function Login() {
         console.warn('Could not fetch profile role, defaulting to "user".', profileError);
       }
 
-      // 3. Redirect by role
+      /* Redirect based on the user's role */
       const role = profile?.role || 'user';
-      if (role === 'admin') navigate('/admin');
-      else if (role === 'staff') navigate('/staff');
-      else navigate('/user');
+      navigate(ROLE_DESTINATIONS[role] || '/user');
 
     } catch (err) {
-      setErr(err.message || 'Failed to login. Please check your credentials.');
+      setError(err.message || 'Failed to login. Please check your credentials.');
     } finally {
       setLoggingIn(false);
     }
   }
 
-  // Render — auth card with login form and navigation links
   return (
     <AppLayout nav={false} footer={false}>
       <div className="login-wrap">
         <div className="login-card">
 
-          {/* Header — icon, title, and subtitle */}
+          {/* Header */}
           <div className="login-icon">
             <i className="lock"></i>
           </div>
           <h2>Welcome Back</h2>
           <p className="login-subtitle">Sign in to your Smart Beach Resort account</p>
 
-          {/* Login form — email, password, forgot link, error, submit */}
+          {/* Login form */}
           <form onSubmit={handleLogin}>
 
             {/* Email field */}
@@ -112,20 +119,19 @@ export default function Login() {
             </div>
 
             {/* Forgot password link */}
-            <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 16 }}>
+            <div className="login-forgot">
               <Link to="/forgot" className="login-forgot-link">
                 Forgot password?
               </Link>
             </div>
 
             {/* Error message */}
-            {err && <p className="login-error">{err}</p>}
+            {error && <p className="login-error" aria-live="polite">{error}</p>}
 
             {/* Submit button */}
             <button
-              className="login-btn login-btn-primary"
+              className="login-btn login-btn-primary btn-full-width"
               disabled={loggingIn}
-              style={{ width: '100%', padding: '12px 20px', fontSize: 14 }}
               type="submit"
             >
               <i className={loggingIn ? 'spinner' : 'sign-in'}></i>
@@ -133,16 +139,15 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Footer — divider and create account link */}
+          {/* Divider */}
           <div className="login-divider">
             <span>or</span>
           </div>
 
+          {/* Create account link */}
           <p className="login-alt">
             Don't have an account?{' '}
-            <Link to="/register" className="login-link">
-              Create one
-            </Link>
+            <Link to="/register" className="login-link">Create one</Link>
           </p>
 
         </div>

@@ -1,8 +1,28 @@
-// Imports — routing link and layout wrapper
+/* HomePage — the landing page.
+   Shows the brand, a short description, and two action buttons
+   for signing in or creating a new account.
+*/
+
 import { Link } from 'react-router-dom';
 import AppLayout from './AppLayout.jsx';
 
-// HomePage — landing page with hero section and buttons
+/* Action buttons shown on the landing page */
+const ACTIONS = [
+  {
+    to: '/login',
+    label: 'Sign In',
+    icon: 'sign-in',
+    variant: 'primary'
+  },
+  {
+    to: '/register',
+    label: 'Create Account',
+    icon: 'register',
+    variant: 'secondary'
+  }
+];
+
+/* Main component — the landing page */
 export default function HomePage() {
   return (
     <AppLayout>
@@ -20,16 +40,18 @@ export default function HomePage() {
             Book rooms, manage reservations, and enjoy a seamless beachside stay.
           </p>
 
-          {/* Buttons */}
+          {/* Action buttons */}
           <div className="page-actions">
-            <Link to="/login" className="home-btn page-btn-primary">
-              <i className="sign-in"></i>
-              Sign In
-            </Link>
-            <Link to="/register" className="home-btn page-btn-secondary">
-              <i className="register"></i>
-              Create Account
-            </Link>
+            {ACTIONS.map((action) => (
+              <Link
+                key={action.to}
+                to={action.to}
+                className={`home-btn page-btn-${action.variant}`}
+              >
+                <i className={action.icon}></i>
+                {action.label}
+              </Link>
+            ))}
           </div>
 
         </div>

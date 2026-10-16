@@ -1,36 +1,41 @@
-// Imports — React, routing, Supabase client, and layout wrapper
+/* ForgotPassword page — sends a password reset link to the user's email.
+   Uses a generic success message to prevent email enumeration attacks.
+*/
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
-// ForgotPassword — sends a password reset link to the user's email
-export default function ForgotPassword() {
+/* Path where the user lands after clicking the reset link */
+const RESET_REDIRECT_PATH = '/reset-password';
 
-  // Form states — email input, feedback messages, and loading indicator
+/* Main component — the forgot password page */
+export default function ForgotPassword() {
+  /* Form state */
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // handleReset — sends the reset email via Supabase
-  // Uses a generic message to prevent email enumeration attacks
+  /* Handle the form submission — send the reset email */
   async function handleReset(e) {
     e.preventDefault();
-
     setError('');
     setMessage('');
     setLoading(true);
 
     try {
+      /* Ask Supabase to send the reset email */
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
-        { redirectTo: `${window.location.origin}/reset-password` }
+        { redirectTo: `${window.location.origin}${RESET_REDIRECT_PATH}` }
       );
 
       if (resetError) {
         setError(resetError.message);
       } else {
+        /* Use a generic message even if the email is not registered */
         setMessage('If that email exists, a reset link was sent.');
       }
     } catch (err) {
@@ -41,27 +46,26 @@ export default function ForgotPassword() {
     }
   }
 
-  // Render — auth card with email form, feedback, and back-to-login link
   return (
     <AppLayout nav={false}>
       <div className="auth-wrap">
         <div className="auth-card">
 
-          {/* Header — icon, title, and subtitle */}
+          {/* Header */}
           <div className="auth-icon">
-            <i className="fa-solid fa-key"></i>
+            <i className="key"></i>
           </div>
           <h2>Forgot Password</h2>
           <p className="subtitle">We'll send a reset link to your email</p>
 
-          {/* Form — email input, error/success messages, and submit button */}
+          {/* Form */}
           <form onSubmit={handleReset}>
             <div className="admin-field">
               <label htmlFor="forgot-email">
-                <i className="fa-solid fa-envelope"></i> Email
+                <i className="envelope"></i> Email
               </label>
               <div className="admin-input-wrap">
-                <i className="fa-solid fa-envelope"></i>
+                <i className="envelope"></i>
                 <input
                   id="forgot-email"
                   className="admin-input"
@@ -75,28 +79,30 @@ export default function ForgotPassword() {
               </div>
             </div>
 
-            {error && <p className="admin-error">{error}</p>}
-            {message && <p className="admin-success">{message}</p>}
+            {/* Feedback messages */}
+            {error && <p className="admin-error" aria-live="polite">{error}</p>}
+            {message && <p className="admin-success" aria-live="polite">{message}</p>}
 
+            {/* Submit button */}
             <button
               type="submit"
-              className="app-btn app-btn-primary"
+              className="app-btn app-btn-primary btn-full-width mt-2"
               disabled={loading}
-              style={{ width: '100%', padding: '12px 20px', fontSize: 14, marginTop: 8 }}
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
+              <i className={loading ? 'spinner' : 'paper-plane'}></i>
               {loading ? 'Sending…' : 'Send Reset Link'}
             </button>
           </form>
 
-          {/* Footer — divider and back-to-login link */}
+          {/* Divider */}
           <div className="auth-divider">
             <span>or</span>
           </div>
 
+          {/* Back to login link */}
           <p className="auth-alt">
             <Link to="/login" className="auth-link">
-              <i className="fa-solid fa-arrow-left mr-1"></i>
+              <i className="arrow-left mr-1"></i>
               Back to Sign In
             </Link>
           </p>
