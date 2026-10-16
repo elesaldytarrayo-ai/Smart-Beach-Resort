@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabase.js';
+import { supabase, secureUpdate } from '../supabase.js';
 import AppLayout from './AppLayout.jsx';
 
 /* Delay before redirecting after a successful password change */
@@ -81,6 +81,24 @@ export default function ResetPassword() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
 
+      /* Save the new password to profiles.password_encrypted.
+         secureUpdate handles the encryption automatically.
+      */
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        try {
+          await secureUpdate(
+            'profiles',
+            { id: user.id },
+            { password }
+          );
+        } catch (saveErr) {
+          /* Log but do not block the reset if the profile save fails */
+          console.warn('Profile password save failed:', saveErr);
+        }
+      }
+
       setMessage('Password updated successfully. Redirecting to login…');
       setTimeout(() => navigate('/login'), REDIRECT_DELAY_MS);
     } catch (err) {
@@ -97,7 +115,7 @@ export default function ResetPassword() {
         <div className="auth-wrap">
           <div className="auth-card center">
             <div className="auth-icon">
-              <i className="fa-solid fa-spinner fa-spin"></i>
+              <i className="spinner"></i>
             </div>
             <h2>Verifying…</h2>
             <p className="subtitle">Checking your reset link…</p>
@@ -114,14 +132,14 @@ export default function ResetPassword() {
         <div className="auth-wrap">
           <div className="auth-card">
             <div className="auth-icon">
-              <i className="fa-solid fa-circle-exclamation"></i>
+              <i className="circle-exclamation"></i>
             </div>
             <h2>Link Expired</h2>
             <p className="subtitle">{error}</p>
 
             {/* Ask the user to request a new link */}
             <Link to="/forgot" className="app-btn app-btn-primary btn-full-width mt-3">
-              <i className="fa-solid fa-rotate-right mr-1"></i>
+              <i className="rotate-right mr-1"></i>
               Request New Link
             </Link>
           </div>
@@ -138,7 +156,7 @@ export default function ResetPassword() {
 
           {/* Header */}
           <div className="auth-icon">
-            <i className="fa-solid fa-lock"></i>
+            <i className="lock"></i>
           </div>
           <h2>Set New Password</h2>
           <p className="subtitle">Enter your new password below</p>
@@ -149,10 +167,10 @@ export default function ResetPassword() {
             {/* New password field */}
             <div className="admin-field">
               <label htmlFor="reset-password">
-                <i className="fa-solid fa-lock"></i> New Password
+                <i className="lock"></i> New Password
               </label>
               <div className="admin-input-wrap">
-                <i className="fa-solid fa-key"></i>
+                <i className="key"></i>
                 <input
                   id="reset-password"
                   className="admin-input"
@@ -170,10 +188,10 @@ export default function ResetPassword() {
             {/* Confirm password field */}
             <div className="admin-field">
               <label htmlFor="reset-confirm">
-                <i className="fa-solid fa-lock"></i> Confirm Password
+                <i className="lock"></i> Confirm Password
               </label>
               <div className="admin-input-wrap">
-                <i className="fa-solid fa-key"></i>
+                <i className="key"></i>
                 <input
                   id="reset-confirm"
                   className="admin-input"
@@ -198,7 +216,7 @@ export default function ResetPassword() {
               className="app-btn app-btn-primary btn-full-width mt-2"
               disabled={loading}
             >
-              <i className={`fa-solid ${loading ? 'fa-spinner fa-spin' : 'fa-check'} mr-1`}></i>
+              <i className={loading ? 'spinner' : 'check'}></i>
               {loading ? 'Updating…' : 'Update Password'}
             </button>
           </form>
@@ -211,7 +229,7 @@ export default function ResetPassword() {
           {/* Back to login link */}
           <p className="auth-alt">
             <Link to="/login" className="auth-link">
-              <i className="fa-solid fa-arrow-left mr-1"></i>
+              <i className="arrow-left mr-1"></i>
               Back to Sign In
             </Link>
           </p>
