@@ -155,8 +155,8 @@ async function saveNfcToken({
     booking_id: bookingId,
     room_id: roomId || null,
     token_hash: token.hash,
-    nfc_uid_encrypted: encrypt(uid),                  // ✅ AUTO-ENCRYPT
-    nfc_token_encrypted: encrypt(token.raw),          // ✅ AUTO-ENCRYPT
+    nfc_uid_encrypted: encrypt(uid),
+    nfc_token_encrypted: encrypt(token.raw),
     purpose: purpose || token.purpose,
     status,
     expires_at: token.expiresAt
@@ -211,7 +211,6 @@ app.post(
           const roomId = bookingResult.data?.room_id;
           if (roomId) {
             const token = makeCheckInToken();
-            // ✅ FIXED — may nfc_uid_encrypted at nfc_token_encrypted
             await saveNfcToken({
               bookingId,
               roomId,
@@ -304,10 +303,19 @@ app.post('/api/admin/create-staff', authUser, requireRole('admin'), async (req, 
 
     if (created.error) return res.status(400).json({ error: created.error.message });
 
+    // ✅ I-encrypt ang phone bago i-save sa profiles
+    const encryptedPhone = phone ? encrypt(phone) : null;
+
     const profileResult = await supabaseAdmin
       .from('profiles')
       .upsert(
-        { id: created.data.user.id, email, full_name, phone, role: 'staff' },
+        {
+          id: created.data.user.id,
+          email,
+          full_name,
+          phone_encrypted: encryptedPhone,   // ✅ ENCRYPTED
+          role: 'staff'
+        },
         { onConflict: 'id' }
       );
 
@@ -443,7 +451,6 @@ app.post('/api/payments/verify', authUser, async (req, res) => {
       const token = makeCheckInToken();
       rawToken = token.raw;
 
-      // ✅ FIXED — may nfc_uid_encrypted at nfc_token_encrypted
       await saveNfcToken({
         bookingId,
         roomId: booking.room_id,
@@ -538,7 +545,6 @@ app.post('/api/checkout', authUser, async (req, res) => {
 
     const token = makeCheckOutToken();
 
-    // ✅ FIXED — may nfc_uid_encrypted at nfc_token_encrypted
     await saveNfcToken({
       bookingId,
       roomId,

@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { secureSelect } from '../supabase.js';
 
+/* Import the decrypt helper (adjust path if needed) */
+import { decrypt } from '../encryption.js';
+
 /* List of tables the viewer can display */
 const AVAILABLE_TABLES = ['payments', 'bookings', 'nfc_tokens', 'profiles'];
 
@@ -23,94 +26,134 @@ const DECRYPTED_FIELDS = [
 
 /* Format a cell value for display — truncate long strings */
 function formatCellValue(value, maxLength = 80) {
-  /* Show a dash for empty values */
   if (value === null || value === undefined) return '—';
-
-  /* Convert objects (e.g., JSON columns) into a short string */
   if (typeof value === 'object') return JSON.stringify(value).slice(0, 60);
-
-  /* Convert to string and truncate if too long */
   const str = String(value);
   return str.length > maxLength ? str.slice(0, maxLength) + '…' : str;
 }
 
+/* Safely decrypt a value; returns { ok, value } */
+function safeDecrypt(cipher) {
+  if (cipher === null || cipher === undefined || cipher === '') {
+    return { ok: false, value: '—' };
+  }
+  if (typeof cipher !== 'string') {
+    return { ok: false, value: String(cipher) };
+  }
+  try {
+    const plain = decrypt(cipher);
+    if (!plain) return { ok: false, value: '(decrypt failed)' };
+    return { ok: true, value: plain };
+  } catch (err) {
+    console.error('Decrypt error:', err);
+    return { ok: false, value: '(decrypt error)' };
+  }
+}
+
 /* Return the correct CSS class for a column (encrypted / decrypted / normal) */
 function getColumnClass(key) {
-  /* Columns ending in "_encrypted" get the red badge */
   if (key.endsWith('_encrypted')) return 'col-encrypted';
-
-  /* Columns listed in DECRYPTED_FIELDS get the green badge */
   if (DECRYPTED_FIELDS.includes(key)) return 'col-decrypted';
-
-  /* Everything else is a regular column */
   return '';
+}
+
+/* Build display columns.
+   - Detect EVERY column ending in "_encrypted" (generic, not hardcoded).
+   - Show all normal columns first.
+   - Then ALL encrypted columns.
+   - Then the decrypted counterpart for EACH encrypted column.
+   - Other tables: unchanged (original order).
+*/
+function buildDisplayColumns(columns, table) {
+  /* Non-profiles tables: return columns as-is */
+  if (table !== 'profiles') {
+    return columns.map((key) => ({
+      key,
+      kind: key.endsWith('_encrypted') ? 'encrypted' : 'normal'
+    }));
+  }
+
+  /* Detect every *_encrypted column dynamically */
+  const encryptedCols = columns.filter((k) => k.endsWith('_encrypted'));
+  const normalCols = columns.filter((k) => !k.endsWith('_encrypted'));
+
+  /* Preferred order (if they exist): password_encrypted, phone_encrypted, then the rest */
+  const preferred = ['password_encrypted', 'phone_encrypted'];
+  const orderedEncrypted = [
+    ...preferred.filter((k) => encryptedCols.includes(k)),
+    ...encryptedCols.filter((k) => !preferred.includes(k))
+  ];
+
+  const out = [];
+
+  /* 1. All normal columns first */
+  normalCols.forEach((key) => {
+    out.push({ key, kind: 'normal' });
+  });
+
+  /* 2. ALL encrypted columns (cipher values like "jfkafaok...") */
+  orderedEncrypted.forEach((key) => {
+    out.push({ key, kind: 'encrypted' });
+  });
+
+  /* 3. Decrypted counterpart for EACH encrypted column */
+  orderedEncrypted.forEach((key) => {
+    const plainKey = key.replace(/_encrypted$/, '');
+    out.push({ key: plainKey, kind: 'decrypted', sourceKey: key });
+  });
+
+  return out;
 }
 
 /* Main component — shows the decrypted values viewer */
 export default function DecryptViewer() {
 
-  /* Currently selected table (defaults to "payments") */
   const [table, setTable] = useState('payments');
-
-  /* Rows fetched from the selected table */
   const [rows, setRows] = useState([]);
-
-  /* Loading flag while fetching data */
   const [loading, setLoading] = useState(false);
-
-  /* Error message if fetching fails */
   const [error, setError] = useState('');
 
-  /* Fetch all rows from the selected table */
   async function loadData() {
-    /* Reset state before fetching */
     setLoading(true);
     setError('');
     setRows([]);
 
     try {
-      /* Query Supabase for all rows in the selected table */
       const data = await secureSelect(table, { columns: '*' });
       setRows(data || []);
     } catch (err) {
-      /* Show error if fetch fails */
       console.error('Load error:', err);
       setError(err.message || 'Failed to load data.');
     } finally {
-      /* Always stop loading, even on error */
       setLoading(false);
     }
   }
 
-  /* Re-fetch whenever the selected table changes */
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table]);
 
-  /* Get column names from the first row (or empty if no data) */
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+  const originalColumns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
-  /* Only render the table when data is available */
+  /* Display columns depend on the selected table */
+  const displayColumns = buildDisplayColumns(originalColumns, table);
+
   const hasData = !loading && rows.length > 0;
 
-  /* Render the page */
   return (
     <div className="decrypt-page">
 
-      {/* Back to home link */}
       <Link to="/" className="decrypt-back">
         <i className="arrow-left"></i> Back to Home
       </Link>
 
       <div className="decrypt-container">
 
-        {/* Header icon (lock) */}
         <div className="decrypt-icon">
           <i className="lock"></i>
         </div>
 
-        {/* Header title and subtitle */}
         <div className="decrypt-header">
           <h2 className="decrypt-title">
             <i className="key"></i> Decrypted Values Viewer
@@ -120,18 +163,15 @@ export default function DecryptViewer() {
           </p>
         </div>
 
-        {/* Toolbar with table selector, reload button, and stats */}
         <div className="decrypt-toolbar">
           <label><i className="database"></i> Table:</label>
 
-          {/* Table selector dropdown */}
           <select value={table} onChange={(e) => setTable(e.target.value)}>
             {AVAILABLE_TABLES.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
 
-          {/* Reload button */}
           <button
             className="app-btn app-btn-primary"
             onClick={loadData}
@@ -142,7 +182,6 @@ export default function DecryptViewer() {
             {loading ? 'Loading…' : 'Reload'}
           </button>
 
-          {/* Quick stats (row count and badges) */}
           <div className="decrypt-stats">
             <span className="decrypt-stat">
               <i className="database"></i>
@@ -153,21 +192,18 @@ export default function DecryptViewer() {
           </div>
         </div>
 
-        {/* Show error message if any */}
         {error && (
           <div className="decrypt-error">
             <i className="circle-exclamation"></i>{error}
           </div>
         )}
 
-        {/* Show loading indicator */}
         {loading && (
           <div className="decrypt-loading">
             <i className="spinner"></i>Loading data…
           </div>
         )}
 
-        {/* Show empty state if no rows and no error */}
         {!loading && rows.length === 0 && !error && (
           <div className="decrypt-empty">
             <i className="database"></i>
@@ -176,32 +212,31 @@ export default function DecryptViewer() {
           </div>
         )}
 
-        {/* Show the data table when rows are available */}
         {hasData && (
           <>
-            {/* Scrollable table wrapper */}
             <div className="decrypt-table-wrap">
               <table className="decrypt-table">
 
-                {/* Table header */}
                 <thead>
                   <tr>
-                    {/* Row number column */}
                     <th className="decrypt-th-num">#</th>
 
-                    {/* Data column headers */}
-                    {columns.map((key) => {
-                      const isEncrypted = key.endsWith('_encrypted');
-                      const isDecrypted = DECRYPTED_FIELDS.includes(key);
+                    {displayColumns.map((col) => {
+                      const isEncrypted = col.kind === 'encrypted';
+                      const isDecrypted = col.kind === 'decrypted';
+                      const isPlain = DECRYPTED_FIELDS.includes(col.key);
+
+                      let cls = '';
+                      if (isEncrypted) cls = 'col-encrypted';
+                      else if (isDecrypted) cls = 'col-decrypted';
+                      else cls = getColumnClass(col.key);
 
                       return (
-                        <th key={key} className={getColumnClass(key)}>
+                        <th key={col.key} className={cls}>
                           <span className="decrypt-th-content">
-                            {key}
-                            {/* Show lock icon for encrypted columns */}
+                            {col.key}
                             {isEncrypted && <span className="col-badge">🔒</span>}
-                            {/* Show key icon for decrypted columns */}
-                            {isDecrypted && <span className="col-badge">🔓</span>}
+                            {(isDecrypted || isPlain) && <span className="col-badge">🔓</span>}
                           </span>
                         </th>
                       );
@@ -209,21 +244,44 @@ export default function DecryptViewer() {
                   </tr>
                 </thead>
 
-                {/* Table body */}
                 <tbody>
                   {rows.map((row, i) => (
                     <tr key={i}>
-                      {/* Row number (1, 2, 3…) */}
                       <td className="decrypt-td-num">{i + 1}</td>
 
-                      {/* Data cells */}
-                      {columns.map((key) => (
-                        <td key={key} className={getColumnClass(key)}>
-                          <code className="decrypt-cell-code">
-                            {formatCellValue(row[key])}
-                          </code>
-                        </td>
-                      ))}
+                      {displayColumns.map((col) => {
+                        /* Encrypted column — show cipher (e.g., "jfkafaok...") */
+                        if (col.kind === 'encrypted') {
+                          return (
+                            <td key={col.key} className="col-encrypted">
+                              <code className="decrypt-cell-code">
+                                {formatCellValue(row[col.key], 32)}
+                              </code>
+                            </td>
+                          );
+                        }
+
+                        /* Decrypted column — decrypt the source */
+                        if (col.kind === 'decrypted') {
+                          const { value } = safeDecrypt(row[col.sourceKey]);
+                          return (
+                            <td key={col.key} className="col-decrypted">
+                              <code className="decrypt-cell-code">
+                                {value}
+                              </code>
+                            </td>
+                          );
+                        }
+
+                        /* Normal column */
+                        return (
+                          <td key={col.key} className={getColumnClass(col.key)}>
+                            <code className="decrypt-cell-code">
+                              {formatCellValue(row[col.key])}
+                            </code>
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
@@ -231,23 +289,20 @@ export default function DecryptViewer() {
               </table>
             </div>
 
-            {/* Footer summary */}
             <div className="decrypt-footer">
               <span>Table: <strong>{table}</strong></span>
               <span>Total: <strong>{rows.length}</strong> row{rows.length !== 1 ? 's' : ''}</span>
-              <span>Columns: <strong>{columns.length}</strong></span>
+              <span>Columns: <strong>{displayColumns.length}</strong></span>
             </div>
           </>
         )}
 
-        {/* Legend for the colors used in the table */}
         <div className="decrypt-legend">
           <div className="decrypt-legend-title">
             <i className="circle-info"></i> Legend
           </div>
 
           <div className="decrypt-legend-items">
-            {/* Encrypted items */}
             <div className="decrypt-legend-item">
               <span className="decrypt-legend-swatch encrypted"></span>
               <span>
@@ -255,7 +310,6 @@ export default function DecryptViewer() {
               </span>
             </div>
 
-            {/* Decrypted items */}
             <div className="decrypt-legend-item">
               <span className="decrypt-legend-swatch decrypted"></span>
               <span>
@@ -263,7 +317,6 @@ export default function DecryptViewer() {
               </span>
             </div>
 
-            {/* Regular columns */}
             <div className="decrypt-legend-item">
               <span className="decrypt-legend-swatch regular"></span>
               <span>Regular column</span>
