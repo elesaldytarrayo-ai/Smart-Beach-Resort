@@ -115,7 +115,7 @@ export default function Register() {
                   className="admin-input"
                   name="full_name"
                   type="text"
-                  placeholder="Enter your name"
+                  placeholder="Enter your full name"
                   value={form.full_name}
                   onChange={handleInputChange}
                   required
