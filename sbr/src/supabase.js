@@ -26,11 +26,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 const ENCRYPTED_FIELDS = {
   profiles: {
     password: 'password_encrypted',
-    phone: 'phone_encrypted'
+    phone : 'phone_encrypted'
   },
   payments: {
-    reference: 'reference_number_encrypted',
-    payment_reference: 'reference_number_encrypted',
     reference_number: 'reference_number_encrypted',
     paymongo_id: 'paymongo_id_encrypted'
   },
