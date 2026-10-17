@@ -134,9 +134,8 @@ export default function UserProfile() {
             </div>
 
             <div className="profile-field">
-              <label htmlFor="phone"><i className="phone"></i> Phone 🔒</label>
+              <label htmlFor="phone"><i className="phone"></i> Phone</label>
               <input id="phone" className="profile-input" placeholder="0912 345 6789" value={profile.phone || ''} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} disabled={loading} />
-              <p className="profile-hint">🔓 Naka-decrypt sa display. 🔒 Naka-encrypt sa Supabase.</p>
             </div>
 
             {profileError && <p className="profile-error">{profileError}</p>}
